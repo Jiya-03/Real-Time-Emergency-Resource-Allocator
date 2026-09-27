@@ -18,7 +18,7 @@ export function roadDistanceKm(lat1, lng1, lat2, lng2) {
 // Pune traffic: 20 km/h at peak, 28 off-peak, 40 at night (+2 min to load/unload)
 export function speedKmh(date = new Date()) {
   const h = Number(new Intl.DateTimeFormat('en-GB', { hour: 'numeric', hourCycle: 'h23', timeZone: 'Asia/Kolkata' }).format(date));
-  if (h >= 22 || h < 6) return 40;
+  if (h >= 23 || h < 6) return 40;
   if ((h >= 8 && h < 11) || (h >= 17 && h < 21)) return 20;
   return 28;
 }

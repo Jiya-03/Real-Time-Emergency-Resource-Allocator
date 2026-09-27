@@ -66,7 +66,7 @@ const Geo = {
   },
   speed() {
     const h = Number(new Intl.DateTimeFormat('en-GB', { hour: 'numeric', hourCycle: 'h23', timeZone: 'Asia/Kolkata' }).format(new Date()));
-    if (h >= 22 || h < 6) return 40;
+    if (h >= 23 || h < 6) return 40;
     if ((h >= 8 && h < 11) || (h >= 17 && h < 21)) return 20;
     return 28;
   },

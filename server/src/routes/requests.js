@@ -2,6 +2,7 @@
 import { Router } from 'express';
 import { createRequest, getRequestDetail, listRequests, getRequestSummary } from '../services/requestService.js';
 import { ApiError } from '../utils/errors.js';
+import { matchRequest, getSavedRankings } from '../services/rankingService.js';
 import {
   EMERGENCY_TYPES, SEVERITIES, SPECIALISTS, REQUEST_STATUSES, REQUIREMENT_KEYS,
   TYPE_DEFAULTS, SEVERITY_DEFAULTS,
@@ -37,6 +38,12 @@ router.get('/:id', (req, res) => {
   if (!detail) throw new ApiError(404, `Request ${req.params.id} not found`);
   res.json(detail);
 });
+
+// POST /api/requests/:id/match → run the ranking engine now, save results, status → MATCHING / NO_MATCH
+router.post('/:id/match', (req, res) => res.json(matchRequest(req.params.id)));
+
+// GET /api/requests/:id/rankings → last saved ranking (dataset requests have one too)
+router.get('/:id/rankings', (req, res) => res.json(getSavedRankings(req.params.id)));
 
 // POST /api/requests → dispatcher logs a new emergency
 router.post('/', (req, res) => {

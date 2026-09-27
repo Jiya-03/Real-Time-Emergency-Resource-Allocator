@@ -154,6 +154,25 @@
 </div>
 <div id="cart-content"></div>
 </section>
+<!-- ═════════════ VIEW: HOSPITAL MATCH (ranking results) ═════════════ -->
+<section class="hidden px-margin py-space-xl flex-col gap-space-xl max-w-7xl mx-auto w-full" id="view-match">
+<div class="flex flex-col gap-space-md">
+<a class="inline-flex items-center gap-space-xs font-label-lg text-label-lg text-on-surface w-fit hover:text-primary" href="#dispatch"><span class="material-symbols-outlined text-[18px]">arrow_back</span>Back to Dispatcher Dashboard</a>
+<div class="flex flex-col md:flex-row md:items-end justify-between gap-space-lg">
+<div class="flex flex-col gap-space-xs">
+<h1 class="font-display-lg text-display-lg text-on-surface tracking-tight">Hospital Match</h1>
+<p class="font-body-lg text-body-lg text-on-surface-variant" id="match-sub">Ranking hospitals by resource match, travel time and data freshness.</p>
+</div>
+<button class="inline-flex items-center gap-space-sm px-space-lg py-space-sm rounded-lg bg-surface-container-lowest border border-outline-variant hover:border-[#18B9B5] font-label-lg text-label-lg text-on-surface" id="rerank-btn" type="button"><span class="material-symbols-outlined text-[18px]">refresh</span>Re-run match</button>
+</div>
+</div>
+<div class="hidden rounded-lg border border-[#FCD34D] bg-[#FFFBEB] px-space-lg py-space-md flex items-center justify-between gap-space-md" id="match-stale-banner">
+<span class="font-body-md text-body-md text-[#92400E] flex items-center gap-space-sm"><span class="material-symbols-outlined text-[18px]">sync_problem</span><span id="match-stale-text">Availability changed at a ranked hospital since this match ran.</span></span>
+<button class="font-label-lg text-label-lg text-primary" id="match-stale-refresh" type="button">Refresh ranking</button>
+</div>
+<div id="match-content"></div>
+</section>
+
 </div></main>
 
 <!-- ═════════════ SUMMARY DRAWER ═════════════ -->

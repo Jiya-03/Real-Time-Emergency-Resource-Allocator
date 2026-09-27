@@ -557,15 +557,165 @@
           additional_needs: draftInfoOnly(),
         },
       });
-      toast(`#${request.request_id} logged`, `Hospital search queued for ${esc(request.severity)} ${esc(request.emergency_type)}. ${warnings.map(esc).join(' ')}`, warnings.length ? 'warn' : 'success');
-      state.highlight = request.request_id;
+      if (warnings.length) toast(`#${request.request_id} logged`, warnings.map(esc).join(' '), 'warn');
       draft = newDraft(); saveDraft(); syncCreate();
-      location.hash = '#dispatch';
+      location.hash = `#match/${encodeURIComponent(request.request_id)}`;   // runs the ranking engine
     } catch (err) {
       toast('Could not log emergency', esc((err.details?.length ? err.details : [err.message]).join(' ')), 'critical');
       btn.disabled = false;
       btn.textContent = 'Start Searching....';
     }
+  }
+
+  // ───────────── View: Hospital Match (ranking results) ─────────────
+  state.match = { id: null, data: null, changed: new Set() };
+
+  async function openMatch(id, { rerun = false } = {}) {
+    state.match = { id, data: null, changed: new Set() };
+    $('match-stale-banner').classList.add('hidden');
+    $('match-content').innerHTML = emptyHTML('Ranking hospitals…');
+    try {
+      const request = await api(`/api/requests/${encodeURIComponent(id)}`);
+      let result;
+      if (rerun || request.status === 'CREATED') {
+        result = await api(`/api/requests/${encodeURIComponent(id)}/match`, { method: 'POST' });
+      } else {
+        const saved = await api(`/api/requests/${encodeURIComponent(id)}/rankings`);
+        if (!saved.rankings.length && ['MATCHING', 'NO_MATCH'].includes(request.status)) {
+          result = await api(`/api/requests/${encodeURIComponent(id)}/match`, { method: 'POST' });
+        } else {
+          result = { request, rankings: saved.rankings, summary: summarize(saved.rankings), saved: true };
+        }
+      }
+      state.match.data = result;
+      renderMatch();
+    } catch (err) {
+      $('match-content').innerHTML = emptyHTML(`Could not rank hospitals: ${esc(err.message)}`);
+    }
+  }
+
+  function summarize(rankings) {
+    const eligible = rankings.filter(r => r.eligible);
+    return {
+      evaluated: rankings.length,
+      eligible: eligible.length,
+      best: eligible[0] ? { hospital_name: eligible[0].hospital_name, eta_min: eligible[0].eta_min } : null,
+      stale_in_results: rankings.filter(r => r.freshness?.status === 'stale').length,
+    };
+  }
+
+  // Saved rows don't store the travel part: recover it from the final score
+  function parts(r) {
+    const raw = r.eligible ? r.scores.final : r.scores.final / 0.3;
+    const travel = r.scores.travel ?? Math.max(0, (raw - 0.5 * r.scores.resource - 0.2 * r.scores.freshness) / 0.3);
+    return { resource: 0.5 * r.scores.resource, travel: 0.3 * travel, freshness: 0.2 * r.scores.freshness, raw };
+  }
+
+  const FRESH_CHIP = {
+    fresh: ['bg-secondary-container/40 text-primary', 'Fresh'],
+    aging: ['bg-[#FFFBEB] text-[#92400E]', 'Aging'],
+    stale: ['bg-tertiary-fixed text-tertiary', 'STALE'],
+  };
+
+  function matchCardHTML(r, isBest) {
+    const f = r.freshness || { status: 'fresh', age_minutes: 0 };
+    const [fc, fl] = FRESH_CHIP[f.status] || FRESH_CHIP.fresh;
+    const p = parts(r);
+    const pct = (x) => `${Math.max(0, Math.min(100, x * 100)).toFixed(1)}%`;
+    const reasons = r.missing?.length ? r.missing : (!r.eligible ? [r.explanation.replace(/^INELIGIBLE: /, '').split('. ')[0]] : []);
+    return `
+<div class="bg-surface-container-lowest rounded-xl shadow-sm p-space-lg flex flex-col gap-space-md border-2 ${isBest ? 'border-[#006765]' : 'border-transparent'} ${r.eligible ? '' : 'opacity-80'}" data-match-hospital="${r.hospital_id}">
+  <div class="flex items-start justify-between gap-space-md">
+    <div class="flex items-start gap-space-md min-w-0">
+      <div class="w-11 h-11 rounded-lg ${isBest ? 'bg-primary text-on-primary' : 'bg-surface-container-low text-on-surface'} flex items-center justify-center shrink-0 font-telemetry-lg text-telemetry-lg">${r.rank}</div>
+      <div class="flex flex-col min-w-0 gap-space-xs">
+        <div class="flex items-center gap-space-sm flex-wrap">
+          <span class="font-headline-sm text-headline-sm text-on-surface">${esc(r.hospital_name)}</span>
+          ${isBest ? '<span class="px-space-sm py-0.5 rounded bg-primary text-on-primary font-telemetry-sm text-telemetry-sm font-semibold">BEST MATCH</span>' : ''}
+          <span class="px-space-sm py-0.5 rounded font-telemetry-sm text-telemetry-sm font-semibold ${r.eligible ? 'bg-surface-container text-primary' : 'bg-tertiary-fixed text-tertiary'}">${r.eligible ? 'ELIGIBLE' : 'NOT SUITABLE'}</span>
+          <span class="px-space-sm py-0.5 rounded font-telemetry-sm text-telemetry-sm ${fc}" title="Availability data is ${Math.round(f.age_minutes)} min old">${fl} · ${Math.round(f.age_minutes)} min</span>
+          ${r.is_nearest ? '<span class="px-space-sm py-0.5 rounded bg-surface-container-low font-telemetry-sm text-telemetry-sm text-on-surface-variant">NEAREST</span>' : ''}
+        </div>
+        <span class="font-telemetry-sm text-telemetry-sm text-on-surface-variant">${esc(r.hospital_type || '')} · ${r.distance_km} km · ~${Math.round(r.eta_min)} min ETA${r.primary_bed ? ` · ${esc(r.primary_bed.label)} free: ${r.primary_bed.available}` : ''}</span>
+      </div>
+    </div>
+    <div class="flex flex-col items-end shrink-0">
+      <span class="font-telemetry-lg text-telemetry-lg ${r.eligible ? 'text-primary' : 'text-on-surface-variant'}">${r.scores.final.toFixed(3)}</span>
+      <span class="font-telemetry-sm text-telemetry-sm text-on-surface-variant">suitability</span>
+    </div>
+  </div>
+  <div class="flex flex-col gap-space-xs">
+    <div class="h-2.5 w-full rounded-full bg-surface-container-low overflow-hidden flex" title="Resource ${p.resource.toFixed(2)} + Travel ${p.travel.toFixed(2)} + Freshness ${p.freshness.toFixed(2)}">
+      <span class="h-full bg-primary" style="width:${pct(p.resource)}"></span>
+      <span class="h-full bg-[#18B9B5]" style="width:${pct(p.travel)}"></span>
+      <span class="h-full ${f.status === 'stale' ? 'bg-tertiary' : 'bg-[#6fd7d3]'}" style="width:${pct(p.freshness)}"></span>
+    </div>
+    <div class="flex flex-wrap gap-x-space-lg gap-y-1 font-telemetry-sm text-telemetry-sm text-on-surface-variant">
+      <span><span class="inline-block w-2 h-2 rounded-full bg-primary mr-1"></span>Resource ${r.scores.resource.toFixed(2)}</span>
+      <span><span class="inline-block w-2 h-2 rounded-full bg-[#18B9B5] mr-1"></span>Travel ${(p.travel / 0.3).toFixed(2)}</span>
+      <span><span class="inline-block w-2 h-2 rounded-full ${f.status === 'stale' ? 'bg-tertiary' : 'bg-[#6fd7d3]'} mr-1"></span>Freshness ${r.scores.freshness.toFixed(2)}</span>
+      ${r.eligible ? '' : '<span class="text-tertiary">× 0.3 ineligibility penalty</span>'}
+    </div>
+  </div>
+  ${reasons.length ? `<div class="flex flex-wrap gap-space-xs">${reasons.map(x => `<span class="px-space-sm py-0.5 rounded bg-tertiary-fixed text-tertiary font-label-md text-label-md">${esc(x)}</span>`).join('')}</div>` : ''}
+  ${r.eligible && f.status === 'stale' ? '<div class="font-body-sm text-body-sm text-tertiary flex items-center gap-space-xs"><span class="material-symbols-outlined text-[16px]">warning</span>Availability data is stale. Confirm with the hospital before dispatch.</div>' : ''}
+  <details class="group"><summary class="cursor-pointer font-label-md text-label-md text-primary list-none flex items-center gap-1"><span class="material-symbols-outlined text-[16px] group-open:rotate-90 transition-transform">chevron_right</span>Why this rank?</summary>
+    <p class="mt-space-xs font-telemetry-sm text-telemetry-sm text-on-surface-variant leading-5">${esc(r.explanation)}</p></details>
+  ${r.eligible ? `<div class="flex justify-end"><button class="inline-flex items-center gap-space-sm px-space-lg py-space-sm rounded-lg ${isBest ? 'bg-tertiary hover:bg-tertiary-container text-on-tertiary' : 'bg-surface-container-high hover:bg-surface-container-highest text-on-surface'} font-label-lg text-label-lg" data-request-confirm="${r.hospital_id}" type="button"><span class="material-symbols-outlined text-[18px]">send</span>Request Confirmation</button></div>` : ''}
+</div>`;
+  }
+
+  function renderMatch() {
+    const { data } = state.match;
+    if (!data) return;
+    const req = data.request;
+    const s = data.summary;
+    const eligible = data.rankings.filter(r => r.eligible);
+    const others = data.rankings.filter(r => !r.eligible);
+    const pr = CATALOG.priorities[req.severity];
+    if (!data.rankings.length) {
+      $('match-sub').textContent = `#${req.request_id} · ${clinicalLabel(req)}`;
+      $('match-content').innerHTML = emptyHTML('No ranking is stored for this request.');
+      return;
+    }
+    $('match-sub').innerHTML = `#${esc(req.request_id)} · <span style="color:${pr.color}" class="font-semibold">${esc(clinicalLabel(req))}</span> · patient age ${req.patient_age}`;
+
+    const stat = (label, value, tone = 'text-on-surface') =>
+      `<div class="flex flex-col"><span class="font-label-md text-label-md text-on-surface-variant uppercase">${label}</span><span class="font-telemetry-lg text-telemetry-lg ${tone}">${value}</span></div>`;
+
+    $('match-content').innerHTML = `
+<div class="flex flex-col gap-space-xl">
+  <div class="bg-surface-container-lowest rounded-xl shadow-sm px-space-xl py-space-lg grid grid-cols-2 md:grid-cols-4 gap-space-lg">
+    ${stat('Evaluated', s.evaluated)}
+    ${stat('Eligible', s.eligible, s.eligible ? 'text-primary' : 'text-tertiary')}
+    ${stat('Best ETA', s.best ? `${Math.round(s.best.eta_min)} min` : '—')}
+    ${stat('Stale in results', s.stale_in_results, s.stale_in_results ? 'text-tertiary' : 'text-on-surface')}
+  </div>
+  ${eligible.length ? '' : `<div class="rounded-lg border border-[#F87171] bg-[#FEF2F2] px-space-lg py-space-md text-[#991B1B] font-body-md text-body-md">
+     <b>No hospital can meet every requirement right now.</b> Remove a non-critical requirement in the cart, or re-run the match when availability changes.</div>`}
+  <div class="flex flex-col gap-space-md">${eligible.map((r, i) => matchCardHTML(r, i === 0)).join('')}</div>
+  ${others.length ? `<details class="flex flex-col gap-space-md" ${eligible.length ? '' : 'open'}>
+    <summary class="cursor-pointer font-headline-sm text-headline-sm text-on-surface-variant list-none flex items-center gap-space-xs"><span class="material-symbols-outlined">expand_more</span>Not suitable (${others.length}), shown for transparency</summary>
+    <div class="flex flex-col gap-space-md mt-space-md">${others.map(r => matchCardHTML(r, false)).join('')}</div></details>` : ''}
+  <p class="font-telemetry-sm text-telemetry-sm text-on-surface-variant">Score = 0.5 × resource match + 0.3 × travel + 0.2 × data freshness. Ineligible hospitals × 0.3. ${data.saved ? 'Showing the saved ranking.' : `Ranked ${fmt.timeIST(s.ranked_at || new Date().toISOString())}.`}</p>
+</div>`;
+  }
+
+  $('rerank-btn').addEventListener('click', () => state.match.id && openMatch(state.match.id, { rerun: true }));
+  $('match-stale-refresh').addEventListener('click', () => state.match.id && openMatch(state.match.id, { rerun: true }));
+  document.addEventListener('click', (e) => {
+    const b = e.target.closest('[data-request-confirm]');
+    if (b) toast('Bed confirmation comes next', 'Reserving a bed and hospital accept/reject arrive in Step 8.', 'info');
+  });
+
+  // Live: if a ranked hospital's availability changes, offer a refresh
+  function onHospitalChangeForMatch({ hospital }) {
+    if (state.view !== 'match' || !state.match.data) return;
+    if (!state.match.data.rankings.some(r => r.hospital_id === hospital.hospital_id)) return;
+    state.match.changed.add(hospital.name);
+    const names = [...state.match.changed];
+    $('match-stale-text').textContent = `Availability changed at ${names.slice(0, 2).join(', ')}${names.length > 2 ? ` +${names.length - 2} more` : ''} since this match ran.`;
+    $('match-stale-banner').classList.remove('hidden');
   }
 
   // ───────────── Summary drawer ─────────────
@@ -646,24 +796,26 @@
       ${r.additional_needs?.length ? section('Also requested (notes for hospital)', `<div class="flex flex-wrap gap-space-xs">${r.additional_needs.map(x =>
         `<span class="px-space-sm py-0.5 rounded bg-surface-container-low border border-outline-variant font-label-md text-label-md text-on-surface-variant">${esc(x)}</span>`).join('')}</div>`) : ''}
       ${section('Assigned facility', facility)}
+      ${['CREATED', 'MATCHING', 'NO_MATCH'].includes(r.status) ? `<a class="inline-flex items-center justify-center gap-space-sm px-space-lg py-space-sm rounded-lg bg-primary text-on-primary font-label-lg text-label-lg" href="#match/${encodeURIComponent(r.request_id)}"><span class="material-symbols-outlined text-[18px]">travel_explore</span>${r.status === 'CREATED' ? 'Find hospitals' : 'Open hospital match'}</a>`
+        : `<a class="font-label-lg text-label-lg text-primary inline-flex items-center gap-space-xs" href="#match/${encodeURIComponent(r.request_id)}"><span class="material-symbols-outlined text-[16px]">leaderboard</span>View ranking used</a>`}
       ${section('Handover timeline', `<div class="flex flex-col gap-space-sm">${timeline}</div>`)}
       ${section('Bed reservations', reservations)}`;
   }
 
   // ───────────── Routing between the three views ─────────────
-  const VIEWS = { dispatch: 'view-dispatch', create: 'view-create', cart: 'view-cart' };
+  const VIEWS = { dispatch: 'view-dispatch', create: 'view-create', cart: 'view-cart', match: 'view-match' };
   const ACTIVE_NAV = 'nav-link px-space-md py-space-xs transition-colors rounded bg-primary-container text-on-primary-container font-semibold';
   const IDLE_NAV = 'nav-link px-space-md py-space-xs transition-colors rounded text-on-surface-variant hover:text-on-surface hover:bg-surface-container-low font-label-md text-label-md';
 
   function route() {
-    const view = (location.hash.replace('#', '') || 'dispatch');
+    const [view, param] = (location.hash.replace('#', '') || 'dispatch').split('/');
     state.view = VIEWS[view] ? view : 'dispatch';
     Object.entries(VIEWS).forEach(([k, id]) => {
       $(id).classList.toggle('hidden', k !== state.view);
       $(id).classList.toggle('flex', k === state.view);
     });
     document.querySelectorAll('#main-nav .nav-link').forEach(a => {
-      const on = a.getAttribute('href') === `#${state.view}`;
+      const on = a.getAttribute('href') === `#${state.view === 'match' ? 'dispatch' : state.view}`;
       a.className = on ? ACTIVE_NAV : IDLE_NAV;
       on ? a.setAttribute('aria-current', 'page') : a.removeAttribute('aria-current');
     });
@@ -678,6 +830,7 @@
     });
     $('create-bar').classList.toggle('hidden', state.view !== 'create');
     if (state.view === 'cart') renderCart();
+    if (state.view === 'match') param ? openMatch(decodeURIComponent(param)) : (location.hash = '#dispatch');
     if (state.view === 'create') {
       syncCreate();
       const focus = state.focusAfterRoute; state.focusAfterRoute = null;
@@ -731,7 +884,7 @@
       document.querySelectorAll(`.req-row[data-id="${r.request_id}"]`).forEach(el => { el.outerHTML = rowHTML(r); });
     });
 
-    socket.on('hospital:update', onHospitalUpdate);
+    socket.on('hospital:update', (p) => { onHospitalUpdate(p); onHospitalChangeForMatch(p); });
   } else {
     setConnection(false);
   }

@@ -55,6 +55,11 @@ export function listHospitals({ freshness, has, service, accepting } = {}) {
   return list;
 }
 
+// All hospitals, formatted, with freshness measured at `now` (used by the ranking engine)
+export function getAllHospitals(now = Date.now()) {
+  return db.prepare(`${BASE_QUERY} ORDER BY h.hospital_id`).all().map(r => formatHospital(r, now));
+}
+
 export function getHospital(id) {
   const row = db.prepare(`${BASE_QUERY} WHERE h.hospital_id = ?`).get(id);
   return row ? formatHospital(row) : null;

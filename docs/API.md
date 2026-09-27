@@ -104,6 +104,24 @@ Invalid input → `400` with `{ "error": "...", "details": ["every problem liste
 
 Request status flow: `CREATED → MATCHING → ASSIGNED → IN_TRANSIT → COMPLETED` (or `NO_MATCH`)
 
+### Ranking engine (hospital match)
+| Method | Endpoint | Purpose |
+|--------|----------|---------|
+| POST | /api/requests/:id/match | Rank hospitals **now**, save the result, status → `MATCHING` (or `NO_MATCH` if none eligible) |
+| GET | /api/requests/:id/rankings | Last saved ranking (dataset requests have one too) |
+
+**Scoring** (identical to the ERRA reference engine):
+- `resource = 0.7 × (share of needs met) + 0.3 × headroom`, headroom = `min(1, free primary beds ÷ (5 × beds_required))`
+- `travel = max(0, 1 − ETA/60)`; ETA = road km ÷ traffic speed (20 km/h peak, 28 off-peak, 40 night) + 2 min
+- `freshness = exp(−data age in minutes / 45)`
+- `final = 0.5 × resource + 0.3 × travel + 0.2 × freshness`; ineligible (missing a mandatory need, inactive, no ED) → `× 0.3`
+- Primary bed: ICU if required, else Oxygen Bed, else General Bed
+- Candidates: 5 nearest hospitals + every other eligible hospital within 55 min
+
+Each ranking row: `{ rank, hospital_id, hospital_name, eligible, scores: { resource, travel, freshness, final }, distance_km, eta_min, freshness: { status, age_minutes, needs_reconfirmation }, primary_bed, missing: [...], is_nearest, explanation }`
+
+**Verified:** `npm run test:ranking` replays all 1,920 reference rankings: 99.97% of hospital scores match exactly, and in the 273 cases where our #1 differs, ours is an eligible hospital with a strictly higher score (found beyond the 5 nearest).
+
 ### Simulator (demo control)
 | Method | Endpoint | Purpose |
 |--------|----------|---------|
@@ -124,7 +142,7 @@ Connect with the socket.io client to the same URL (`http://localhost:5000`).
 | `hospitals:freshness` | `[{ hospital_id, status, age_minutes, score }]` | On connect + every 30 s |
 | `simulator:status` | `{ running, interval_ms, live_feed_hospitals, ticks }` | On connect + start/stop |
 | `request:new` | request object | Dispatcher logs a new emergency |
-| `request:update` | request object | Request status changes (coming with ranking/reservations) |
+| `request:update` | request object | Request status changes (e.g. CREATED → MATCHING after ranking) |
 
 ```js
 import { io } from 'socket.io-client';
@@ -142,7 +160,6 @@ All errors return `{ "error": "message" }` with status 400 (bad input), 404 (not
 
 | Method | Endpoint | Purpose |
 |--------|----------|---------|
-| GET | /api/requests/:id/rankings | Ranked hospital list |
 | POST | /api/reservations | Reserve a hospital |
 | PATCH | /api/reservations/:id | Hospital accepts / rejects |
 | PATCH | /api/reservations/:id/status | en_route → arrived → handed_over |

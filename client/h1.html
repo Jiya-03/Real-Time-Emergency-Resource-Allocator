@@ -1,0 +1,525 @@
+<!DOCTYPE html><html lang="en" style=""><head><meta charset="utf-8"><meta content="width=device-width, initial-scale=1.0" name="viewport"><meta content="web_dashboard" name="shell-type"><link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet"><link href="https://fonts.googleapis.com" rel="preconnect"><link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"><link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&amp;family=Public+Sans:wght@400;500;600;700&amp;family=Space+Grotesk:wght@500;600;700&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"><style>@layer base { html, body { margin: 0; padding: 0; } body { overscroll-behavior: none; } main > :first-child { margin-top: 0 !important; } main > :last-child { margin-bottom: 0 !important; } } ::-webkit-scrollbar { display: none; }</style><script src="https://cdn.tailwindcss.com"></script><script id="tailwind-config">tailwind.config = { darkMode: "class", theme: { extend: { "colors": { "secondary-container": "#6ef4ef", "inverse-primary": "#6fd7d3", "on-tertiary-container": "#fffbff", "background": "#f9f9ff", "on-primary-fixed-variant": "#00504e", "on-background": "#071c36", "tertiary-container": "#d8354b", "primary-fixed": "#8cf4ef", "error-container": "#ffdad6", "on-secondary-container": "#006e6c", "secondary": "#006a67", "surface-bright": "#f9f9ff", "on-primary-container": "#f3fffd", "on-secondary": "#ffffff", "surface-dim": "#c8dbfe", "on-tertiary": "#ffffff", "on-tertiary-fixed": "#40000b", "outline-variant": "#bcc9c8", "secondary-fixed": "#71f7f2", "surface-container-low": "#f0f3ff", "on-error-container": "#93000a", "primary-container": "#008280", "on-tertiary-fixed-variant": "#920025", "tertiary-fixed": "#ffdada", "surface-container-high": "#dee8ff", "primary-fixed-dim": "#6fd7d3", "on-surface-variant": "#3d4948", "outline": "#6d7978", "error": "#ba1a1a", "on-secondary-fixed-variant": "#00504e", "inverse-on-surface": "#ecf1ff", "inverse-surface": "#1f314d", "on-error": "#ffffff", "surface": "#f9f9ff", "tertiary": "#b51735", "on-primary-fixed": "#00201f", "on-surface": "#071c36", "surface-container-highest": "#d6e3ff", "primary": "#006765", "tertiary-fixed-dim": "#ffb3b4", "surface-tint": "#006a67", "surface-variant": "#d6e3ff", "surface-container-lowest": "#ffffff", "on-secondary-fixed": "#00201f", "on-primary": "#ffffff", "secondary-fixed-dim": "#4fdad6", "surface-container": "#e7eeff" }, "borderRadius": { "DEFAULT": "0.125rem", "lg": "0.25rem", "xl": "0.5rem", "full": "0.75rem" }, "spacing": { "space-sm": "0.5rem", "space-md": "0.75rem", "gutter-dense": "0.5rem", "space-lg": "1rem", "margin": "1.5rem", "space-2xl": "2rem", "margin-dense": "1rem", "space-xs": "0.25rem", "gutter": "1rem", "space-xl": "1.5rem" }, "fontFamily": { "telemetry-md": [ "JetBrains Mono" ], "telemetry-lg": [ "JetBrains Mono" ], "headline-sm": [ "Space Grotesk" ], "headline-lg": [ "Space Grotesk" ], "body-lg": [ "Public Sans" ], "label-lg": [ "Public Sans" ], "headline-md": [ "Space Grotesk" ], "telemetry-sm": [ "JetBrains Mono" ], "label-md": [ "Public Sans" ], "body-md": [ "Public Sans" ], "display-lg": [ "Space Grotesk" ], "body-sm": [ "Public Sans" ] }, "fontSize": { "telemetry-md": [ "14px", { "lineHeight": "18px", "letterSpacing": "-0.01em", "fontWeight": "500" } ], "telemetry-lg": [ "20px", { "lineHeight": "24px", "letterSpacing": "-0.02em", "fontWeight": "600" } ], "headline-sm": [ "16px", { "lineHeight": "22px", "letterSpacing": "-0.005em", "fontWeight": "600" } ], "headline-lg": [ "24px", { "lineHeight": "30px", "letterSpacing": "-0.015em", "fontWeight": "600" } ], "body-lg": [ "16px", { "lineHeight": "24px", "fontWeight": "400" } ], "label-lg": [ "14px", { "lineHeight": "18px", "fontWeight": "600" } ], "headline-md": [ "20px", { "lineHeight": "26px", "letterSpacing": "-0.01em", "fontWeight": "600" } ], "telemetry-sm": [ "11px", { "lineHeight": "14px", "letterSpacing": "0.01em", "fontWeight": "500" } ], "label-md": [ "12px", { "lineHeight": "16px", "letterSpacing": "0.02em", "fontWeight": "600" } ], "body-md": [ "14px", { "lineHeight": "20px", "fontWeight": "400" } ], "display-lg": [ "32px", { "lineHeight": "38px", "letterSpacing": "-0.02em", "fontWeight": "700" } ], "body-sm": [ "13px", { "lineHeight": "18px", "fontWeight": "400" } ] } } } };</script></head><body class="bg-background font-body-md text-on-surface antialiased min-h-screen"><aside class="fixed left-0 top-0 h-full w-64 bg-surface-container-lowest shadow-[0_1px_8px_rgba(0,0,0,0.04)] z-50 flex flex-col justify-between select-none"><div class="flex flex-col"><div class="h-16 px-space-xl flex items-center justify-between bg-surface-container-lowest"><div class="flex items-center gap-space-sm"><div class="w-8 h-8 rounded-lg bg-primary-container flex items-center justify-center"><span class="material-symbols-outlined text-on-primary-container text-[20px]">vital_signs</span></div><div class="flex flex-col"><span class="font-headline-sm text-headline-sm text-on-surface leading-none tracking-tight">JeevanRoute</span><span class="font-telemetry-sm text-telemetry-sm text-primary uppercase font-bold tracking-wider mt-0.5">Hospital Portal</span></div></div></div><nav class="flex flex-col gap-space-xs px-space-md mt-space-lg" data-active-classes="bg-primary-container text-on-primary-container font-semibold rounded-lg"><a class="flex items-center gap-space-md px-space-md py-space-sm rounded-lg text-on-surface-variant font-label-md text-label-md hover:bg-surface-container-high hover:text-on-surface transition-colors" data-path="dashboard" href="#"><span class="material-symbols-outlined text-[20px]">grid_view</span><span class="">Dashboard</span></a><a class="flex items-center justify-between px-space-md py-space-sm rounded-lg text-on-surface-variant font-label-md text-label-md hover:bg-surface-container-high hover:text-on-surface transition-colors" data-path="emergency-requests" href="#"><div class="flex items-center gap-space-md"><span class="material-symbols-outlined text-[20px]">emergency</span><span class="">Emergency Requests</span></div><span class="px-1.5 py-0.5 rounded-full bg-tertiary text-on-tertiary font-telemetry-sm text-telemetry-sm">LIVE</span></a><a class="flex items-center gap-space-md px-space-md py-space-sm rounded-lg text-on-surface-variant font-label-md text-label-md hover:bg-surface-container-high hover:text-on-surface transition-colors" data-path="resources" href="#"><span class="material-symbols-outlined text-[20px]">inventory_2</span><span class="">Resources</span></a><a class="flex items-center gap-space-md px-space-md py-space-sm rounded-lg text-on-surface-variant font-label-md text-label-md hover:bg-surface-container-high hover:text-on-surface transition-colors" data-path="active-cases" href="#"><span class="material-symbols-outlined text-[20px]">personal_injury</span><span class="">Active Cases</span></a><a aria-current="page" class="flex items-center gap-space-md px-space-md py-space-sm transition-colors bg-primary-container text-on-primary-container font-semibold rounded-lg" data-path="handover" href="#"><span class="material-symbols-outlined text-[20px]">swap_horiz</span><span class="">Handover</span></a><a class="flex items-center gap-space-md px-space-md py-space-sm rounded-lg text-on-surface-variant font-label-md text-label-md hover:bg-surface-container-high hover:text-on-surface transition-colors" data-path="history" href="#"><span class="material-symbols-outlined text-[20px]">history</span><span class="">History</span></a></nav></div><div class="p-space-md"><div class="bg-surface-container-low rounded-xl p-space-md flex flex-col gap-space-sm"><div class="flex items-center justify-between"><div class="flex items-center gap-space-xs"><span class="material-symbols-outlined text-primary text-[18px]">local_hospital</span><span class="font-label-md text-label-md text-on-surface font-semibold truncate">CityCare Hospital</span></div><span class="relative flex h-2 w-2"><span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-secondary-fixed-dim opacity-75"></span><span class="relative inline-flex rounded-full h-2 w-2 bg-primary"></span></span></div><div class="flex items-center justify-between text-on-surface-variant"><span class="font-telemetry-sm text-telemetry-sm flex items-center gap-1"><span class="inline-block w-1.5 h-1.5 rounded-full bg-primary"></span>Hospital Online</span><span class="font-telemetry-sm text-telemetry-sm text-outline-variant font-mono">STN-04</span></div><a class="mt-space-xs flex items-center justify-center gap-space-xs py-space-xs px-space-sm rounded-lg bg-surface-container-lowest text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-colors font-label-md text-label-md" data-path="login" href="#"><span class="material-symbols-outlined text-[16px]">logout</span><span class="">Logout</span></a></div></div></aside><div class="pl-64"><header class="fixed top-0 left-64 right-0 h-16 bg-surface-container-lowest/90 backdrop-blur-xl shadow-[0_1px_8px_rgba(0,0,0,0.04)] z-40 flex items-center justify-between px-space-xl"><div class="flex flex-col"><span class="font-headline-sm text-headline-sm text-on-surface leading-tight">Good evening</span><span class="font-label-md text-label-md text-on-surface-variant leading-none">CityCare Hospital • Emergency Operations</span></div><div class="flex items-center gap-space-lg"><button aria-label="Critical Alerts" class="relative p-space-sm rounded-lg bg-surface-container-low text-on-surface hover:bg-surface-container-high hover:text-on-surface transition-colors" type="button"><span class="material-symbols-outlined text-[20px]">notifications</span><span class="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-tertiary"></span></button><div class="w-8 h-8 rounded-full bg-primary flex items-center justify-center"><span class="material-symbols-outlined text-on-primary text-[18px]">person</span></div></div></header><main class="relative pt-16 min-h-screen bg-background w-full px-space-xl py-space-lg"><div class="flex flex-col w-full gap-space-lg">
+<!-- Operational Header with View Tabs & System Pulse -->
+<div class="flex flex-col lg:flex-row lg:items-center justify-between gap-space-md pb-space-xs">
+<div class="flex flex-col">
+<div class="flex items-center gap-space-sm mb-1">
+<span class="px-space-xs py-0.5 rounded bg-tertiary-container text-on-tertiary-container font-telemetry-sm text-telemetry-sm uppercase tracking-wider font-semibold">Triage Stage 4</span>
+
+</div>
+<h1 class="font-headline-lg text-headline-lg text-on-surface font-bold tracking-tight">Active Emergency Cases &amp; Handover</h1>
+
+</div>
+<!-- Mode Filters & Quick Toggle -->
+<div class="flex items-center gap-space-xs p-1 rounded-xl bg-surface-container-high self-start lg:self-auto shadow-sm">
+<button class="px-space-md py-space-xs rounded-lg font-label-md text-label-md hover:text-on-surface transition-all flex items-center gap-1.5 bg-surface-container-lowest text-on-surface shadow-sm" id="tab-inbound" onclick="switchMainTab('inbound')" type="button">
+<span class="material-symbols-outlined text-[16px]">navigation</span>
+<span class="">Active Inbound</span>
+<span class="px-1.5 py-0.2 rounded-full bg-surface-container-lowest text-on-surface font-telemetry-sm text-telemetry-sm">1</span>
+</button>
+<button class="px-space-md py-space-xs rounded-lg font-label-md text-label-md transition-all flex items-center gap-1.5 text-on-surface-variant" id="tab-ready" onclick="switchMainTab('ready')" type="button">
+<span class="w-2 h-2 rounded-full bg-tertiary animate-pulse"></span>
+<span class="font-semibold text-tertiary">Ready for Handover</span>
+<span class="px-1.5 py-0.2 rounded-full bg-tertiary text-on-tertiary font-telemetry-sm text-telemetry-sm">1</span>
+</button>
+<button class="px-space-md py-space-xs rounded-lg font-label-md text-label-md hover:text-on-surface transition-all flex items-center gap-1.5 text-on-surface-variant" id="tab-completed" onclick="switchMainTab('completed')" type="button">
+<span class="material-symbols-outlined text-[16px]">task_alt</span>
+<span class="">Completed Today</span>
+<span class="px-1.5 py-0.2 rounded-full bg-surface-container-lowest text-on-surface font-telemetry-sm text-telemetry-sm">6</span>
+</button>
+</div>
+</div>
+<!-- Priority Alert Bar / Dock Status Banner -->
+<div class="relative overflow-hidden rounded-xl bg-gradient-to-r from-tertiary-container via-surface-container-high to-surface-container-high p-space-md shadow-sm">
+<div class="relative z-10 flex flex-col md:flex-row items-start md:items-center justify-between gap-space-md">
+<div class="flex items-center gap-space-md">
+<div class="w-10 h-10 rounded-lg bg-surface-container-lowest shadow-sm flex items-center justify-center text-tertiary flex-shrink-0">
+<span class="material-symbols-outlined text-[24px]">crisis_alert</span>
+</div>
+<div>
+<div class="flex items-center gap-space-xs">
+<span class="font-headline-sm text-headline-sm text-on-surface font-bold">Bay 02 Dock Warning</span>
+<span class="font-telemetry-sm text-telemetry-sm px-1.5 py-0.5 rounded bg-tertiary text-on-tertiary uppercase font-bold">Arrived +2m</span>
+</div>
+
+</div>
+</div>
+<div class="flex items-center gap-space-sm font-telemetry-md text-telemetry-md text-on-surface bg-surface-container-lowest/90 px-space-md py-1.5 rounded-lg shadow-sm">
+<span class="material-symbols-outlined text-primary text-[18px]">verified_user</span>
+<span class="">Station Code: <strong class="font-bold text-primary">TRAUMA-RESUS-02</strong></span>
+</div>
+</div>
+</div>
+<!-- Main Workstation Layout: Handover Protocol Deck (Left) & Secondary Live Inbound Panel (Right) -->
+<div class="grid grid-cols-1 xl:grid-cols-12 gap-space-lg items-start">
+<!-- PRIMARY STAGE (Cols 1-8): Ready for Handover Core Card or Confirmation Card -->
+<div class="xl:col-span-8 flex flex-col gap-space-md">
+<!-- Active Handover Container -->
+<section class="bg-surface-container-lowest rounded-xl shadow-md p-space-xl transition-all duration-300" id="handover-active-panel">
+<!-- Header Strip -->
+<div class="flex flex-wrap items-center justify-between pb-space-md mb-space-md bg-surface-container-low -mx-space-xl -mt-space-xl p-space-lg rounded-t-xl gap-space-sm">
+<div class="flex items-center gap-space-sm">
+<span class="flex h-3 w-3 relative">
+<span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-tertiary opacity-75"></span>
+<span class="relative inline-flex rounded-full h-3 w-3 bg-tertiary"></span>
+</span>
+<span class="font-headline-md text-headline-md font-bold text-on-surface tracking-tight">Ambulance Arrived • Ready for Handover</span>
+</div>
+<div class="flex items-center gap-space-xs font-telemetry-md text-telemetry-md">
+<span class="px-2 py-0.5 rounded bg-surface-container-highest text-on-surface font-semibold">Bay: Resuscitation 02</span>
+<span class="px-2 py-0.5 rounded bg-tertiary-container text-on-tertiary-container font-bold">CRITICAL PRIORITY</span>
+</div>
+</div>
+<!-- Incident Metadata & Team Overview -->
+<div class="grid grid-cols-1 md:grid-cols-3 gap-space-md mb-space-lg">
+<div class="p-space-md rounded-lg bg-surface-container-low flex flex-col">
+<span class="font-label-md text-label-md text-on-surface-variant uppercase tracking-wider mb-1">Emergency ID</span>
+<span class="font-telemetry-lg text-telemetry-lg font-bold text-on-surface">#EM-1042</span>
+<span class="font-body-sm text-body-sm text-tertiary font-semibold flex items-center gap-1 mt-1">
+<span class="material-symbols-outlined text-[16px]">warning</span> Critical Multi-Trauma
+            </span>
+</div>
+<div class="p-space-md rounded-lg bg-surface-container-low flex flex-col">
+<span class="font-label-md text-label-md text-on-surface-variant uppercase tracking-wider mb-1">Assigned Transport</span>
+<div class="flex items-center gap-1.5">
+<span class="material-symbols-outlined text-primary text-[20px]">ambulance</span>
+<span class="font-headline-sm text-headline-sm font-bold text-on-surface">Ambulance A-12</span>
+</div>
+<span class="font-body-sm text-body-sm text-on-surface-variant mt-1">Paramedic Lead: <strong>V. Sharma</strong></span>
+</div>
+<div class="p-space-md rounded-lg bg-surface-container-low flex flex-col">
+<span class="font-label-md text-label-md text-on-surface-variant uppercase tracking-wider mb-1">Dock Timestamp</span>
+<span class="font-telemetry-lg text-telemetry-lg font-bold text-on-surface">12:48 PM</span>
+<span class="font-telemetry-sm text-telemetry-sm text-primary font-medium mt-1 flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px]">timer</span> Docked 2 min ago
+            </span>
+</div>
+</div>
+<!-- Clinical Vitals Snapshot Bar -->
+<div class="mb-space-lg p-space-md rounded-xl bg-surface-container-high/60">
+<div class="flex items-center justify-between mb-space-sm">
+<span class="font-label-lg text-label-lg text-on-surface font-bold flex items-center gap-1.5">
+<span class="material-symbols-outlined text-[18px] text-tertiary">ecg_heart</span>
+              Real-Time Transit Vitals at Handoff
+            </span>
+<span class="font-telemetry-sm text-telemetry-sm text-on-surface-variant uppercase">Stream: Linked • STN-A12</span>
+</div>
+<div class="grid grid-cols-2 sm:grid-cols-4 gap-space-sm">
+<div class="p-space-sm rounded bg-surface-container-lowest shadow-sm flex flex-col">
+<span class="font-label-md text-label-md text-on-surface-variant">Blood Pressure</span>
+<div class="flex items-baseline gap-1 mt-0.5">
+<span class="font-telemetry-lg text-telemetry-lg font-bold text-on-surface">90/60</span>
+<span class="font-telemetry-sm text-telemetry-sm text-on-surface-variant">mmHg</span>
+</div>
+<span class="font-telemetry-sm text-telemetry-sm text-tertiary font-medium">Hypotensive</span>
+</div>
+<div class="p-space-sm rounded bg-surface-container-lowest shadow-sm flex flex-col">
+<span class="font-label-md text-label-md text-on-surface-variant">Oxygen SpO2</span>
+<div class="flex items-baseline gap-1 mt-0.5">
+<span class="font-telemetry-lg text-telemetry-lg font-bold text-tertiary">91%</span>
+<span class="font-telemetry-sm text-telemetry-sm text-on-surface-variant">on 15L NRB</span>
+</div>
+<span class="font-telemetry-sm text-telemetry-sm text-tertiary font-medium">Borderline Hypoxia</span>
+</div>
+<div class="p-space-sm rounded bg-surface-container-lowest shadow-sm flex flex-col">
+<span class="font-label-md text-label-md text-on-surface-variant">Heart Rate</span>
+<div class="flex items-baseline gap-1 mt-0.5">
+<span class="font-telemetry-lg text-telemetry-lg font-bold text-on-surface">124</span>
+<span class="font-telemetry-sm text-telemetry-sm text-on-surface-variant">BPM</span>
+</div>
+<span class="font-telemetry-sm text-telemetry-sm text-tertiary font-medium">Sinus Tachycardia</span>
+</div>
+<div class="p-space-sm rounded bg-surface-container-lowest shadow-sm flex flex-col">
+<span class="font-label-md text-label-md text-on-surface-variant">GCS Score</span>
+<div class="flex items-baseline gap-1 mt-0.5">
+<span class="font-telemetry-lg text-telemetry-lg font-bold text-on-surface">E2 V3 M4</span>
+<span class="font-telemetry-sm text-telemetry-sm text-on-surface-variant">(=9)</span>
+</div>
+<span class="font-telemetry-sm text-telemetry-sm text-on-surface-variant font-medium">Moderate Deficit</span>
+</div>
+</div>
+</div>
+<!-- Two Column Technical Checklist & Resource Standby -->
+<div class="grid grid-cols-1 md:grid-cols-2 gap-space-lg mb-space-xl">
+<!-- Standby Hospital Assets -->
+<div class="flex flex-col bg-surface-container-low rounded-xl p-space-md">
+<div class="flex items-center justify-between pb-space-xs mb-space-sm">
+<h3 class="font-headline-sm text-headline-sm text-on-surface font-semibold flex items-center gap-1.5">
+
+                Reserved Resources on Standby
+              </h3>
+<span class="font-telemetry-sm text-telemetry-sm text-primary font-bold">5/5 READY</span>
+</div>
+<ul class="flex flex-col gap-space-xs">
+<li class="flex items-center justify-between p-2 rounded-lg bg-surface-container-lowest shadow-sm">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-primary text-[18px]">check_circle</span>
+<span class="font-body-md text-body-md font-medium text-on-surface">Trauma &amp; Emergency Team</span>
+</div>
+<span class="font-telemetry-sm text-telemetry-sm px-1.5 py-0.5 rounded bg-primary-fixed text-on-primary-fixed font-semibold">Assembled</span>
+</li>
+<li class="flex items-center justify-between p-2 rounded-lg bg-surface-container-lowest shadow-sm">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-primary text-[18px]">check_circle</span>
+<span class="font-body-md text-body-md font-medium text-on-surface">Cardiology Lead (Dr. Rao)</span>
+</div>
+<span class="font-telemetry-sm text-telemetry-sm px-1.5 py-0.5 rounded bg-primary-fixed text-on-primary-fixed font-semibold">At Bay 02</span>
+</li>
+<li class="flex items-center justify-between p-2 rounded-lg bg-surface-container-lowest shadow-sm">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-primary text-[18px]">check_circle</span>
+<span class="font-body-md text-body-md font-medium text-on-surface">Operation Theatre Suite 3</span>
+</div>
+<span class="font-telemetry-sm text-telemetry-sm px-1.5 py-0.5 rounded bg-surface-container-high text-on-surface font-semibold">Sterile Hold</span>
+</li>
+<li class="flex items-center justify-between p-2 rounded-lg bg-surface-container-lowest shadow-sm">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-primary text-[18px]">check_circle</span>
+<span class="font-body-md text-body-md font-medium text-on-surface">Mechanical Ventilator (Unit #4)</span>
+</div>
+<span class="font-telemetry-sm text-telemetry-sm px-1.5 py-0.5 rounded bg-primary-fixed text-on-primary-fixed font-semibold">Calibrated</span>
+</li>
+<li class="flex items-center justify-between p-2 rounded-lg bg-surface-container-lowest shadow-sm">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-primary text-[18px]">check_circle</span>
+<span class="font-body-md text-body-md font-medium text-on-surface">CT Scanner (Rapid 128-Slice)</span>
+</div>
+<span class="font-telemetry-sm text-telemetry-sm px-1.5 py-0.5 rounded bg-surface-container-high text-on-surface font-semibold">Priority Clear</span>
+</li>
+</ul>
+</div>
+<!-- Clinical Handover Checklist -->
+<div class="flex flex-col bg-surface-container-low rounded-xl p-space-md">
+<div class="flex items-center justify-between pb-space-xs mb-space-sm">
+<h3 class="font-headline-sm text-headline-sm text-on-surface font-semibold flex items-center gap-1.5">
+
+                Clinical Handover Checklist
+              </h3>
+<span class="font-telemetry-sm text-telemetry-sm text-on-surface-variant font-mono" id="checklist-counter">4/4 VERIFIED</span>
+</div>
+<div class="flex flex-col gap-space-xs">
+<label class="flex items-start gap-3 p-2.5 rounded-lg bg-surface-container-lowest shadow-sm cursor-pointer hover:bg-surface-container-high/40 transition-colors">
+<input checked="" class="mt-0.5 w-4 h-4 rounded text-primary focus:ring-0" id="chk-debrief" onchange="validateHandover()" type="checkbox">
+<div class="flex flex-col">
+<span class="font-label-md text-label-md font-semibold text-on-surface">Paramedic verbal debrief received</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant">Mechanism: High-velocity road traffic incident. Initial immobilization confirmed.</span>
+</div>
+</label>
+<label class="flex items-start gap-3 p-2.5 rounded-lg bg-surface-container-lowest shadow-sm cursor-pointer hover:bg-surface-container-high/40 transition-colors">
+<input checked="" class="mt-0.5 w-4 h-4 rounded text-primary focus:ring-0" id="chk-vitals" onchange="validateHandover()" type="checkbox">
+<div class="flex flex-col">
+<span class="font-label-md text-label-md font-semibold text-on-surface">Primary vitals &amp; telemetry transferred</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant">BP 90/60, SpO2 91%, Pulse 124 BPM captured to electronic record.</span>
+</div>
+</label>
+<label class="flex items-start gap-3 p-2.5 rounded-lg bg-surface-container-lowest shadow-sm cursor-pointer hover:bg-surface-container-high/40 transition-colors">
+<input checked="" class="mt-0.5 w-4 h-4 rounded text-primary focus:ring-0" id="chk-airway" onchange="validateHandover()" type="checkbox">
+<div class="flex flex-col">
+<span class="font-label-md text-label-md font-semibold text-on-surface">Airway &amp; tube position verified</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant">Endotracheal cuff depth at 21cm, bilateral chest rise auscultated.</span>
+</div>
+</label>
+<label class="flex items-start gap-3 p-2.5 rounded-lg bg-surface-container-lowest shadow-sm cursor-pointer hover:bg-surface-container-high/40 transition-colors">
+<input checked="" class="mt-0.5 w-4 h-4 rounded text-primary focus:ring-0" id="chk-iv" onchange="validateHandover()" type="checkbox">
+<div class="flex flex-col">
+<span class="font-label-md text-label-md font-semibold text-on-surface">IV lines &amp; rapid infusion verified</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant">Two 16G peripheral lines in situ; 500ml warmed saline initiated.</span>
+</div>
+</label>
+</div>
+</div>
+</div>
+<!-- Handover Action Controls Footer -->
+<div class="flex flex-col sm:flex-row items-center justify-between pt-space-lg bg-surface-container-low -mx-space-xl -mb-space-xl p-space-lg rounded-b-xl gap-space-md">
+<div class="flex items-center gap-space-sm w-full sm:w-auto">
+<button class="w-full sm:w-auto px-space-md py-space-sm rounded-lg bg-surface-container-lowest text-on-surface font-label-md text-label-md hover:bg-surface-container-high transition-colors flex items-center justify-center gap-1.5 shadow-sm" onclick="alert('Printing verified Triage Intake Packet for Bay 02...')" type="button">
+<span class="material-symbols-outlined text-[18px]">print</span>
+<span class="">Print Triage Packet</span>
+<span class="font-telemetry-sm text-telemetry-sm text-outline-variant font-mono">[P]</span>
+</button>
+<button class="w-full sm:w-auto px-space-md py-space-sm rounded-lg bg-surface-container-lowest text-on-surface font-label-md text-label-md hover:bg-surface-container-high transition-colors flex items-center justify-center gap-1.5 shadow-sm" onclick="alert('Opening clinical notes modal for Case #EM-1042...')" type="button">
+<span class="material-symbols-outlined text-[18px]">edit_note</span>
+<span class="">Update Bay Notes</span>
+</button>
+</div>
+<div class="flex items-center gap-space-sm w-full sm:w-auto justify-end">
+<button class="w-full sm:w-auto px-space-xl py-space-md rounded-lg bg-tertiary-container hover:bg-tertiary text-on-tertiary-container hover:text-on-tertiary font-headline-sm text-headline-sm font-bold shadow-md transition-all flex items-center justify-center gap-2 group" id="execute-handover-btn" onclick="executeClinicalHandover()" type="button">
+<span class="">Complete Handover &amp; Admit</span>
+<span class="material-symbols-outlined text-[20px] transition-transform group-hover:translate-x-1">arrow_forward</span>
+</button>
+</div>
+</div>
+</section>
+<!-- HANDOVER COMPLETE CONFIRMATION STATE (Hidden by default, displayed via execution) -->
+<section class="bg-surface-container-lowest rounded-xl shadow-md p-space-xl transition-all duration-300 hidden" id="handover-success-panel">
+<div class="flex flex-col items-center text-center p-space-lg">
+<div class="w-16 h-16 rounded-full bg-secondary-container text-on-secondary-container flex items-center justify-center mb-space-md shadow-sm">
+<span class="material-symbols-outlined text-[36px]" style="font-variation-settings: &quot;FILL&quot; 1;">check_circle</span>
+</div>
+<span class="px-space-md py-0.5 rounded-full bg-secondary-container text-on-secondary-container font-telemetry-sm text-telemetry-sm uppercase font-bold tracking-wider mb-2">Protocol Finalized</span>
+<h2 class="font-display-lg text-display-lg font-bold text-on-surface tracking-tight">Handover Complete</h2>
+<p class="font-body-lg text-body-lg text-on-surface-variant max-w-xl mt-1">
+            Patient in emergency case <strong>#EM-1042</strong> successfully admitted to resuscitation workflow. Clinical custody transferred from Ambulance A-12 to Emergency Lead Dr. Rao.
+          </p>
+<!-- Receipt Grid -->
+<div class="w-full max-w-2xl mt-space-xl p-space-lg rounded-xl bg-surface-container-low text-left grid grid-cols-1 md:grid-cols-2 gap-space-md">
+<div>
+<span class="font-label-md text-label-md text-on-surface-variant uppercase">Emergency Case</span>
+<p class="font-telemetry-md text-telemetry-md font-bold text-on-surface mt-0.5">#EM-1042 • Critical Multi-Trauma</p>
+</div>
+<div>
+<span class="font-label-md text-label-md text-on-surface-variant uppercase">Admitted Location</span>
+<p class="font-telemetry-md text-telemetry-md font-bold text-primary mt-0.5">CityCare Hospital - Trauma Bay 02</p>
+</div>
+<div>
+<span class="font-label-md text-label-md text-on-surface-variant uppercase">Completion Timestamp</span>
+<p class="font-telemetry-md text-telemetry-md font-bold text-on-surface mt-0.5">12:53 PM IST (Elapsed Intake: 5m 12s)</p>
+</div>
+<div>
+<span class="font-label-md text-label-md text-on-surface-variant uppercase">Census Status</span>
+<p class="font-telemetry-md text-telemetry-md font-bold text-secondary mt-0.5">CASE COMPLETED • Inpatient / Surgery</p>
+</div>
+</div>
+<div class="flex items-center gap-space-sm mt-space-md text-on-surface-variant font-body-sm text-body-sm">
+<span class="material-symbols-outlined text-[16px] text-primary">sync</span>
+<span class="">Auto-released ambulance A-12 to fleet pool. Mechanical Ventilator #4 logged to patient census.</span>
+</div>
+<div class="flex items-center gap-space-md mt-space-xl">
+<button class="px-space-lg py-space-sm rounded-lg bg-surface-container-high hover:bg-surface-variant text-on-surface font-label-md text-label-md transition-colors flex items-center gap-1.5" onclick="resetHandoverDemo()" type="button">
+<span class="material-symbols-outlined text-[18px]">replay</span>
+<span class="">Re-inspect Case #EM-1042</span>
+</button>
+<button class="px-space-xl py-space-sm rounded-lg bg-primary hover:bg-primary-container text-on-primary font-label-md text-label-md font-semibold transition-colors flex items-center gap-1.5 shadow-sm" onclick="switchMainTab('inbound')" type="button">
+<span class="material-symbols-outlined text-[18px]">airline_seat_flat</span>
+<span class="">Track Next Inbound Case (#EM-1039)</span>
+</button>
+</div>
+</div>
+</section>
+<!-- Context Visual: Ambulance Arrival Bay View Card -->
+<div class="grid grid-cols-1 md:grid-cols-2 gap-space-md">
+<div class="relative overflow-hidden rounded-xl bg-surface-container-lowest shadow-sm h-48 flex flex-col justify-end p-space-md">
+<div class="absolute inset-0 bg-cover bg-center" data-alt="A modern hospital emergency ambulance drop-off dock at daytime with emergency light reflections, clean medical bay concrete, signage for Resuscitation Bay 02, and ambulance rear doors open in high resolution clinical photography." style="background-image: url(&quot;https://lh3.googleusercontent.com/aida-public/AB6AXuD8U8Rh89XuHCpKZVe4WRgF7E1reMXM3MBqdpZNktEMApAqnWJTmc3Z8JC3wa64H-xfSkC3xbz5BBu17tqFRsxD1zbFE-G_aUX6m5ElxYTyCbf076j--fa3d06552V7KcoLv0aWTK9CGwguH53HTwoa6vKl9PIBv2WKKGBZoScxqwY-_50BWFuhQTZRPqnCWTxLwJTqxvVh81ivuQ_8aDCVBH44Mc8R5ADYBKX7D-UROQZv2sfeO-MyBQ&quot;);"></div>
+<div class="absolute inset-0 bg-gradient-to-t from-surface-container-lowest via-surface-container-lowest/60 to-transparent"></div>
+<div class="relative z-10 flex items-center justify-between">
+<div>
+<span class="font-label-md text-label-md text-primary font-bold uppercase tracking-wider">Bay 02 Docking Feed</span>
+<p class="font-headline-sm text-headline-sm font-semibold text-on-surface">Ambulance A-12 Secure Dock</p>
+</div>
+<span class="px-2 py-0.5 rounded bg-surface-container-high text-on-surface font-telemetry-sm text-telemetry-sm font-mono">CAM-BAY02-LIVE</span>
+</div>
+</div>
+<div class="relative overflow-hidden rounded-xl bg-surface-container-lowest shadow-sm h-48 flex flex-col justify-end p-space-md">
+<div class="absolute inset-0 bg-cover bg-center" data-alt="Emergency trauma resuscitation suite with overhead surgical lights, vital sign telemetry monitors displaying waveforms, sterile equipment trolleys, and prepared clinical personnel in medical scrubs." style="background-image: url(&quot;https://lh3.googleusercontent.com/aida-public/AB6AXuAsO1zLHuzDJPfeYzLk4_g1lByjcPCsZ4A89DFBlwsA8rRJPOaiQLK6SaOZFBVZC4fYrts1RsWmoI8zecx_9OmRqjxyZF9pcla59aoEKdtTcs2hbkbEGpADrzYP3iF30V1cdPbRn00Tx5Ja3VSWGIrfn3WJBdRyzMCT4U20QYxMXtAkauwQeO129nlH_tktQm9iGYm8TDhr1P3gfajoR0b7pudtzsr8gBx7t7hZbGdna5lq1heHgVfdhw&quot;);"></div>
+<div class="absolute inset-0 bg-gradient-to-t from-surface-container-lowest via-surface-container-lowest/60 to-transparent"></div>
+<div class="relative z-10 flex items-center justify-between">
+<div>
+<span class="font-label-md text-label-md text-secondary font-bold uppercase tracking-wider">Internal Operating Room</span>
+<p class="font-headline-sm text-headline-sm font-semibold text-on-surface">Surgical Suite 3 Pre-Op Prep</p>
+</div>
+<span class="px-2 py-0.5 rounded bg-surface-container-high text-on-surface font-telemetry-sm text-telemetry-sm font-mono">THEATRE-03</span>
+</div>
+</div>
+</div>
+</div>
+<!-- SECONDARY DISPATCH STACK (Cols 9-12): Other Active En Route Emergencies & Live Telemetry -->
+<div class="xl:col-span-4 flex flex-col gap-space-md">
+<!-- Section Title & Counter -->
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-space-xs">
+<span class="material-symbols-outlined text-[20px] text-primary">route</span>
+<h2 class="font-headline-sm text-headline-sm font-bold text-on-surface">Active En Route Queue</h2>
+</div>
+<span class="font-telemetry-sm text-telemetry-sm px-2 py-0.5 rounded-full bg-secondary-container text-on-secondary-container font-semibold">1 Transit Active</span>
+</div>
+<!-- Card for Case #EM-1039: Cardiac Emergency -->
+<div class="bg-surface-container-lowest rounded-xl shadow-md p-space-lg flex flex-col gap-space-md hover:shadow-lg transition-shadow relative overflow-hidden">
+<!-- Status ribbon -->
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-2">
+<span class="font-telemetry-md text-telemetry-md font-bold text-on-surface">#EM-1039</span>
+<span class="px-2 py-0.5 rounded bg-surface-container-high text-tertiary font-label-md text-label-md font-bold flex items-center gap-1">
+<span class="w-1.5 h-1.5 rounded-full bg-tertiary animate-ping"></span>
+              Cardiac Emergency
+            </span>
+</div>
+
+</div>
+<!-- Ambulance Unit & Live ETA -->
+<div class="flex items-center justify-between p-space-sm rounded-lg bg-surface-container-low">
+<div class="flex items-center gap-space-sm">
+<div class="w-9 h-9 rounded-lg bg-primary-container text-on-primary-container flex items-center justify-center flex-shrink-0">
+<span class="material-symbols-outlined text-[20px]">ambulance</span>
+</div>
+<div class="flex flex-col">
+<span class="font-label-md text-label-md font-bold text-on-surface">Ambulance A-08</span>
+<span class="font-telemetry-sm text-telemetry-sm text-on-surface-variant">Paramedic: K. Deshmukh</span>
+</div>
+</div>
+<div class="text-right">
+<span class="font-headline-lg text-headline-lg font-bold text-primary font-telemetry-lg">06:14</span>
+<span class="font-telemetry-sm text-telemetry-sm text-on-surface-variant block -mt-1 font-semibold uppercase">ETA MINS</span>
+</div>
+</div>
+<!-- Telemetry Status & Route Progress -->
+<div class="flex flex-col gap-1.5">
+<div class="flex items-center justify-between text-on-surface-variant font-telemetry-sm text-telemetry-sm">
+<span class="flex items-center gap-1 text-primary font-semibold">
+<span class="w-2 h-2 rounded-full bg-primary inline-block"></span>
+              En Route - Telemetry Linked
+            </span>
+<span class="">Speed: 58 km/h • Outer Ring Rd</span>
+</div>
+<!-- Progress Bar -->
+<div class="w-full h-1.5 rounded-full bg-surface-container-high overflow-hidden">
+<div class="bg-primary h-full rounded-full transition-all duration-500" style="width: 74%"></div>
+</div>
+</div>
+<!-- Live Geolocation Map Snippet -->
+<div class="relative overflow-hidden rounded-lg h-36 w-full">
+<div class="w-full h-full bg-cover bg-center rounded-lg" data-location="CityCare Hospital, Outer Ring Road, Bangalore" style="background-image: url(&quot;https://lh3.googleusercontent.com/aida-public/AB6AXuASr0qprrxtECjZPrTk69pqtwx_tSp5ym1ezYTw37THrfCe3oYI56GlKFRpkcPu-wrr3N4EtPz_JgsEhy-VGFSulzFERWPMQ2qkojoBp3nTD7Kndv56oTW5OZVSiGftlQNMv8yOods2d0HxlkiBOG4PfxGDqDQpGfeys1_k39SR6bdiB8yOZmQy1UMZvRkKmwcABrBBxp8u1JVdQYHlGiQT_hMwdOebAxYPusm-sHd_MxY9IUQqU8fN6g&quot;);"></div>
+<div class="absolute inset-0 bg-surface-container-lowest/20 pointer-events-none"></div>
+<div class="absolute bottom-2 left-2 right-2 bg-surface-container-lowest/90 backdrop-blur-md px-space-sm py-1 rounded flex items-center justify-between font-telemetry-sm text-telemetry-sm text-on-surface shadow-sm">
+<span class="flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px] text-tertiary">near_me</span>
+              Distance: 3.2 km remaining
+            </span>
+<span class="font-semibold text-primary">Corridor Green Wave Active</span>
+</div>
+</div>
+<!-- Reserved Hospital Resources -->
+<div class="flex flex-col gap-1 pt-space-xs">
+<span class="font-label-md text-label-md text-on-surface-variant font-semibold">Hospital Resources Reserved:</span>
+<div class="flex flex-wrap gap-1.5 mt-0.5">
+<span class="px-2 py-0.5 rounded bg-surface-container-high text-on-surface font-label-md text-label-md flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px] text-primary">bed</span> ICU Bed 04
+            </span>
+<span class="px-2 py-0.5 rounded bg-surface-container-high text-on-surface font-label-md text-label-md flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px] text-primary">monitor_heart</span> Cath Lab 1
+            </span>
+<span class="px-2 py-0.5 rounded bg-surface-container-high text-on-surface font-label-md text-label-md flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px] text-primary">medical_services</span> STEMI Team
+            </span>
+</div>
+</div>
+<!-- Action Card Trigger -->
+<button class="w-full py-space-sm rounded-lg bg-surface-container-low hover:bg-surface-container-high text-on-surface font-label-md text-label-md font-semibold transition-colors flex items-center justify-center gap-1.5" onclick="alert('Switching live telemetry console to Unit A-08 (#EM-1039)...')" type="button">
+<span class="material-symbols-outlined text-[18px]">monitor</span>
+<span class="">Open Full Telemetry Feed</span>
+</button>
+</div>
+<!-- Quick Hospital Capacity Telemetry Card -->
+<div class="bg-surface-container-lowest rounded-xl shadow-sm p-space-md flex flex-col gap-space-sm">
+<div class="flex items-center justify-between">
+<span class="font-headline-sm text-headline-sm font-semibold text-on-surface flex items-center gap-1.5">
+<span class="material-symbols-outlined text-[18px] text-primary">local_hospital</span>
+            Intake Department Load
+          </span>
+<span class="font-telemetry-sm text-telemetry-sm text-primary font-mono font-bold">NORMAL 82%</span>
+</div>
+<div class="grid grid-cols-2 gap-space-sm pt-1">
+<div class="p-space-sm rounded bg-surface-container-low flex flex-col">
+<span class="font-telemetry-sm text-telemetry-sm text-on-surface-variant uppercase">Resuscitation</span>
+<span class="font-headline-sm text-headline-sm font-bold text-on-surface mt-0.5">3 / 4 Bays</span>
+<span class="font-telemetry-sm text-telemetry-sm text-tertiary">1 Available (Bay 04)</span>
+</div>
+<div class="p-space-sm rounded bg-surface-container-low flex flex-col">
+<span class="font-telemetry-sm text-telemetry-sm text-on-surface-variant uppercase">Cardiac Cath</span>
+<span class="font-headline-sm text-headline-sm font-bold text-on-surface mt-0.5">1 / 2 Labs</span>
+<span class="font-telemetry-sm text-telemetry-sm text-primary">Lab 1 Held for A-08</span>
+</div>
+</div>
+<!-- Quick Emergency Reroute or Contact Bar -->
+<div class="flex items-center justify-between pt-space-xs text-on-surface-variant font-label-md text-label-md">
+
+
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Client-side Interactive Behaviors -->
+<script>
+  function validateHandover() {
+    const c1 = document.getElementById('chk-debrief').checked;
+    const c2 = document.getElementById('chk-vitals').checked;
+    const c3 = document.getElementById('chk-airway').checked;
+    const c4 = document.getElementById('chk-iv').checked;
+    const total = [c1, c2, c3, c4].filter(Boolean).length;
+    
+    const counterEl = document.getElementById('checklist-counter');
+    const executeBtn = document.getElementById('execute-handover-btn');
+
+    if (counterEl) {
+      counterEl.textContent = `${total}/4 VERIFIED`;
+    }
+
+    if (total === 4) {
+      executeBtn.disabled = false;
+      executeBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+    } else {
+      executeBtn.disabled = true;
+      executeBtn.classList.add('opacity-50', 'cursor-not-allowed');
+    }
+  }
+
+  function executeClinicalHandover() {
+    const activePanel = document.getElementById('handover-active-panel');
+    const successPanel = document.getElementById('handover-success-panel');
+
+    // Smooth transition
+    activePanel.classList.add('hidden');
+    successPanel.classList.remove('hidden');
+
+    // Update tab badges if present
+    const readyBadge = document.querySelector('#tab-ready span:last-child');
+    const completedBadge = document.querySelector('#tab-completed span:last-child');
+    if (readyBadge) readyBadge.textContent = '0';
+    if (completedBadge) completedBadge.textContent = '7';
+  }
+
+  function resetHandoverDemo() {
+    const activePanel = document.getElementById('handover-active-panel');
+    const successPanel = document.getElementById('handover-success-panel');
+
+    successPanel.classList.add('hidden');
+    activePanel.classList.remove('hidden');
+
+    const readyBadge = document.querySelector('#tab-ready span:last-child');
+    const completedBadge = document.querySelector('#tab-completed span:last-child');
+    if (readyBadge) readyBadge.textContent = '1';
+    if (completedBadge) completedBadge.textContent = '6';
+  }
+
+  function switchMainTab(tab) {
+    const readyTab = document.getElementById('tab-ready');
+    const inboundTab = document.getElementById('tab-inbound');
+    const completedTab = document.getElementById('tab-completed');
+
+    [readyTab, inboundTab, completedTab].forEach(btn => {
+      btn.classList.remove('bg-surface-container-lowest', 'text-on-surface', 'shadow-sm');
+      btn.classList.add('text-on-surface-variant');
+    });
+
+    if (tab === 'ready') {
+      readyTab.classList.add('bg-surface-container-lowest', 'text-on-surface', 'shadow-sm');
+      readyTab.classList.remove('text-on-surface-variant');
+      resetHandoverDemo();
+    } else if (tab === 'inbound') {
+      inboundTab.classList.add('bg-surface-container-lowest', 'text-on-surface', 'shadow-sm');
+      inboundTab.classList.remove('text-on-surface-variant');
+    } else if (tab === 'completed') {
+      completedTab.classList.add('bg-surface-container-lowest', 'text-on-surface', 'shadow-sm');
+      completedTab.classList.remove('text-on-surface-variant');
+    }
+  }
+
+  // Keyboard shortcut support [P] and [Enter]
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'p' || e.key === 'P') {
+      if (!['INPUT', 'TEXTAREA'].includes(document.activeElement.tagName)) {
+        alert('Shortcut: Printing triage packet for Case #EM-1042');
+      }
+    }
+  });
+</script></main></div></body></html>

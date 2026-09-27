@@ -1,0 +1,563 @@
+<!DOCTYPE html><html lang="en" style=""><head><meta charset="utf-8"><meta content="width=device-width, initial-scale=1.0" name="viewport"><meta content="web_dashboard" name="shell-type"><link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet"><link href="https://fonts.googleapis.com" rel="preconnect"><link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"><link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&amp;family=Public+Sans:wght@400;500;600;700&amp;family=Space+Grotesk:wght@500;600;700&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"><style>@layer base { html, body { margin: 0; padding: 0; } body { overscroll-behavior: none; } main > :first-child { margin-top: 0 !important; } main > :last-child { margin-bottom: 0 !important; } } ::-webkit-scrollbar { display: none; }</style><script src="https://cdn.tailwindcss.com"></script><script id="tailwind-config">tailwind.config = { darkMode: "class", theme: { extend: { "colors": { "secondary-container": "#6ef4ef", "inverse-primary": "#6fd7d3", "on-tertiary-container": "#fffbff", "background": "#f9f9ff", "on-primary-fixed-variant": "#00504e", "on-background": "#071c36", "tertiary-container": "#d8354b", "primary-fixed": "#8cf4ef", "error-container": "#ffdad6", "on-secondary-container": "#006e6c", "secondary": "#006a67", "surface-bright": "#f9f9ff", "on-primary-container": "#f3fffd", "on-secondary": "#ffffff", "surface-dim": "#c8dbfe", "on-tertiary": "#ffffff", "on-tertiary-fixed": "#40000b", "outline-variant": "#bcc9c8", "secondary-fixed": "#71f7f2", "surface-container-low": "#f0f3ff", "on-error-container": "#93000a", "primary-container": "#008280", "on-tertiary-fixed-variant": "#920025", "tertiary-fixed": "#ffdada", "surface-container-high": "#dee8ff", "primary-fixed-dim": "#6fd7d3", "on-surface-variant": "#3d4948", "outline": "#6d7978", "error": "#ba1a1a", "on-secondary-fixed-variant": "#00504e", "inverse-on-surface": "#ecf1ff", "inverse-surface": "#1f314d", "on-error": "#ffffff", "surface": "#f9f9ff", "tertiary": "#b51735", "on-primary-fixed": "#00201f", "on-surface": "#071c36", "surface-container-highest": "#d6e3ff", "primary": "#006765", "tertiary-fixed-dim": "#ffb3b4", "surface-tint": "#006a67", "surface-variant": "#d6e3ff", "surface-container-lowest": "#ffffff", "on-secondary-fixed": "#00201f", "on-primary": "#ffffff", "secondary-fixed-dim": "#4fdad6", "surface-container": "#e7eeff" }, "borderRadius": { "DEFAULT": "0.125rem", "lg": "0.25rem", "xl": "0.5rem", "full": "0.75rem" }, "spacing": { "space-sm": "0.5rem", "space-md": "0.75rem", "gutter-dense": "0.5rem", "space-lg": "1rem", "margin": "1.5rem", "space-2xl": "2rem", "margin-dense": "1rem", "space-xs": "0.25rem", "gutter": "1rem", "space-xl": "1.5rem" }, "fontFamily": { "telemetry-md": [ "JetBrains Mono" ], "telemetry-lg": [ "JetBrains Mono" ], "headline-sm": [ "Space Grotesk" ], "headline-lg": [ "Space Grotesk" ], "body-lg": [ "Public Sans" ], "label-lg": [ "Public Sans" ], "headline-md": [ "Space Grotesk" ], "telemetry-sm": [ "JetBrains Mono" ], "label-md": [ "Public Sans" ], "body-md": [ "Public Sans" ], "display-lg": [ "Space Grotesk" ], "body-sm": [ "Public Sans" ] }, "fontSize": { "telemetry-md": [ "14px", { "lineHeight": "18px", "letterSpacing": "-0.01em", "fontWeight": "500" } ], "telemetry-lg": [ "20px", { "lineHeight": "24px", "letterSpacing": "-0.02em", "fontWeight": "600" } ], "headline-sm": [ "16px", { "lineHeight": "22px", "letterSpacing": "-0.005em", "fontWeight": "600" } ], "headline-lg": [ "24px", { "lineHeight": "30px", "letterSpacing": "-0.015em", "fontWeight": "600" } ], "body-lg": [ "16px", { "lineHeight": "24px", "fontWeight": "400" } ], "label-lg": [ "14px", { "lineHeight": "18px", "fontWeight": "600" } ], "headline-md": [ "20px", { "lineHeight": "26px", "letterSpacing": "-0.01em", "fontWeight": "600" } ], "telemetry-sm": [ "11px", { "lineHeight": "14px", "letterSpacing": "0.01em", "fontWeight": "500" } ], "label-md": [ "12px", { "lineHeight": "16px", "letterSpacing": "0.02em", "fontWeight": "600" } ], "body-md": [ "14px", { "lineHeight": "20px", "fontWeight": "400" } ], "display-lg": [ "32px", { "lineHeight": "38px", "letterSpacing": "-0.02em", "fontWeight": "700" } ], "body-sm": [ "13px", { "lineHeight": "18px", "fontWeight": "400" } ] } } } };</script></head><body class="bg-background font-body-md text-on-surface antialiased min-h-screen"><aside class="fixed left-0 top-0 h-full w-64 bg-surface-container-lowest shadow-[0_1px_8px_rgba(0,0,0,0.04)] z-50 flex flex-col justify-between select-none"><div class="flex flex-col"><div class="h-16 px-space-xl flex items-center justify-between bg-surface-container-lowest"><div class="flex items-center gap-space-sm"><div class="w-8 h-8 rounded-lg bg-primary-container flex items-center justify-center"><span class="material-symbols-outlined text-on-primary-container text-[20px]">vital_signs</span></div><div class="flex flex-col"><span class="font-headline-sm text-headline-sm text-on-surface leading-none tracking-tight">JeevanRoute</span><span class="font-telemetry-sm text-telemetry-sm text-primary uppercase font-bold tracking-wider mt-0.5">Hospital Portal</span></div></div></div><nav class="flex flex-col gap-space-xs px-space-md mt-space-lg" data-active-classes="bg-primary-container text-on-primary-container font-semibold rounded-lg"><a class="flex items-center gap-space-md px-space-md py-space-sm rounded-lg text-on-surface-variant font-label-md text-label-md hover:bg-surface-container-high hover:text-on-surface transition-colors" data-path="dashboard" href="#"><span class="material-symbols-outlined text-[20px]">grid_view</span><span class="">Dashboard</span></a><a aria-current="page" class="flex items-center justify-between px-space-md py-space-sm transition-colors bg-primary-container text-on-primary-container font-semibold rounded-lg" data-path="emergency-requests" href="#"><div class="flex items-center gap-space-md"><span class="material-symbols-outlined text-[20px]">emergency</span><span class="">Emergency Requests</span></div><span class="px-1.5 py-0.5 rounded-full bg-tertiary text-on-tertiary font-telemetry-sm text-telemetry-sm">LIVE</span></a><a class="flex items-center gap-space-md px-space-md py-space-sm rounded-lg text-on-surface-variant font-label-md text-label-md hover:bg-surface-container-high hover:text-on-surface transition-colors" data-path="resources" href="#"><span class="material-symbols-outlined text-[20px]">inventory_2</span><span class="">Resources</span></a><a class="flex items-center gap-space-md px-space-md py-space-sm rounded-lg text-on-surface-variant font-label-md text-label-md hover:bg-surface-container-high hover:text-on-surface transition-colors" data-path="active-cases" href="#"><span class="material-symbols-outlined text-[20px]">personal_injury</span><span class="">Active Cases</span></a><a class="flex items-center gap-space-md px-space-md py-space-sm rounded-lg text-on-surface-variant font-label-md text-label-md hover:bg-surface-container-high hover:text-on-surface transition-colors" data-path="handover" href="#"><span class="material-symbols-outlined text-[20px]">swap_horiz</span><span class="">Handover</span></a><a class="flex items-center gap-space-md px-space-md py-space-sm rounded-lg text-on-surface-variant font-label-md text-label-md hover:bg-surface-container-high hover:text-on-surface transition-colors" data-path="history" href="#"><span class="material-symbols-outlined text-[20px]">history</span><span class="">History</span></a></nav></div><div class="p-space-md"><div class="bg-surface-container-low rounded-xl p-space-md flex flex-col gap-space-sm"><div class="flex items-center justify-between"><div class="flex items-center gap-space-xs"><span class="material-symbols-outlined text-primary text-[18px]">local_hospital</span><span class="font-label-md text-label-md text-on-surface font-semibold truncate">CityCare Hospital</span></div><span class="relative flex h-2 w-2"><span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-secondary-fixed-dim opacity-75"></span><span class="relative inline-flex rounded-full h-2 w-2 bg-primary"></span></span></div><div class="flex items-center justify-between text-on-surface-variant"><span class="font-telemetry-sm text-telemetry-sm flex items-center gap-1"><span class="inline-block w-1.5 h-1.5 rounded-full bg-primary"></span>Hospital Online</span><span class="font-telemetry-sm text-telemetry-sm text-outline-variant font-mono">STN-04</span></div><a class="mt-space-xs flex items-center justify-center gap-space-xs py-space-xs px-space-sm rounded-lg bg-surface-container-lowest text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-colors font-label-md text-label-md" data-path="login" href="#"><span class="material-symbols-outlined text-[16px]">logout</span><span class="">Logout</span></a></div></div></aside><div class="pl-64"><header class="fixed top-0 left-64 right-0 h-16 bg-surface-container-lowest/90 backdrop-blur-xl shadow-[0_1px_8px_rgba(0,0,0,0.04)] z-40 flex items-center justify-between px-space-xl"><div class="flex flex-col"><span class="font-headline-sm text-headline-sm text-on-surface leading-tight">Good evening</span></div><div class="flex items-center gap-space-lg"><div class="flex items-center gap-space-xs px-space-md py-space-xs rounded-lg bg-surface-container-low font-telemetry-md text-telemetry-md text-on-surface font-medium"><span class="material-symbols-outlined text-[16px] text-outline">schedule</span><span class="">12:42 IST</span></div><button aria-label="Critical Alerts" class="relative p-space-sm rounded-lg bg-surface-container-low text-on-surface hover:bg-surface-container-high hover:text-on-surface transition-colors" type="button"><span class="material-symbols-outlined text-[20px]">notifications</span><span class="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-tertiary"></span></button><div class="w-8 h-8 rounded-full bg-primary flex items-center justify-center"><span class="material-symbols-outlined text-on-primary text-[18px]">person</span></div></div></header><main class="relative pt-16 min-h-screen bg-background w-full px-space-xl py-space-lg"><div class="flex flex-col w-full">
+<!-- Operational Breadcrumb & Top Bar -->
+<div class="flex flex-col md:flex-row md:items-center justify-between gap-space-md mb-space-lg">
+<div class="flex items-center gap-space-md flex-wrap">
+<a class="inline-flex items-center gap-space-xs px-space-md py-space-xs rounded-lg bg-surface-container text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-colors font-label-md text-label-md" data-path="emergency-requests" href="#">
+<span class="material-symbols-outlined text-[18px]">arrow_back</span>
+<span class="">Back to Emergency Requests</span>
+</a>
+<div class="h-4 w-px bg-outline-variant/40 hidden sm:block"></div>
+<div class="flex items-center gap-space-xs">
+<h1 class="font-headline-lg text-headline-lg text-on-surface tracking-tight">Emergency Request Details</h1>
+<span class="font-telemetry-md text-telemetry-md px-space-xs py-0.5 rounded bg-surface-container-high text-on-surface font-semibold">#EM-1042</span>
+</div>
+<div class="flex items-center gap-1.5 px-space-md py-0.5 rounded-full bg-tertiary-container/15 text-tertiary font-label-md text-label-md">
+<span class="relative flex h-2 w-2">
+<span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-tertiary opacity-75"></span>
+<span class="relative inline-flex rounded-full h-2 w-2 bg-tertiary"></span>
+</span>
+<span class="font-semibold uppercase tracking-wide">Awaiting Hospital Response</span>
+</div>
+</div>
+<!-- Conflict / Simulation Switcher -->
+<div class="flex items-center self-start md:self-auto gap-space-xs bg-surface-container-low p-1 rounded-lg shadow-sm">
+<span class="font-telemetry-sm text-telemetry-sm text-on-surface-variant uppercase tracking-wider px-space-xs">Simulate</span>
+<button class="px-space-md py-1 rounded bg-surface-container-lowest text-primary font-label-md text-label-md shadow-sm font-semibold transition-all" id="sim-ready-btn" onclick="setSimulationMode('ready')">
+        All Available (Ready)
+      </button>
+<button class="px-space-md py-1 rounded text-on-surface-variant hover:text-on-surface font-label-md text-label-md transition-all" id="sim-conflict-btn" onclick="setSimulationMode('conflict')">
+        Conflict Demo (CT Busy)
+      </button>
+</div>
+</div>
+<!-- Incident Banner & Live Unit Stream -->
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-space-lg mb-space-lg">
+<!-- Incident Overview Card -->
+<div class="lg:col-span-8 bg-surface-container-lowest rounded-xl p-space-lg shadow-sm flex flex-col justify-between">
+<div class="flex flex-col gap-space-md">
+<div class="flex items-start justify-between gap-space-md flex-wrap">
+<div class="flex items-center gap-space-md">
+<div class="w-12 h-12 rounded-lg bg-tertiary/10 flex items-center justify-center text-tertiary">
+<span class="material-symbols-outlined text-[28px]" style="font-variation-settings: 'FILL' 1;">e911_emergency</span>
+</div>
+<div>
+<div class="flex items-center gap-space-xs">
+<span class="font-headline-md text-headline-md text-on-surface">Critical Trauma (Code Red)</span>
+<span class="px-2 py-0.5 rounded bg-tertiary text-on-tertiary font-telemetry-sm text-telemetry-sm uppercase font-bold">Priority 1</span>
+</div>
+
+</div>
+</div>
+<div class="flex items-center gap-space-xs bg-surface-container-low px-space-md py-space-xs rounded-lg">
+<span class="material-symbols-outlined text-[16px] text-tertiary">alarm</span>
+<span class="font-telemetry-sm text-telemetry-sm text-on-surface font-semibold">Triage Request Received: <span class="text-tertiary">18 sec ago</span></span>
+</div>
+</div>
+<div class="grid grid-cols-1 sm:grid-cols-3 gap-space-md pt-space-xs">
+<div class="bg-surface-container-low p-space-md rounded-lg">
+<span class="font-label-md text-label-md text-on-surface-variant block mb-1">Ambulance Unit</span>
+<div class="flex items-center gap-space-xs">
+<span class="material-symbols-outlined text-primary text-[20px]">ambulance</span>
+<span class="font-headline-sm text-headline-sm text-on-surface">Unit A-12</span>
+</div>
+<span class="font-telemetry-sm text-telemetry-sm text-on-surface-variant mt-1 block">Paramedic Crew: Lead Sharma</span>
+</div>
+<div class="bg-surface-container-low p-space-md rounded-lg">
+<span class="font-label-md text-label-md text-on-surface-variant block mb-1">Estimated Arrival</span>
+<div class="flex items-baseline gap-space-xs">
+<span class="font-display-lg text-display-lg text-tertiary font-mono leading-none tracking-tight">11</span>
+<span class="font-label-lg text-label-lg text-tertiary uppercase font-bold">MIN</span>
+</div>
+<span class="font-telemetry-sm text-telemetry-sm text-on-surface-variant mt-1 block">4.8 km via Outer Ring Green Corridor</span>
+</div>
+<div class="bg-surface-container-low p-space-md rounded-lg">
+<span class="font-label-md text-label-md text-on-surface-variant block mb-1">Telemetry Status</span>
+<div class="flex items-center gap-space-xs text-primary">
+<span class="material-symbols-outlined text-[20px]">monitor_heart</span>
+<span class="font-headline-sm text-headline-sm">BP 84/52 • HR 128</span>
+</div>
+<span class="font-telemetry-sm text-telemetry-sm text-tertiary mt-1 block font-semibold">Unstable Hemodynamics • SpO₂ 91%</span>
+</div>
+</div>
+<div class="bg-surface-container-high/50 p-space-md rounded-lg">
+<div class="flex items-center gap-space-xs mb-1 text-on-surface">
+<span class="material-symbols-outlined text-[18px] text-tertiary">notes</span>
+<span class="font-label-md text-label-md font-semibold uppercase tracking-wider">Field Paramedic Dispatch Log</span>
+</div>
+<p class="font-body-md text-body-md text-on-surface font-medium leading-relaxed">
+            "MVA high impact, multiple blunt chest trauma, unstable hemodynamics. Patient intubated on scene with 7.5 ETT. Peripheral IV access x2 infusing saline. Request immediate surgical bay clearance and acute vascular team standby."
+          </p>
+</div>
+</div>
+</div>
+<!-- Live Corridor Mini-HUD -->
+<div class="lg:col-span-4 bg-surface-container-lowest rounded-xl p-space-lg shadow-sm flex flex-col justify-between">
+<div>
+<div class="flex items-center justify-between mb-space-sm">
+<div class="flex items-center gap-space-xs">
+<span class="material-symbols-outlined text-primary text-[20px]">radar</span>
+<span class="font-headline-sm text-headline-sm text-on-surface">Live Green Corridor</span>
+</div>
+<span class="font-telemetry-sm text-telemetry-sm px-2 py-0.5 rounded bg-primary-container/20 text-primary font-bold">GPS ACTIVE</span>
+</div>
+
+<!-- Live GPS Vector Simulation -->
+<div class="w-full h-36 rounded-lg bg-surface-container relative overflow-hidden flex items-center justify-center shadow-inner" data-location="CityCare Hospital Emergency Wing, New Delhi">
+<!-- Subtle visual route graphic overlay -->
+<svg class="absolute inset-0 w-full h-full text-primary" fill="none" preserveAspectRatio="none" viewBox="0 0 320 140">
+<path class="opacity-30" d="M 20 110 C 80 110, 110 50, 180 50 C 230 50, 250 80, 300 30" stroke="currentColor" stroke-dasharray="6 6" stroke-linecap="round" stroke-width="4"></path>
+<path d="M 20 110 C 80 110, 110 50, 180 50" stroke="currentColor" stroke-linecap="round" stroke-width="4"></path>
+<circle class="fill-tertiary animate-pulse" cx="180" cy="50" r="7"></circle>
+<circle class="fill-primary" cx="300" cy="30" r="6"></circle>
+</svg>
+<div class="absolute bottom-2 left-2 bg-surface-container-lowest/90 px-2 py-1 rounded backdrop-blur font-telemetry-sm text-telemetry-sm text-on-surface shadow-sm">
+            Unit A-12: Speed 54 km/h
+          </div>
+<div class="absolute top-2 right-2 bg-primary px-2 py-0.5 rounded font-telemetry-sm text-telemetry-sm text-on-primary font-semibold">
+            CityCare Gate 4 Clear
+          </div>
+</div>
+</div>
+<div class="mt-space-md pt-space-sm bg-surface-container-low p-space-sm rounded-lg flex items-center justify-between">
+<span class="font-label-md text-label-md text-on-surface-variant">Trauma Team Lead</span>
+<span class="font-telemetry-md text-telemetry-md text-on-surface font-semibold">Dr. S. Roy (On-Site)</span>
+</div>
+</div>
+</div>
+<!-- CORE SECTION: RESOURCE AVAILABILITY COMPARISON MATRIX -->
+<div class="bg-surface-container-lowest rounded-xl p-space-xl shadow-sm mb-space-lg">
+<div class="flex flex-col sm:flex-row sm:items-end justify-between pb-space-lg gap-space-sm">
+<div>
+<div class="flex items-center gap-space-xs text-primary mb-1">
+<span class="material-symbols-outlined text-[22px]">fact_check</span>
+<span class="font-telemetry-sm text-telemetry-sm uppercase tracking-widest font-bold">Capacity Validation Engine</span>
+</div>
+<h2 class="font-headline-lg text-headline-lg text-on-surface">Resource Availability Check</h2>
+
+</div>
+<div class="flex items-center gap-space-xs text-on-surface-variant font-telemetry-sm text-telemetry-sm">
+<span class="w-2 h-2 rounded-full bg-primary inline-block"></span>
+
+</div>
+</div>
+<!-- Comparison Table -->
+<div class="overflow-x-auto">
+<table class="w-full text-left">
+<thead>
+<tr class="bg-surface-container-low text-on-surface-variant font-label-md text-label-md uppercase tracking-wider">
+<th class="py-space-md px-space-lg rounded-l-lg w-5/12">Required by Dispatch (#EM-1042)</th>
+<th class="py-space-md px-space-lg w-2/12 text-center">Status</th>
+<th class="py-space-md px-space-lg rounded-r-lg w-5/12">CityCare Real-Time Status &amp; Availability</th>
+</tr>
+</thead>
+<tbody class="divide-y-0 text-on-surface font-body-md text-body-md">
+<!-- Item 1: Trauma Bay -->
+<tr class="hover:bg-surface-container-low/60 transition-colors">
+<td class="py-space-md px-space-lg">
+<div class="flex items-center gap-space-md">
+<div class="w-9 h-9 rounded bg-primary-container/15 text-primary flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined text-[20px]">emergency</span>
+</div>
+<div>
+<span class="font-headline-sm text-headline-sm block text-on-surface">Trauma &amp; Emergency (Dept)</span>
+
+</div>
+</div>
+</td>
+<td class="py-space-md px-space-lg text-center">
+<span class="inline-flex items-center gap-1 px-space-md py-0.5 rounded-full bg-primary/10 text-primary font-telemetry-sm text-telemetry-sm font-semibold">
+<span class="material-symbols-outlined text-[14px]">check_circle</span>
+<span class="">AVAILABLE</span>
+</span>
+</td>
+<td class="py-space-md px-space-lg">
+<div class="flex items-center justify-between">
+<div>
+<span class="font-label-lg text-label-lg text-on-surface block font-semibold">Bay 02 Clear</span>
+
+</div>
+<span class="font-telemetry-sm text-telemetry-sm px-space-sm py-1 rounded bg-secondary-container/20 text-on-secondary-container font-mono">
+                  LOCK READY
+                </span>
+</div>
+</td>
+</tr>
+<!-- Item 2: Cardiology -->
+<tr class="bg-surface-container-low/30 hover:bg-surface-container-low/60 transition-colors">
+<td class="py-space-md px-space-lg">
+<div class="flex items-center gap-space-md">
+<div class="w-9 h-9 rounded bg-primary-container/15 text-primary flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined text-[20px]">cardiology</span>
+</div>
+<div>
+<span class="font-headline-sm text-headline-sm block text-on-surface">Cardiology (Dept)</span>
+
+</div>
+</div>
+</td>
+<td class="py-space-md px-space-lg text-center">
+<span class="inline-flex items-center gap-1 px-space-md py-0.5 rounded-full bg-primary/10 text-primary font-telemetry-sm text-telemetry-sm font-semibold">
+<span class="material-symbols-outlined text-[14px]">check_circle</span>
+<span class="">AVAILABLE</span>
+</span>
+</td>
+<td class="py-space-md px-space-lg">
+<div class="flex items-center justify-between">
+<div>
+<span class="font-label-lg text-label-lg text-on-surface block font-semibold">Cath Lab Team On Call</span>
+
+</div>
+<span class="font-telemetry-sm text-telemetry-sm px-space-sm py-1 rounded bg-secondary-container/20 text-on-secondary-container font-mono">
+                  LOCK READY
+                </span>
+</div>
+</td>
+</tr>
+<!-- Item 3: Operation Theatre -->
+<tr class="hover:bg-surface-container-low/60 transition-colors">
+<td class="py-space-md px-space-lg">
+<div class="flex items-center gap-space-md">
+<div class="w-9 h-9 rounded bg-primary-container/15 text-primary flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined text-[20px]">medical_services</span>
+</div>
+<div>
+<span class="font-headline-sm text-headline-sm block text-on-surface">Operation Theatre (Dept)</span>
+
+</div>
+</div>
+</td>
+<td class="py-space-md px-space-lg text-center">
+<span class="inline-flex items-center gap-1 px-space-md py-0.5 rounded-full bg-primary/10 text-primary font-telemetry-sm text-telemetry-sm font-semibold">
+<span class="material-symbols-outlined text-[14px]">check_circle</span>
+<span class="">AVAILABLE</span>
+</span>
+</td>
+<td class="py-space-md px-space-lg">
+<div class="flex items-center justify-between">
+<div>
+<span class="font-label-lg text-label-lg text-on-surface block font-semibold">OT-3 Acute Prep in 10m</span>
+
+</div>
+<span class="font-telemetry-sm text-telemetry-sm px-space-sm py-1 rounded bg-secondary-container/20 text-on-secondary-container font-mono">
+                  LOCK READY
+                </span>
+</div>
+</td>
+</tr>
+<!-- Item 4: Mechanical Ventilator -->
+<tr class="bg-surface-container-low/30 hover:bg-surface-container-low/60 transition-colors">
+<td class="py-space-md px-space-lg">
+<div class="flex items-center gap-space-md">
+<div class="w-9 h-9 rounded bg-primary-container/15 text-primary flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined text-[20px]">air</span>
+</div>
+<div>
+<span class="font-headline-sm text-headline-sm block text-on-surface">Mechanical Ventilator (Equipment)</span>
+
+</div>
+</div>
+</td>
+<td class="py-space-md px-space-lg text-center">
+<span class="inline-flex items-center gap-1 px-space-md py-0.5 rounded-full bg-primary/10 text-primary font-telemetry-sm text-telemetry-sm font-semibold">
+<span class="material-symbols-outlined text-[14px]">check_circle</span>
+<span class="">AVAILABLE</span>
+</span>
+</td>
+<td class="py-space-md px-space-lg">
+<div class="flex items-center justify-between">
+<div>
+<span class="font-label-lg text-label-lg text-on-surface block font-semibold">3 Units Available / 1 Reserved</span>
+
+</div>
+<span class="font-telemetry-sm text-telemetry-sm px-space-sm py-1 rounded bg-secondary-container/20 text-on-secondary-container font-mono">
+                  LOCK READY
+                </span>
+</div>
+</td>
+</tr>
+<!-- Item 5: CT Scanner (Interactive Row for Conflict Simulation) -->
+<tr class="hover:bg-surface-container-low/60 transition-colors" id="ct-scanner-row">
+<td class="py-space-md px-space-lg">
+<div class="flex items-center gap-space-md">
+<div class="w-9 h-9 rounded bg-primary-container/15 text-primary flex items-center justify-center shrink-0" id="ct-icon-box">
+<span class="material-symbols-outlined text-[20px]">radiology</span>
+</div>
+<div>
+<span class="font-headline-sm text-headline-sm block text-on-surface">CT Scanner (Equipment)</span>
+
+</div>
+</div>
+</td>
+<td class="py-space-md px-space-lg text-center" id="ct-status-cell">
+          <span class="inline-flex items-center gap-1 px-space-md py-0.5 rounded-full bg-primary/10 text-primary font-telemetry-sm text-telemetry-sm font-semibold">
+            <span class="material-symbols-outlined text-[14px]">check_circle</span>
+            <span class="">AVAILABLE</span>
+          </span>
+        </td>
+<td class="py-space-md px-space-lg" id="ct-detail-cell">
+          <div class="flex items-center justify-between">
+            <div>
+              <span class="font-label-lg text-label-lg text-on-surface block font-semibold">128-Slice Trauma Scanner Clear</span>
+              
+            </div>
+            <span class="font-telemetry-sm text-telemetry-sm px-space-sm py-1 rounded bg-secondary-container/20 text-on-secondary-container font-mono">
+              LOCK READY
+            </span>
+          </div>
+        </td>
+</tr>
+</tbody>
+</table>
+</div>
+<!-- Capacity Warning Box (Hidden by default, shown in conflict mode) -->
+<div class="mt-space-lg p-space-md rounded-lg bg-tertiary-container/15 text-tertiary flex items-start gap-space-md hidden" id="conflict-alert">
+<span class="material-symbols-outlined text-[24px] text-tertiary shrink-0">report_problem</span>
+<div class="flex-1">
+<h4 class="font-headline-sm text-headline-sm text-on-surface font-bold">Resource Bottleneck Detected</h4>
+<p class="font-body-md text-body-md text-on-surface-variant mt-0.5">
+          Cannot accept this request at full trauma staging level. The 128-Slice CT Scanner is committed to Emergency #EM-1038 until 13:10 IST. Accepting without mandatory imaging will trigger clinical escalation protocol.
+        </p>
+<div class="mt-space-sm flex items-center gap-space-md flex-wrap">
+<span class="font-telemetry-sm text-telemetry-sm text-tertiary font-bold uppercase tracking-wider">Suggested Divert Route: Lifeline Hospital (2.3 km East • CT Operational)</span>
+</div>
+</div>
+</div>
+</div>
+<!-- DECISION ACTIONS PANEL -->
+<div class="bg-surface-container-lowest rounded-xl p-space-xl shadow-sm mb-space-2xl">
+<div class="flex flex-col lg:flex-row lg:items-center justify-between gap-space-xl">
+<!-- Clinical Summary / Audit Stamp -->
+<div class="max-w-xl">
+<div class="flex items-center gap-space-xs text-on-surface-variant font-telemetry-sm text-telemetry-sm mb-1">
+<span class="material-symbols-outlined text-[16px] text-primary">verified_user</span>
+
+</div>
+
+<span class="font-telemetry-sm text-telemetry-sm text-on-surface-variant mt-1 block">
+          Key command: Press <kbd class="px-1.5 py-0.5 rounded bg-surface-container font-mono text-on-surface font-bold">[Enter]</kbd> to confirm or <kbd class="px-1.5 py-0.5 rounded bg-surface-container font-mono text-on-surface font-bold">[Esc]</kbd> to dismiss.
+        </span>
+</div>
+<!-- Action Buttons -->
+<div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-space-md shrink-0">
+<!-- Secondary / Reject Trigger -->
+<div class="relative group">
+<button class="w-full sm:w-auto px-space-xl py-3 rounded-lg bg-surface-container text-on-surface hover:bg-surface-container-high transition-colors font-label-lg text-label-lg flex items-center justify-center gap-space-xs" id="reject-btn" onclick="openRejectDialog()">
+<span class="material-symbols-outlined text-[18px]">block</span>
+<span class="">Reject Request</span>
+</button>
+</div>
+<!-- Primary Action Button: JeevanRoute Coral/Red Accent -->
+<div class="flex flex-col items-center sm:items-end">
+<button class="w-full sm:w-auto px-space-2xl py-3 rounded-lg bg-tertiary text-on-tertiary hover:opacity-95 active:scale-[0.99] transition-all font-headline-sm text-headline-sm font-semibold flex items-center justify-center gap-space-sm shadow-md" id="accept-btn" onclick="confirmAcceptance()"><span class="">Accept &amp; Reserve Resources</span><span class="material-symbols-outlined text-[20px]">arrow_forward</span></button>
+
+</div>
+</div>
+</div>
+</div>
+<!-- Reject Reason Dialog (Hidden Overlay) -->
+<div class="fixed inset-0 z-50 bg-on-surface/40 backdrop-blur-sm hidden items-center justify-center p-space-md" id="reject-modal">
+<div class="bg-surface-container-lowest max-w-lg w-full rounded-xl p-space-xl shadow-xl flex flex-col gap-space-md">
+<div class="flex items-center justify-between pb-space-sm">
+<div class="flex items-center gap-space-xs text-tertiary">
+<span class="material-symbols-outlined text-[22px]">warning</span>
+<h3 class="font-headline-md text-headline-md text-on-surface">Reject Emergency Dispatch</h3>
+</div>
+<button class="p-1 rounded text-on-surface-variant hover:text-on-surface" onclick="closeRejectDialog()">
+<span class="material-symbols-outlined text-[20px]">close</span>
+</button>
+</div>
+<p class="font-body-md text-body-md text-on-surface-variant">
+        Rejecting request <strong class="text-on-surface font-mono">#EM-1042</strong> will immediately reroute Ambulance A-12 to the nearest alternative regional trauma facility.
+      </p>
+<div class="flex flex-col gap-space-xs">
+<label class="font-label-md text-label-md text-on-surface font-semibold" for="divert-reason">Select Diversion Reason</label>
+<select class="w-full p-space-sm bg-surface-container-low rounded-lg font-body-md text-body-md text-on-surface focus:outline-none" id="divert-reason">
+<option value="capacity">Capacity exceeded / Divert to Lifeline Hospital</option>
+<option value="ct-down">Critical diagnostic imaging unavailable (CT/MRI)</option>
+<option value="surgeon">Specialist trauma surgeon unavailable</option>
+<option value="critical-power">Facility electrical / utility constraint</option>
+</select>
+</div>
+<div class="flex items-center justify-end gap-space-md mt-space-md">
+<button class="px-space-lg py-space-sm rounded-lg bg-surface-container text-on-surface font-label-md text-label-md" onclick="closeRejectDialog()">
+          Cancel
+        </button>
+<button class="px-space-lg py-space-sm rounded-lg bg-tertiary text-on-tertiary font-label-md text-label-md font-semibold" onclick="executeReject()">
+          Confirm Diversion
+        </button>
+</div>
+</div>
+</div>
+<!-- ACCEPTANCE CONFIRMATION MODAL STATE -->
+<div class="fixed inset-0 z-50 bg-on-surface/50 backdrop-blur-sm hidden items-center justify-center p-space-md" id="acceptance-modal">
+<div class="bg-surface-container-lowest max-w-xl w-full rounded-xl p-space-2xl shadow-xl flex flex-col gap-space-lg">
+<div class="flex items-center gap-space-md">
+<div class="w-12 h-12 rounded-full bg-primary/10 text-primary flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined text-[30px]" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+</div>
+<div>
+<span class="font-telemetry-sm text-telemetry-sm text-primary font-bold uppercase tracking-wider block">Reservation Confirmed</span>
+<h3 class="font-headline-lg text-headline-lg text-on-surface">Emergency Accepted • Code Red</h3>
+</div>
+</div>
+<div class="bg-surface-container-low p-space-lg rounded-xl flex flex-col gap-space-sm">
+<div class="flex items-center justify-between pb-space-xs">
+<span class="font-label-md text-label-md text-on-surface-variant">Reservation Protocol ID</span>
+<span class="font-telemetry-md text-telemetry-md text-on-surface font-bold font-mono">RES-1042</span>
+</div>
+<div class="flex items-center justify-between">
+<span class="font-label-md text-label-md text-on-surface-variant">Status</span>
+<span class="inline-flex items-center gap-1.5 px-space-md py-0.5 rounded-full bg-primary/10 text-primary font-telemetry-sm text-telemetry-sm font-semibold">
+<span class="w-2 h-2 rounded-full bg-primary animate-pulse"></span>
+<span class="">RESOURCES RESERVED</span>
+</span>
+</div>
+<div class="pt-space-xs">
+<span class="font-label-md text-label-md text-on-surface-variant block mb-1">Locked Hospital Assets</span>
+<p class="font-headline-sm text-headline-sm text-on-surface">
+            Trauma Bay 02 • Cardiology Cath Lab • OT-3 • Mechanical Ventilator #4 • 128-Slice CT Scanner
+          </p>
+</div>
+</div>
+<div class="flex items-center gap-space-md bg-secondary-container/20 p-space-md rounded-lg text-on-secondary-container">
+<span class="material-symbols-outlined text-[24px]">contactless</span>
+<div class="font-body-sm text-body-sm">
+<strong>Ambulance Unit A-12 has received dispatch confirmation.</strong><br>
+          Direct telemetry feed linked to Bay 02 resuscitation consoles. ETA: 11 minutes.
+        </div>
+</div>
+<div class="flex items-center justify-end gap-space-md pt-space-xs">
+<a class="px-space-2xl py-3 rounded-lg bg-primary text-on-primary font-headline-sm text-headline-sm font-semibold flex items-center gap-space-xs shadow-md" data-path="active-cases" href="#">
+<span class="">Go to Active Trauma Bay</span>
+<span class="material-symbols-outlined text-[20px]">arrow_forward</span>
+</a>
+</div>
+</div>
+</div>
+<!-- Dynamic Logic for Simulator and Decision Flow -->
+<script>
+    let currentMode = 'ready';
+
+    function setSimulationMode(mode) {
+      currentMode = mode;
+      const readyBtn = document.getElementById('sim-ready-btn');
+      const conflictBtn = document.getElementById('sim-conflict-btn');
+      const ctRow = document.getElementById('ct-scanner-row');
+      const ctIconBox = document.getElementById('ct-icon-box');
+      const ctStatusCell = document.getElementById('ct-status-cell');
+      const ctDetailCell = document.getElementById('ct-detail-cell');
+      const conflictAlert = document.getElementById('conflict-alert');
+      const acceptBtn = document.getElementById('accept-btn');
+      const acceptSubtext = document.getElementById('accept-subtext');
+
+      if (mode === 'conflict') {
+        // Toggle buttons
+        readyBtn.className = "px-space-md py-1 rounded text-on-surface-variant hover:text-on-surface font-label-md text-label-md transition-all";
+        conflictBtn.className = "px-space-md py-1 rounded bg-tertiary text-on-tertiary font-label-md text-label-md shadow-sm font-semibold transition-all";
+
+        // Row visuals for Conflict
+        ctRow.classList.add('bg-tertiary-container/10');
+        ctIconBox.className = "w-9 h-9 rounded bg-tertiary/20 text-tertiary flex items-center justify-center shrink-0";
+        ctStatusCell.innerHTML = `
+          <span class="inline-flex items-center gap-1 px-space-md py-0.5 rounded-full bg-tertiary/15 text-tertiary font-telemetry-sm text-telemetry-sm font-bold">
+            <span class="material-symbols-outlined text-[14px]">cancel</span>
+            <span>UNAVAILABLE</span>
+          </span>
+        `;
+        ctDetailCell.innerHTML = `
+          <div class="flex items-center justify-between">
+            <div>
+              <span class="font-label-lg text-label-lg text-tertiary block font-bold">✕ Reserved by Emergency #EM-1038</span>
+              <span class="font-body-sm text-body-sm text-tertiary">Occupied until ~13:10 IST &bull; Protocol Blocked</span>
+            </div>
+            <span class="font-telemetry-sm text-telemetry-sm px-space-sm py-1 rounded bg-tertiary/20 text-tertiary font-mono font-bold">
+              LOCKED BUSY
+            </span>
+          </div>
+        `;
+
+        // Show conflict alert
+        conflictAlert.classList.remove('hidden');
+
+        // Disable primary accept
+        acceptBtn.disabled = true;
+        acceptBtn.className = "w-full sm:w-auto px-space-2xl py-3 rounded-lg bg-surface-container-high text-on-surface-variant cursor-not-allowed font-headline-sm text-headline-sm font-semibold flex items-center justify-center gap-space-sm opacity-70";
+        acceptBtn.innerHTML = `<span>Cannot Accept - Resource Bottleneck</span><span class="material-symbols-outlined text-[20px]">block</span>`;
+        acceptSubtext.innerText = "One or more required critical resources are completely unavailable.";
+        acceptSubtext.classList.add('text-tertiary');
+      } else {
+        // Toggle buttons
+        conflictBtn.className = "px-space-md py-1 rounded text-on-surface-variant hover:text-on-surface font-label-md text-label-md transition-all";
+        readyBtn.className = "px-space-md py-1 rounded bg-surface-container-lowest text-primary font-label-md text-label-md shadow-sm font-semibold transition-all";
+
+        // Row visuals for Ready
+        ctRow.classList.remove('bg-tertiary-container/10');
+        ctIconBox.className = "w-9 h-9 rounded bg-primary-container/15 text-primary flex items-center justify-center shrink-0";
+        ctStatusCell.innerHTML = `
+          <span class="inline-flex items-center gap-1 px-space-md py-0.5 rounded-full bg-primary/10 text-primary font-telemetry-sm text-telemetry-sm font-semibold">
+            <span class="material-symbols-outlined text-[14px]">check_circle</span>
+            <span>AVAILABLE</span>
+          </span>
+        `;
+        ctDetailCell.innerHTML = `
+          <div class="flex items-center justify-between">
+            <div>
+              <span class="font-label-lg text-label-lg text-on-surface block font-semibold">128-Slice Trauma Scanner Clear</span>
+              <span class="font-body-sm text-body-sm text-on-surface-variant">Radiology tech on station &bull; Zero queue</span>
+            </div>
+            <span class="font-telemetry-sm text-telemetry-sm px-space-sm py-1 rounded bg-secondary-container/20 text-on-secondary-container font-mono">
+              LOCK READY
+            </span>
+          </div>
+        `;
+
+        // Hide alert
+        conflictAlert.classList.add('hidden');
+
+        // Restore Accept Button
+        acceptBtn.disabled = false;
+        acceptBtn.className = "w-full sm:w-auto px-space-2xl py-3 rounded-lg bg-tertiary text-on-tertiary hover:opacity-95 active:scale-[0.99] transition-all font-headline-sm text-headline-sm font-semibold flex items-center justify-center gap-space-sm shadow-md";
+        acceptBtn.innerHTML = `<span>Accept &amp; Reserve Resources</span><span class="material-symbols-outlined text-[20px]">arrow_forward</span>`;
+        acceptSubtext.innerText = "Instantly locks OT-3, Bay 02, Ventilator #4 and notifies Ambulance A-12.";
+        acceptSubtext.classList.remove('text-tertiary');
+      }
+    }
+
+    function confirmAcceptance() {
+      if (currentMode === 'conflict') return;
+      const modal = document.getElementById('acceptance-modal');
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+    }
+
+    function openRejectDialog() {
+      const modal = document.getElementById('reject-modal');
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+    }
+
+    function closeRejectDialog() {
+      const modal = document.getElementById('reject-modal');
+      modal.classList.add('hidden');
+      modal.classList.remove('flex');
+    }
+
+    function executeReject() {
+      closeRejectDialog();
+      alert("Dispatch #EM-1042 diverted to Lifeline Hospital. Ambulance A-12 rerouted.");
+    }
+
+    // Keyboard operational shortcuts
+    document.addEventListener('keydown', function(e) {
+      if (e.key === 'Enter') {
+        const acceptModalOpen = !document.getElementById('acceptance-modal').classList.contains('hidden');
+        if (!acceptModalOpen && currentMode === 'ready') {
+          confirmAcceptance();
+        }
+      } else if (e.key === 'Escape') {
+        closeRejectDialog();
+      }
+    });
+  </script>
+</div></main></div></body></html>

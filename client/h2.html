@@ -1,0 +1,434 @@
+<!DOCTYPE html><html lang="en" style=""><head><meta charset="utf-8"><meta content="width=device-width, initial-scale=1.0" name="viewport"><meta content="web_dashboard" name="shell-type"><link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet"><link href="https://fonts.googleapis.com" rel="preconnect"><link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"><link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&amp;family=Public+Sans:wght@400;500;600;700&amp;family=Space+Grotesk:wght@500;600;700&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"><style>@layer base { html, body { margin: 0; padding: 0; } body { overscroll-behavior: none; } main > :first-child { margin-top: 0 !important; } main > :last-child { margin-bottom: 0 !important; } } ::-webkit-scrollbar { display: none; }</style><script src="https://cdn.tailwindcss.com"></script><script id="tailwind-config">tailwind.config = { darkMode: "class", theme: { extend: { "colors": { "secondary-container": "#6ef4ef", "inverse-primary": "#6fd7d3", "on-tertiary-container": "#fffbff", "background": "#f9f9ff", "on-primary-fixed-variant": "#00504e", "on-background": "#071c36", "tertiary-container": "#d8354b", "primary-fixed": "#8cf4ef", "error-container": "#ffdad6", "on-secondary-container": "#006e6c", "secondary": "#006a67", "surface-bright": "#f9f9ff", "on-primary-container": "#f3fffd", "on-secondary": "#ffffff", "surface-dim": "#c8dbfe", "on-tertiary": "#ffffff", "on-tertiary-fixed": "#40000b", "outline-variant": "#bcc9c8", "secondary-fixed": "#71f7f2", "surface-container-low": "#f0f3ff", "on-error-container": "#93000a", "primary-container": "#008280", "on-tertiary-fixed-variant": "#920025", "tertiary-fixed": "#ffdada", "surface-container-high": "#dee8ff", "primary-fixed-dim": "#6fd7d3", "on-surface-variant": "#3d4948", "outline": "#6d7978", "error": "#ba1a1a", "on-secondary-fixed-variant": "#00504e", "inverse-on-surface": "#ecf1ff", "inverse-surface": "#1f314d", "on-error": "#ffffff", "surface": "#f9f9ff", "tertiary": "#b51735", "on-primary-fixed": "#00201f", "on-surface": "#071c36", "surface-container-highest": "#d6e3ff", "primary": "#006765", "tertiary-fixed-dim": "#ffb3b4", "surface-tint": "#006a67", "surface-variant": "#d6e3ff", "surface-container-lowest": "#ffffff", "on-secondary-fixed": "#00201f", "on-primary": "#ffffff", "secondary-fixed-dim": "#4fdad6", "surface-container": "#e7eeff" }, "borderRadius": { "DEFAULT": "0.125rem", "lg": "0.25rem", "xl": "0.5rem", "full": "0.75rem" }, "spacing": { "space-sm": "0.5rem", "space-md": "0.75rem", "gutter-dense": "0.5rem", "space-lg": "1rem", "margin": "1.5rem", "space-2xl": "2rem", "margin-dense": "1rem", "space-xs": "0.25rem", "gutter": "1rem", "space-xl": "1.5rem" }, "fontFamily": { "telemetry-md": [ "JetBrains Mono" ], "telemetry-lg": [ "JetBrains Mono" ], "headline-sm": [ "Space Grotesk" ], "headline-lg": [ "Space Grotesk" ], "body-lg": [ "Public Sans" ], "label-lg": [ "Public Sans" ], "headline-md": [ "Space Grotesk" ], "telemetry-sm": [ "JetBrains Mono" ], "label-md": [ "Public Sans" ], "body-md": [ "Public Sans" ], "display-lg": [ "Space Grotesk" ], "body-sm": [ "Public Sans" ] }, "fontSize": { "telemetry-md": [ "14px", { "lineHeight": "18px", "letterSpacing": "-0.01em", "fontWeight": "500" } ], "telemetry-lg": [ "20px", { "lineHeight": "24px", "letterSpacing": "-0.02em", "fontWeight": "600" } ], "headline-sm": [ "16px", { "lineHeight": "22px", "letterSpacing": "-0.005em", "fontWeight": "600" } ], "headline-lg": [ "24px", { "lineHeight": "30px", "letterSpacing": "-0.015em", "fontWeight": "600" } ], "body-lg": [ "16px", { "lineHeight": "24px", "fontWeight": "400" } ], "label-lg": [ "14px", { "lineHeight": "18px", "fontWeight": "600" } ], "headline-md": [ "20px", { "lineHeight": "26px", "letterSpacing": "-0.01em", "fontWeight": "600" } ], "telemetry-sm": [ "11px", { "lineHeight": "14px", "letterSpacing": "0.01em", "fontWeight": "500" } ], "label-md": [ "12px", { "lineHeight": "16px", "letterSpacing": "0.02em", "fontWeight": "600" } ], "body-md": [ "14px", { "lineHeight": "20px", "fontWeight": "400" } ], "display-lg": [ "32px", { "lineHeight": "38px", "letterSpacing": "-0.02em", "fontWeight": "700" } ], "body-sm": [ "13px", { "lineHeight": "18px", "fontWeight": "400" } ] } } } };</script></head><body class="bg-background font-body-md text-on-surface antialiased min-h-screen"><aside class="fixed left-0 top-0 h-full w-64 bg-surface-container-lowest shadow-[0_1px_8px_rgba(0,0,0,0.04)] z-50 flex flex-col justify-between select-none"><div class="flex flex-col"><div class="h-16 px-space-xl flex items-center justify-between bg-surface-container-lowest"><div class="flex items-center gap-space-sm"><div class="w-8 h-8 rounded-lg bg-primary-container flex items-center justify-center"><span class="material-symbols-outlined text-on-primary-container text-[20px]">vital_signs</span></div><div class="flex flex-col"><span class="font-headline-sm text-headline-sm text-on-surface leading-none tracking-tight">JeevanRoute</span><span class="font-telemetry-sm text-telemetry-sm text-primary uppercase font-bold tracking-wider mt-0.5">Hospital Portal</span></div></div></div><nav class="flex flex-col gap-space-xs px-space-md mt-space-lg" data-active-classes="bg-primary-container text-on-primary-container font-semibold rounded-lg"><a aria-current="page" class="flex items-center gap-space-md px-space-md py-space-sm transition-colors bg-primary-container text-on-primary-container font-semibold rounded-lg" data-path="dashboard" href="#"><span class="material-symbols-outlined text-[20px]">grid_view</span><span class="">Dashboard</span></a><a class="flex items-center justify-between px-space-md py-space-sm rounded-lg text-on-surface-variant font-label-md text-label-md hover:bg-surface-container-high hover:text-on-surface transition-colors" data-path="emergency-requests" href="#"><div class="flex items-center gap-space-md"><span class="material-symbols-outlined text-[20px]">emergency</span><span class="">Emergency Requests</span></div><span class="px-1.5 py-0.5 rounded-full bg-tertiary text-on-tertiary font-telemetry-sm text-telemetry-sm">LIVE</span></a><a class="flex items-center gap-space-md px-space-md py-space-sm rounded-lg text-on-surface-variant font-label-md text-label-md hover:bg-surface-container-high hover:text-on-surface transition-colors" data-path="resources" href="#"><span class="material-symbols-outlined text-[20px]">inventory_2</span><span class="">Resources</span></a><a class="flex items-center gap-space-md px-space-md py-space-sm rounded-lg text-on-surface-variant font-label-md text-label-md hover:bg-surface-container-high hover:text-on-surface transition-colors" data-path="active-cases" href="#"><span class="material-symbols-outlined text-[20px]">personal_injury</span><span class="">Active Cases</span></a><a class="flex items-center gap-space-md px-space-md py-space-sm rounded-lg text-on-surface-variant font-label-md text-label-md hover:bg-surface-container-high hover:text-on-surface transition-colors" data-path="handover" href="#"><span class="material-symbols-outlined text-[20px]">swap_horiz</span><span class="">Handover</span></a><a class="flex items-center gap-space-md px-space-md py-space-sm rounded-lg text-on-surface-variant font-label-md text-label-md hover:bg-surface-container-high hover:text-on-surface transition-colors" data-path="history" href="#"><span class="material-symbols-outlined text-[20px]">history</span><span class="">History</span></a></nav></div><div class="p-space-md"><div class="bg-surface-container-low rounded-xl p-space-md flex flex-col gap-space-sm"><div class="flex items-center justify-between"><div class="flex items-center gap-space-xs"><span class="material-symbols-outlined text-primary text-[18px]">local_hospital</span><span class="font-label-md text-label-md text-on-surface font-semibold truncate">CityCare Hospital</span></div><span class="relative flex h-2 w-2"><span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-secondary-fixed-dim opacity-75"></span><span class="relative inline-flex rounded-full h-2 w-2 bg-primary"></span></span></div><a class="mt-space-xs flex items-center justify-center gap-space-xs py-space-xs px-space-sm rounded-lg bg-surface-container-lowest text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-colors font-label-md text-label-md" data-path="login" href="#"><span class="material-symbols-outlined text-[16px]">logout</span><span class="">Logout</span></a></div></div></aside><div class="pl-64"><header class="fixed top-0 left-64 right-0 h-16 bg-surface-container-lowest/90 backdrop-blur-xl shadow-[0_1px_8px_rgba(0,0,0,0.04)] z-40 flex items-center justify-between px-space-xl"><div class="flex flex-col"><span class="font-headline-sm text-headline-sm text-on-surface leading-tight">Good evening</span><span class="font-label-md text-label-md text-on-surface-variant leading-none">CityCare Hospital • Emergency Operations</span></div><div class="flex items-center gap-space-lg"><button aria-label="Critical Alerts" class="relative p-space-sm rounded-lg bg-surface-container-low text-on-surface hover:bg-surface-container-high hover:text-on-surface transition-colors" type="button"><span class="material-symbols-outlined text-[20px]">notifications</span><span class="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-tertiary"></span></button><div class="w-8 h-8 rounded-full bg-primary flex items-center justify-center"><span class="material-symbols-outlined text-on-primary text-[18px]">person</span></div></div></header><main class="relative pt-16 min-h-screen bg-background w-full px-space-xl py-space-lg"><div class="flex flex-col w-full">
+<!-- Simulation State Banner & Dispatch Telemetry Header -->
+<div class="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-space-md mb-space-lg">
+<div class="flex items-center gap-space-sm">
+<div class="w-2.5 h-2.5 rounded-full bg-tertiary animate-ping"></div>
+
+
+
+</div>
+<!-- Interactive Simulation Mode Toggle -->
+<div class="flex items-center bg-surface-container-lowest p-1 rounded-xl shadow-sm">
+<span class="font-label-md text-label-md text-on-surface-variant px-space-sm select-none">View Mode:</span>
+<button class="px-space-md py-1 rounded-lg font-label-md text-label-md bg-primary text-on-primary transition-all shadow-sm" id="toggle-active-btn" onclick="setDashboardMode('active')" type="button">
+        Active Inbound (3)
+      </button>
+<button class="px-space-md py-1 rounded-lg font-label-md text-label-md text-on-surface-variant hover:text-on-surface transition-all" id="toggle-clear-btn" onclick="setDashboardMode('clear')" type="button">
+        All Clear (Empty State)
+      </button>
+</div>
+</div>
+<!-- KPI Status Metrics Bar (3 Clean Minimalist Tiles) -->
+<section aria-label="Hospital Status Metrics" class="grid grid-cols-1 md:grid-cols-3 gap-space-lg mb-space-xl">
+<!-- Tile 1: Emergency Requests -->
+<div class="bg-surface-container-lowest rounded-xl p-space-lg shadow-sm flex flex-col justify-between relative overflow-hidden group">
+<div class="flex items-start justify-between">
+<div class="flex flex-col">
+<span class="font-label-md text-label-md text-on-surface-variant uppercase tracking-wider font-semibold">Emergency Requests</span>
+<span class="font-display-lg text-display-lg text-tertiary mt-space-xs leading-none" id="metric-emergency-val">3</span>
+</div>
+<div class="w-10 h-10 rounded-xl bg-tertiary-fixed flex items-center justify-center text-on-tertiary-fixed">
+<span class="material-symbols-outlined text-[22px]">notification_important</span>
+</div>
+</div>
+<div class="mt-space-md pt-space-xs flex items-center gap-space-xs">
+<span class="inline-flex items-center gap-1.5 px-space-sm py-0.5 rounded-full bg-tertiary text-on-tertiary font-telemetry-sm text-telemetry-sm font-semibold" id="metric-emergency-badge"><span class="w-1.5 h-1.5 rounded-full bg-surface-container-lowest animate-pulse"></span> 1 Urgent Action Required</span>
+</div>
+</div>
+<!-- Tile 2: Active Cases -->
+<div class="bg-surface-container-lowest rounded-xl p-space-lg shadow-sm flex flex-col justify-between group">
+<div class="flex items-start justify-between">
+<div class="flex flex-col">
+<span class="font-label-md text-label-md text-on-surface-variant uppercase tracking-wider font-semibold">Active Cases</span>
+<span class="font-display-lg text-display-lg text-on-surface mt-space-xs leading-none">2</span>
+</div>
+<div class="w-10 h-10 rounded-xl bg-surface-container-high flex items-center justify-center text-primary">
+<span class="material-symbols-outlined text-[22px]">local_shipping</span>
+</div>
+</div>
+<div class="mt-space-md pt-space-xs flex items-center text-on-surface-variant">
+<span class="material-symbols-outlined text-[16px] text-primary mr-1">navigation</span>
+<span class="font-body-sm text-body-sm">Ambulances in transit &amp; en route</span>
+</div>
+</div>
+<!-- Tile 3: Resources Reserved -->
+<div class="bg-surface-container-lowest rounded-xl p-space-lg shadow-sm flex flex-col justify-between group">
+<div class="flex items-start justify-between">
+<div class="flex flex-col">
+<span class="font-label-md text-label-md text-on-surface-variant uppercase tracking-wider font-semibold">Resources Reserved</span>
+<span class="font-display-lg text-display-lg text-on-surface mt-space-xs leading-none">4</span>
+</div>
+<div class="w-10 h-10 rounded-xl bg-surface-container-high flex items-center justify-center text-primary">
+<span class="material-symbols-outlined text-[22px]">lock_clock</span>
+</div>
+</div>
+<div class="mt-space-md pt-space-xs flex items-center text-on-surface-variant">
+<span class="material-symbols-outlined text-[16px] text-primary mr-1">check_circle</span>
+<span class="font-body-sm text-body-sm">ICU, Ventilator, OT, CT locked</span>
+</div>
+</div>
+</section>
+<!-- PRIMARY SECTION: INCOMING EMERGENCY REQUESTS -->
+<section class="flex flex-col mb-space-2xl">
+<!-- Section Header -->
+<div class="flex flex-col sm:flex-row sm:items-center justify-between gap-space-sm mb-space-md pb-space-xs">
+<div class="flex items-center gap-space-md">
+<div class="w-3 h-6 bg-tertiary rounded-sm"></div>
+<h2 class="font-headline-lg text-headline-lg text-on-surface tracking-tight">Incoming Emergency Requests</h2>
+<span class="px-space-sm py-0.5 rounded-full bg-error-container text-on-error-container font-telemetry-sm text-telemetry-sm font-bold">3 PENDING</span>
+</div>
+<div class="flex items-center gap-space-xs bg-surface-container-lowest px-space-md py-1.5 rounded-xl shadow-sm text-primary font-telemetry-sm text-telemetry-sm">
+<span class="w-2 h-2 rounded-full bg-primary animate-pulse"></span>
+<span class="font-semibold text-on-surface tracking-tight">Listening on Dispatch Grid</span>
+<span class="text-on-surface-variant ml-1 font-mono">100Hz</span>
+</div>
+</div>
+<!-- Active State Cards Container -->
+<div class="flex flex-col gap-space-lg" id="incoming-requests-container">
+<!-- Card 1: Critical Highlight (URGENT FOCUS) -->
+<article class="bg-surface-container-lowest rounded-xl shadow-md p-space-xl relative overflow-hidden transition-all hover:shadow-lg">
+<!-- Top alert ribbon -->
+<div class="absolute top-0 left-0 right-0 h-1.5 bg-tertiary"></div>
+<div class="flex flex-col lg:flex-row lg:items-center justify-between gap-space-lg">
+<!-- Main Info Column -->
+<div class="flex-1 flex flex-col gap-space-md min-w-0">
+<!-- Header Badges -->
+<div class="flex flex-wrap items-center gap-space-sm">
+<span class="inline-flex items-center gap-1.5 px-space-md py-1 rounded bg-tertiary text-on-tertiary font-label-md text-label-md uppercase tracking-wider font-bold">
+<span class="material-symbols-outlined text-[16px] animate-pulse">emergency_home</span>
+                EMERGENCY REQUEST
+              </span>
+<span class="font-telemetry-md text-telemetry-md font-bold text-on-surface">#EM-1042</span>
+<span class="text-outline-variant font-telemetry-sm text-telemetry-sm">•</span>
+<span class="font-headline-sm text-headline-sm text-on-surface font-semibold">Critical Trauma</span>
+<span class="inline-flex items-center gap-1 px-space-sm py-0.5 rounded bg-error-container text-on-error-container font-telemetry-sm text-telemetry-sm font-bold">
+<span class="w-1.5 h-1.5 rounded-full bg-error"></span>
+                Priority: Critical
+              </span>
+</div>
+<!-- Transit & Location Telemetry -->
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-space-md bg-surface-container-low p-space-md rounded-xl">
+<div class="flex items-center gap-space-sm">
+<div class="w-8 h-8 rounded-lg bg-surface-container-lowest flex items-center justify-center text-primary">
+<span class="material-symbols-outlined text-[20px]">ambulance</span>
+</div>
+<div class="flex flex-col">
+<span class="font-telemetry-sm text-telemetry-sm text-on-surface-variant uppercase">Ambulance</span>
+<span class="font-telemetry-md text-telemetry-md text-on-surface font-bold">A-12 (ALS Unit)</span>
+</div>
+</div>
+<div class="flex items-center gap-space-sm">
+<div class="w-8 h-8 rounded-lg bg-tertiary-fixed flex items-center justify-center text-tertiary">
+<span class="material-symbols-outlined text-[20px]">timer</span>
+</div>
+<div class="flex flex-col">
+<span class="font-telemetry-sm text-telemetry-sm text-on-surface-variant uppercase">Transit ETA</span>
+<span class="font-telemetry-lg text-telemetry-lg text-tertiary font-bold tracking-tight">11 min</span>
+</div>
+</div>
+<div class="flex items-center gap-space-sm">
+<div class="w-8 h-8 rounded-lg bg-surface-container-lowest flex items-center justify-center text-primary">
+<span class="material-symbols-outlined text-[20px]">near_me</span>
+</div>
+<div class="flex flex-col">
+<span class="font-telemetry-sm text-telemetry-sm text-on-surface-variant uppercase">Distance</span>
+<span class="font-telemetry-md text-telemetry-md text-on-surface font-semibold">4.8 km via Expressway</span>
+</div>
+</div>
+<div class="flex items-center gap-space-sm">
+<div class="w-8 h-8 rounded-lg bg-surface-container-lowest flex items-center justify-center text-primary">
+<span class="material-symbols-outlined text-[20px]">vital_signs</span>
+</div>
+<div class="flex flex-col">
+<span class="font-telemetry-sm text-telemetry-sm text-on-surface-variant uppercase">Vitals (Pre-Hospital)</span>
+<span class="font-telemetry-sm text-telemetry-sm text-on-surface font-semibold">BP 80/50 • HR 132</span>
+</div>
+</div>
+</div>
+<!-- Clinical Requirements Pill Grid -->
+<div class="flex flex-col sm:flex-row sm:items-center gap-y-2 gap-x-6 text-on-surface-variant font-label-md text-label-md">
+<div class="flex flex-wrap items-center gap-space-xs">
+<span class="font-telemetry-sm text-telemetry-sm text-on-surface uppercase font-bold tracking-wider">Required Departments:</span>
+<span class="px-space-sm py-0.5 rounded bg-surface-container-high text-on-surface font-medium">Cardiology</span>
+<span class="px-space-sm py-0.5 rounded bg-surface-container-high text-on-surface font-medium">Trauma &amp; Emergency</span>
+<span class="px-space-sm py-0.5 rounded bg-surface-container-high text-on-surface font-medium">Operation Theatre</span>
+</div>
+<div class="flex flex-wrap items-center gap-space-xs">
+<span class="font-telemetry-sm text-telemetry-sm text-on-surface uppercase font-bold tracking-wider">Major Equipment:</span>
+<span class="px-space-sm py-0.5 rounded bg-surface-container-high text-tertiary font-medium">Mechanical Ventilator</span>
+<span class="px-space-sm py-0.5 rounded bg-surface-container-high text-on-surface font-medium">CT Scanner</span>
+</div>
+</div>
+</div>
+<!-- Action & Pulse Status Column -->
+<div class="flex flex-row lg:flex-col items-center lg:items-end justify-between gap-space-md pt-space-md lg:pt-0">
+<div class="flex items-center gap-space-xs bg-tertiary-fixed px-space-md py-1.5 rounded-full text-on-tertiary-fixed font-telemetry-sm text-telemetry-sm font-semibold">
+<span class="relative flex h-2.5 w-2.5">
+<span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-tertiary opacity-75"></span>
+<span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-tertiary"></span>
+</span>
+<span class="">Waiting for response</span>
+</div>
+<button class="px-space-xl py-space-md rounded-xl bg-tertiary text-on-tertiary font-headline-sm text-headline-sm font-semibold tracking-wide hover:opacity-90 active:scale-[0.98] transition-all shadow-md flex items-center gap-space-sm" type="button">
+<span class="">Review Request</span>
+<span class="font-telemetry-sm text-telemetry-sm text-on-tertiary opacity-80">[Enter]</span>
+<span class="material-symbols-outlined text-[20px]">arrow_forward</span>
+</button>
+</div>
+</div>
+</article>
+<!-- Card 2: Severe Respiratory Arrest -->
+<article class="bg-surface-container-lowest rounded-xl shadow-sm p-space-lg relative overflow-hidden transition-all hover:shadow-md">
+<div class="absolute top-0 left-0 bottom-0 w-1 bg-tertiary"></div>
+<div class="flex flex-col lg:flex-row lg:items-center justify-between gap-space-md pl-space-xs">
+<!-- Main Info Column -->
+<div class="flex-1 flex flex-col gap-space-sm min-w-0">
+<div class="flex flex-wrap items-center gap-space-sm">
+<span class="inline-flex items-center gap-1 px-space-sm py-0.5 rounded bg-surface-container-high text-tertiary font-label-md text-label-md font-bold uppercase">
+<span class="material-symbols-outlined text-[15px]">emergency</span>
+                EMERGENCY REQUEST
+              </span>
+<span class="font-telemetry-md text-telemetry-md font-bold text-on-surface">#EM-1044</span>
+<span class="text-outline-variant font-telemetry-sm text-telemetry-sm">•</span>
+<span class="font-headline-sm text-headline-sm text-on-surface font-semibold">Acute Respiratory Arrest</span>
+<span class="inline-flex items-center gap-1 px-space-sm py-0.5 rounded bg-error-container text-on-error-container font-telemetry-sm text-telemetry-sm font-bold">
+<span class="w-1.5 h-1.5 rounded-full bg-error"></span>
+                Priority: Severe
+              </span>
+</div>
+<!-- Telemetry & Requirements inline -->
+<div class="flex flex-wrap items-center gap-x-6 gap-y-2 text-on-surface-variant font-body-sm text-body-sm mt-space-xs">
+<div class="flex items-center gap-space-xs">
+<span class="material-symbols-outlined text-[18px] text-primary">local_shipping</span>
+<span class="font-telemetry-sm text-telemetry-sm font-bold text-on-surface">Amb A-04</span>
+<span class="text-outline-variant font-telemetry-sm text-telemetry-sm">•</span>
+<span class="font-telemetry-sm text-telemetry-sm text-on-surface-variant">Transit ETA:</span>
+<span class="font-telemetry-md text-telemetry-md text-tertiary font-bold">16 min</span>
+</div>
+<div class="flex items-center gap-space-xs">
+<span class="font-telemetry-sm text-telemetry-sm uppercase font-bold text-on-surface">Required:</span>
+<span class="px-space-xs py-0.5 rounded bg-surface-container-high text-on-surface font-medium">ICU</span>
+<span class="px-space-xs py-0.5 rounded bg-surface-container-high text-on-surface font-medium">Pulmonology</span>
+</div>
+<div class="flex items-center gap-space-xs">
+<span class="font-telemetry-sm text-telemetry-sm uppercase font-bold text-on-surface">Equipment:</span>
+<span class="px-space-xs py-0.5 rounded bg-surface-container-high text-on-surface font-medium">Mechanical Ventilator</span>
+<span class="px-space-xs py-0.5 rounded bg-surface-container-high text-on-surface font-medium">Blood Bank</span>
+</div>
+</div>
+</div>
+<!-- Action & Status Column -->
+<div class="flex flex-row lg:flex-col items-center lg:items-end justify-between gap-space-sm pt-space-xs lg:pt-0">
+<div class="flex items-center gap-space-xs text-on-surface-variant font-telemetry-sm text-telemetry-sm font-medium">
+<span class="w-2 h-2 rounded-full bg-tertiary"></span>
+<span class="">Waiting for response</span>
+</div>
+<button class="px-space-lg py-space-sm rounded-lg bg-surface-container-high hover:bg-tertiary hover:text-on-tertiary text-on-surface font-label-md text-label-md font-semibold transition-all flex items-center gap-space-xs" type="button">
+<span class="">Review Request</span>
+<span class="material-symbols-outlined text-[18px]">arrow_forward</span>
+</button>
+</div>
+</div>
+</article>
+<!-- Card 3: Stroke / Neuro Triage -->
+<article class="bg-surface-container-lowest rounded-xl shadow-sm p-space-lg relative overflow-hidden transition-all hover:shadow-md">
+<div class="absolute top-0 left-0 bottom-0 w-1 bg-tertiary-fixed-dim"></div>
+<div class="flex flex-col lg:flex-row lg:items-center justify-between gap-space-md pl-space-xs">
+<!-- Main Info Column -->
+<div class="flex-1 flex flex-col gap-space-sm min-w-0">
+<div class="flex flex-wrap items-center gap-space-sm">
+<span class="inline-flex items-center gap-1 px-space-sm py-0.5 rounded bg-surface-container-high text-on-surface-variant font-label-md text-label-md font-bold uppercase">
+<span class="material-symbols-outlined text-[15px]">emergency</span>
+                EMERGENCY REQUEST
+              </span>
+<span class="font-telemetry-md text-telemetry-md font-bold text-on-surface">#EM-1045</span>
+<span class="text-outline-variant font-telemetry-sm text-telemetry-sm">•</span>
+<span class="font-headline-sm text-headline-sm text-on-surface font-semibold">Stroke / Neuro Triage</span>
+<span class="inline-flex items-center gap-1 px-space-sm py-0.5 rounded bg-surface-container-high text-on-surface font-telemetry-sm text-telemetry-sm font-bold">
+<span class="w-1.5 h-1.5 rounded-full bg-tertiary-container"></span>
+                Priority: Urgent
+              </span>
+</div>
+<!-- Telemetry & Requirements inline -->
+<div class="flex flex-wrap items-center gap-x-6 gap-y-2 text-on-surface-variant font-body-sm text-body-sm mt-space-xs">
+<div class="flex items-center gap-space-xs">
+<span class="material-symbols-outlined text-[18px] text-primary">local_shipping</span>
+<span class="font-telemetry-sm text-telemetry-sm font-bold text-on-surface">Amb A-09</span>
+<span class="text-outline-variant font-telemetry-sm text-telemetry-sm">•</span>
+<span class="font-telemetry-sm text-telemetry-sm text-on-surface-variant">Transit ETA:</span>
+<span class="font-telemetry-md text-telemetry-md text-on-surface font-bold">22 min</span>
+</div>
+<div class="flex items-center gap-space-xs">
+<span class="font-telemetry-sm text-telemetry-sm uppercase font-bold text-on-surface">Required:</span>
+<span class="px-space-xs py-0.5 rounded bg-surface-container-high text-on-surface font-medium">Neurology</span>
+<span class="px-space-xs py-0.5 rounded bg-surface-container-high text-on-surface font-medium">ICU</span>
+</div>
+<div class="flex items-center gap-space-xs">
+<span class="font-telemetry-sm text-telemetry-sm uppercase font-bold text-on-surface">Equipment:</span>
+<span class="px-space-xs py-0.5 rounded bg-surface-container-high text-on-surface font-medium">CT Scanner</span>
+<span class="px-space-xs py-0.5 rounded bg-surface-container-high text-on-surface font-medium">MRI</span>
+</div>
+</div>
+</div>
+<!-- Action & Status Column -->
+<div class="flex flex-row lg:flex-col items-center lg:items-end justify-between gap-space-sm pt-space-xs lg:pt-0">
+<div class="flex items-center gap-space-xs text-on-surface-variant font-telemetry-sm text-telemetry-sm font-medium">
+<span class="w-2 h-2 rounded-full bg-tertiary-container"></span>
+<span class="">Waiting for response</span>
+</div>
+<button class="px-space-lg py-space-sm rounded-lg bg-surface-container-high hover:bg-tertiary hover:text-on-tertiary text-on-surface font-label-md text-label-md font-semibold transition-all flex items-center gap-space-xs" type="button">
+<span class="">Review Request</span>
+<span class="material-symbols-outlined text-[18px]">arrow_forward</span>
+</button>
+</div>
+</div>
+</article>
+</div>
+<!-- Empty State Container (Toggled via simulation button) -->
+<div class="bg-surface-container-lowest rounded-xl p-space-2xl text-center flex-col items-center justify-center gap-space-md shadow-sm hidden" id="incoming-empty-state">
+<div class="w-16 h-16 rounded-full bg-surface-container-high flex items-center justify-center text-primary">
+<span class="material-symbols-outlined text-[36px]">verified_user</span>
+</div>
+<div class="flex flex-col items-center max-w-md">
+<span class="font-headline-md text-headline-md text-on-surface font-semibold">All clear • No emergency requests</span>
+<p class="font-body-md text-body-md text-on-surface-variant mt-space-xs text-center">
+          No emergency requests at the moment. Your hospital triage nodes are synchronized and ready to receive incoming high-priority cases.
+        </p>
+</div>
+<div class="flex items-center gap-space-sm px-space-md py-1.5 rounded-full bg-surface-container-low text-primary font-telemetry-sm text-telemetry-sm font-semibold mt-space-xs">
+<span class="w-2 h-2 rounded-full bg-primary animate-ping"></span>
+<span class="">Monitoring 8 EMS Units Across Sector 09</span>
+</div>
+</div>
+</section>
+<!-- SECONDARY SECTION: CURRENT ACTIVE CASES & ARRIVAL QUEUE -->
+<section class="flex flex-col">
+<!-- Header -->
+<div class="flex items-center justify-between mb-space-md">
+<div class="flex items-center gap-space-sm">
+<div class="w-2.5 h-5 bg-primary rounded-sm"></div>
+<h3 class="font-headline-md text-headline-md text-on-surface tracking-tight">Active Cases &amp; Arrival Queue</h3>
+<span class="px-space-sm py-0.5 rounded-full bg-surface-container-high text-on-surface-variant font-telemetry-sm text-telemetry-sm font-semibold">2 TRACKED</span>
+</div>
+<span class="font-telemetry-sm text-telemetry-sm text-on-surface-variant">Updated: 12:42:18 IST</span>
+</div>
+<!-- Queue Table / Modular Row Container -->
+<div class="bg-surface-container-lowest rounded-xl shadow-sm overflow-hidden">
+<!-- Table Header Bar -->
+<div class="grid grid-cols-12 px-space-lg py-space-sm bg-surface-container-low font-telemetry-sm text-telemetry-sm text-on-surface-variant uppercase tracking-wider font-bold select-none">
+<div class="col-span-3 lg:col-span-2">Case ID</div>
+<div class="col-span-4 lg:col-span-3">Diagnosis / Condition</div>
+<div class="col-span-2 lg:col-span-2">Unit ID</div>
+<div class="col-span-3 lg:col-span-2">ETA / Timing</div>
+<div class="hidden lg:block lg:col-span-3">Operational Status</div>
+</div>
+<!-- Case Row 1 -->
+<div class="grid grid-cols-12 items-center px-space-lg py-space-md hover:bg-surface-container-low transition-colors">
+<div class="col-span-3 lg:col-span-2 flex items-center gap-space-xs">
+<span class="material-symbols-outlined text-[18px] text-primary">personal_injury</span>
+<span class="font-telemetry-md text-telemetry-md font-bold text-on-surface">#EM-1040</span>
+</div>
+<div class="col-span-4 lg:col-span-3 flex flex-col pr-space-sm">
+<span class="font-headline-sm text-headline-sm text-on-surface font-semibold truncate">Cardiac Arrest</span>
+
+</div>
+<div class="col-span-2 lg:col-span-2">
+<span class="font-telemetry-sm text-telemetry-sm px-space-xs py-0.5 rounded bg-surface-container-high text-on-surface font-semibold">Amb A-02</span>
+</div>
+<div class="col-span-3 lg:col-span-2 flex items-center gap-space-xs">
+<span class="font-telemetry-md text-telemetry-md text-tertiary font-bold tracking-tight">4 min ETA</span>
+</div>
+<div class="col-span-12 lg:col-span-3 mt-space-xs lg:mt-0 flex items-center justify-between">
+<span class="inline-flex items-center gap-1.5 px-space-sm py-1 rounded-full bg-surface-container-high text-primary font-telemetry-sm text-telemetry-sm font-semibold">
+<span class="w-2 h-2 rounded-full bg-primary"></span>
+            En Route - Resuscitation Bay Prepared
+          </span>
+<button aria-label="View case #EM-1040" class="p-1 rounded text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high transition-colors" type="button">
+<span class="material-symbols-outlined text-[18px]">more_vert</span>
+</button>
+</div>
+</div>
+<!-- Case Row 2 -->
+<div class="grid grid-cols-12 items-center px-space-lg py-space-md bg-surface-container-lowest hover:bg-surface-container-low transition-colors">
+<div class="col-span-3 lg:col-span-2 flex items-center gap-space-xs">
+<span class="material-symbols-outlined text-[18px] text-primary">personal_injury</span>
+<span class="font-telemetry-md text-telemetry-md font-bold text-on-surface">#EM-1038</span>
+</div>
+<div class="col-span-4 lg:col-span-3 flex flex-col pr-space-sm">
+<span class="font-headline-sm text-headline-sm text-on-surface font-semibold truncate">Polytrauma</span>
+
+</div>
+<div class="col-span-2 lg:col-span-2">
+<span class="font-telemetry-sm text-telemetry-sm px-space-xs py-0.5 rounded bg-surface-container-high text-on-surface font-semibold">Amb A-07</span>
+</div>
+<div class="col-span-3 lg:col-span-2 flex items-center gap-space-xs">
+<span class="font-telemetry-sm text-telemetry-sm text-on-surface-variant font-medium">Arrived 12:35 PM</span>
+</div>
+<div class="col-span-12 lg:col-span-3 mt-space-xs lg:mt-0 flex items-center justify-between">
+<span class="inline-flex items-center gap-1.5 px-space-sm py-1 rounded-full bg-surface-container-high text-primary font-telemetry-sm text-telemetry-sm font-semibold">
+<span class="w-2 h-2 rounded-full bg-primary"></span>
+            Handover Ready
+          </span>
+<button aria-label="View case #EM-1038" class="p-1 rounded text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high transition-colors" type="button">
+<span class="material-symbols-outlined text-[18px]">more_vert</span>
+</button>
+</div>
+</div>
+</div>
+</section>
+<!-- Hospital Resource Readiness Bar -->
+<footer class="mt-space-xl pt-space-md flex flex-col md:flex-row items-start md:items-center justify-between gap-space-sm text-on-surface-variant font-telemetry-sm text-telemetry-sm">
+<div class="flex items-center gap-space-md">
+
+
+
+</div>
+<div class="flex items-center gap-space-xs">
+<span class="material-symbols-outlined text-[16px] text-outline">verified</span>
+<span class="">JeevanRoute Telemetry Protocol v4.2.1 Connected</span>
+</div>
+</footer>
+</div>
+<script>
+  function setDashboardMode(mode) {
+    const activeContainer = document.getElementById('incoming-requests-container');
+    const emptyContainer = document.getElementById('incoming-empty-state');
+    const activeBtn = document.getElementById('toggle-active-btn');
+    const clearBtn = document.getElementById('toggle-clear-btn');
+    const metricVal = document.getElementById('metric-emergency-val');
+    const metricBadge = document.getElementById('metric-emergency-badge');
+
+    if (mode === 'clear') {
+      activeContainer.classList.add('hidden');
+      emptyContainer.classList.remove('hidden');
+      emptyContainer.classList.add('flex');
+
+      // Update toggle visual state
+      clearBtn.className = "px-space-md py-1 rounded-lg font-label-md text-label-md bg-primary text-on-primary transition-all shadow-sm";
+      activeBtn.className = "px-space-md py-1 rounded-lg font-label-md text-label-md text-on-surface-variant hover:text-on-surface transition-all";
+
+      // Update KPI
+      if (metricVal) metricVal.textContent = '0';
+      if (metricBadge) {
+        metricBadge.className = "inline-flex items-center gap-1.5 px-space-sm py-0.5 rounded-full bg-surface-container-high text-on-surface-variant font-telemetry-sm text-telemetry-sm font-semibold";
+        metricBadge.innerHTML = '<span class="w-1.5 h-1.5 rounded-full bg-primary"></span> All Clear';
+      }
+    } else {
+      emptyContainer.classList.add('hidden');
+      emptyContainer.classList.remove('flex');
+      activeContainer.classList.remove('hidden');
+
+      // Update toggle visual state
+      activeBtn.className = "px-space-md py-1 rounded-lg font-label-md text-label-md bg-primary text-on-primary transition-all shadow-sm";
+      clearBtn.className = "px-space-md py-1 rounded-lg font-label-md text-label-md text-on-surface-variant hover:text-on-surface transition-all";
+
+      // Restore KPI
+      if (metricVal) metricVal.textContent = '3';
+      if (metricBadge) {
+        metricBadge.className = "inline-flex items-center gap-1.5 px-space-sm py-0.5 rounded-full bg-tertiary text-on-tertiary font-telemetry-sm text-telemetry-sm font-semibold";
+        metricBadge.innerHTML = '<span class="w-1.5 h-1.5 rounded-full bg-surface-container-lowest animate-pulse"></span> 1 Urgent Action Required';
+      }
+    }
+  }
+</script></main></div></body></html>

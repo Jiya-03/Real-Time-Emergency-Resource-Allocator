@@ -25,10 +25,10 @@ router.get('/meta', (req, res) => {
 // GET /api/requests/summary → counts for the dashboard
 router.get('/summary', (req, res) => res.json(getRequestSummary()));
 
-// GET /api/requests?active=true&since_minutes=60&severity=Critical&status=CREATED,MATCHING&limit=50&offset=0
+// GET /api/requests?active=true&since_minutes=60&severity=Critical&status=CREATED,MATCHING&sort=priority|recent&limit=50&offset=0
 router.get('/', (req, res) => {
-  const { status, severity, emergency_type, active, since_minutes, limit, offset } = req.query;
-  res.json(listRequests({ status, severity, emergency_type, active: active === 'true', since_minutes, limit, offset }));
+  const { status, severity, emergency_type, active, since_minutes, sort, limit, offset } = req.query;
+  res.json(listRequests({ status, severity, emergency_type, active: active === 'true', since_minutes, sort, limit, offset }));
 });
 
 // GET /api/requests/:id → request + reservations + handover timeline

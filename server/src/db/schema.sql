@@ -78,7 +78,8 @@ CREATE TABLE IF NOT EXISTS emergency_requests (
   beds_required               INTEGER NOT NULL CHECK (beds_required >= 1),
   ambulance_id                TEXT REFERENCES ambulances(ambulance_id),
   request_timestamp           TEXT NOT NULL,
-  request_status              TEXT NOT NULL CHECK (request_status IN ('CREATED','MATCHING','NO_MATCH','ASSIGNED','IN_TRANSIT','COMPLETED'))
+  request_status              TEXT NOT NULL CHECK (request_status IN ('CREATED','MATCHING','NO_MATCH','ASSIGNED','IN_TRANSIT','COMPLETED')),
+  additional_needs            TEXT          -- OUR addition: JSON array of extra items (e.g. ["CT Scanner"]) not tracked in capacity data
 );
 
 -- ───────────────────────── History, reservations, handover ─────────────────────────

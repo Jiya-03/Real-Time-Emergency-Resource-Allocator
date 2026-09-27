@@ -1,0 +1,194 @@
+<!DOCTYPE html><html lang="en" style=""><head><meta charset="utf-8"><meta content="width=device-width, initial-scale=1.0" name="viewport"><meta content="web_standard" name="shell-type"><title>JeevanRoute — Dispatcher Portal</title><link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet"><link href="https://fonts.googleapis.com" rel="preconnect"><link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"><link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@500;600&amp;family=Public+Sans:wght@400;600&amp;family=Space+Grotesk:wght@600;700&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"><style>@layer base{html,body{margin:0;padding:0;}body{overscroll-behavior:none;}main>:first-child{margin-top:0!important;}main>:last-child{margin-bottom:0!important;}}::-webkit-scrollbar{display:none;}</style><script src="https://cdn.tailwindcss.com"></script><script id="tailwind-config">tailwind.config={darkMode:"class",theme:{extend:{"colors":{"outline":"#6d7978","error-container":"#ffdad6","tertiary-fixed-dim":"#ffb3b4","tertiary-fixed":"#ffdada","on-secondary-fixed-variant":"#00504e","on-tertiary":"#ffffff","primary-fixed":"#8cf4ef","on-tertiary-fixed-variant":"#920025","surface-bright":"#f9f9ff","surface-variant":"#d6e3ff","inverse-surface":"#1f314d","surface-container-highest":"#d6e3ff","on-surface":"#071c36","surface-tint":"#006a67","tertiary":"#b51735","surface-dim":"#c8dbfe","on-primary-fixed":"#00201f","on-primary-fixed-variant":"#00504e","surface-container-high":"#dee8ff","on-error":"#ffffff","on-tertiary-container":"#fffbff","on-secondary-container":"#006e6c","primary":"#006765","on-secondary-fixed":"#00201f","primary-fixed-dim":"#6fd7d3","on-error-container":"#93000a","surface-container-lowest":"#ffffff","on-background":"#071c36","on-primary":"#ffffff","inverse-primary":"#6fd7d3","secondary-fixed":"#71f7f2","secondary":"#006a67","surface-container":"#e7eeff","on-primary-container":"#f3fffd","inverse-on-surface":"#ecf1ff","secondary-container":"#6ef4ef","tertiary-container":"#d8354b","background":"#f9f9ff","error":"#ba1a1a","primary-container":"#008280","surface":"#f9f9ff","secondary-fixed-dim":"#4fdad6","outline-variant":"#bcc9c8","surface-container-low":"#f0f3ff","on-tertiary-fixed":"#40000b","on-surface-variant":"#3d4948","on-secondary":"#ffffff"},"borderRadius":{"DEFAULT":"0.125rem","lg":"0.25rem","xl":"0.5rem","full":"0.75rem"},"spacing":{"space-sm":"0.5rem","space-xs":"0.25rem","gutter-dense":"0.5rem","space-lg":"1rem","space-md":"0.75rem","margin-dense":"1rem","space-xl":"1.5rem","margin":"1.5rem","space-2xl":"2rem","gutter":"1rem"},"fontFamily":{"body-md":["Public Sans"],"label-md":["Public Sans"],"headline-md":["Space Grotesk"],"telemetry-lg":["JetBrains Mono"],"body-lg":["Public Sans"],"telemetry-md":["JetBrains Mono"],"telemetry-sm":["JetBrains Mono"],"headline-lg":["Space Grotesk"],"body-sm":["Public Sans"],"headline-sm":["Space Grotesk"],"label-lg":["Public Sans"],"display-lg":["Space Grotesk"]},"fontSize":{"body-md":["14px",{"lineHeight":"20px","fontWeight":"400"}],"label-md":["12px",{"lineHeight":"16px","letterSpacing":"0.02em","fontWeight":"600"}],"headline-md":["20px",{"lineHeight":"26px","letterSpacing":"-0.01em","fontWeight":"600"}],"telemetry-lg":["20px",{"lineHeight":"24px","letterSpacing":"-0.02em","fontWeight":"600"}],"body-lg":["16px",{"lineHeight":"24px","fontWeight":"400"}],"telemetry-md":["14px",{"lineHeight":"18px","letterSpacing":"-0.01em","fontWeight":"500"}],"telemetry-sm":["11px",{"lineHeight":"14px","letterSpacing":"0.01em","fontWeight":"500"}],"headline-lg":["24px",{"lineHeight":"30px","letterSpacing":"-0.015em","fontWeight":"600"}],"body-sm":["13px",{"lineHeight":"18px","fontWeight":"400"}],"headline-sm":["16px",{"lineHeight":"22px","letterSpacing":"-0.005em","fontWeight":"600"}],"label-lg":["14px",{"lineHeight":"18px","fontWeight":"600"}],"display-lg":["32px",{"lineHeight":"38px","letterSpacing":"-0.02em","fontWeight":"700"}]}}}}</script><style>
+  @keyframes rowFlash { 0% { background:#ffdada; } 100% { background:transparent; } }
+  .row-new { animation: rowFlash 2.4s ease-out; }
+  @keyframes critPulse { 0%,100% { opacity:1; transform:scale(1);} 50% { opacity:.45; transform:scale(.8);} }
+  .crit-dot { animation: critPulse 1.4s ease-in-out infinite; }
+  .req-chip[aria-pressed="true"] { background:#006765; color:#fff; border-color:#006765; }
+  .seg[aria-pressed="true"] { background:#006765; color:#fff; border-color:#006765; }
+  .seg-crit[aria-pressed="true"] { background:#b51735; border-color:#b51735; color:#fff; }
+  .field { width:100%; background:#fff; border:1px solid #bcc9c8; border-radius:0.25rem; padding:0.5rem 0.75rem; font-size:14px; color:#071c36; }
+  .field:focus { outline:none; border:1.5px solid #18B9B5; }
+  .drawer-open { overflow:hidden; }
+</style>
+</head><body class="bg-surface font-body-md text-on-surface antialiased">
+<header class="fixed top-0 w-full z-50 bg-surface-container-lowest shadow-[0_1px_8px_rgba(0,0,0,0.04)]"><div class="h-16 w-full px-margin flex items-center justify-between gap-space-lg"><div class="flex items-center gap-space-xl"><div class="flex items-center gap-space-sm"><div class="w-9 h-9 rounded bg-primary flex items-center justify-center"><span class="material-symbols-outlined text-on-primary text-[20px]">emergency</span></div><div class="flex flex-col"><span class="font-headline-sm text-headline-sm text-on-surface tracking-tight leading-none">JeevanRoute</span><span class="font-telemetry-sm text-telemetry-sm text-primary tracking-wider font-semibold uppercase mt-space-xs">Dispatcher Portal</span></div></div><div class="h-6 w-px bg-outline-variant hidden md:block"></div>
+<nav class="hidden md:flex items-center gap-space-xs" id="main-nav">
+<a class="nav-link px-space-md py-space-xs transition-colors rounded" data-path="emergency-dispatch" href="#dispatch">Emergency Dispatch</a>
+<a class="nav-link px-space-md py-space-xs transition-colors rounded" data-path="create-emergency" href="#create">Create Emergency</a>
+<a class="nav-link px-space-md py-space-xs transition-colors rounded" data-path="emergency-cart" href="#cart">Emergency Cart</a>
+</nav></div>
+<div class="flex items-center gap-space-md">
+<div class="hidden lg:flex items-center gap-space-xs px-space-md py-space-xs rounded bg-surface-container-low text-on-surface font-telemetry-sm text-telemetry-sm"><span class="material-symbols-outlined text-[16px] text-primary">airport_shuttle</span><span class="">Ambulance A-12</span><span class="text-outline">•</span><span class="text-primary font-semibold">On Duty</span></div>
+<div class="flex items-center gap-space-xs px-space-md py-space-xs rounded bg-surface-container-low font-telemetry-sm text-telemetry-sm text-on-surface"><span class="w-2 h-2 rounded-full bg-outline" id="conn-dot"></span><span class="hidden sm:inline" id="conn-text">Connecting…</span></div>
+<div class="h-6 w-px bg-outline-variant"></div>
+<div class="relative">
+<button class="flex items-center gap-space-sm pl-space-xs" id="user-btn" type="button" aria-haspopup="true" aria-expanded="false"><div class="hidden sm:flex flex-col text-right"><span class="font-label-md text-label-md text-on-surface leading-tight" id="user-name">Ctrl Dispatcher</span><span class="font-telemetry-sm text-telemetry-sm text-on-surface-variant leading-tight" id="user-id">ID —</span></div><div class="w-8 h-8 rounded-full bg-primary flex items-center justify-center"><span class="material-symbols-outlined text-on-primary text-[18px]">person</span></div></button>
+<div class="hidden absolute right-0 mt-2 w-44 bg-surface-container-lowest border border-outline-variant rounded-lg shadow-[0_4px_16px_-4px_rgba(11,31,58,0.08)] py-1 z-50" id="user-menu">
+<button class="w-full text-left px-space-md py-space-sm font-label-md text-label-md text-on-surface hover:bg-surface-container-low flex items-center gap-space-xs" id="logout-btn" type="button"><span class="material-symbols-outlined text-[16px]">logout</span>Sign out</button>
+</div>
+</div>
+</div></div></header>
+
+<main class="w-full pt-16 bg-surface min-h-[calc(100vh-3rem)]"><div class="flex flex-col w-full">
+
+<!-- ═════════════ VIEW: EMERGENCY DISPATCH (recent log) ═════════════ -->
+<section class="px-margin py-space-xl flex flex-col gap-space-xl max-w-7xl mx-auto w-full" id="view-dispatch">
+<!-- Top Command Section -->
+<div class="flex flex-col md:flex-row md:items-end justify-between gap-space-lg">
+<div class="flex flex-col gap-space-xs">
+<span class="text-outline-variant font-telemetry-sm text-telemetry-sm">•</span>
+<h1 class="font-headline-lg text-headline-lg text-on-surface tracking-tight">Emergency Dispatch</h1>
+<p class="font-body-md text-body-md text-on-surface-variant">Create and manage emergency requests.</p>
+</div>
+<div class="flex flex-col items-start md:items-end gap-space-xs">
+<a class="inline-flex items-center gap-space-sm px-space-xl py-space-md bg-tertiary hover:bg-tertiary-container active:bg-tertiary text-on-tertiary rounded-full transition-all duration-150 shadow-sm group" data-path="create-emergency" href="#create">
+<span class="material-symbols-outlined text-[20px] transition-transform group-hover:rotate-90 duration-200">add</span>
+<span class="font-label-lg text-label-lg tracking-tight font-semibold">+ Add Emergency</span>
+<span class="font-telemetry-sm text-telemetry-sm opacity-75 ml-space-xs font-normal">[N]</span>
+</a>
+</div>
+</div>
+<!-- Recent Emergencies Log -->
+<div class="flex flex-col gap-space-md">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-space-sm">
+<h2 class="font-headline-md text-headline-md text-on-surface">Recent Emergencies</h2>
+<span class="px-space-sm py-0.5 rounded-full bg-surface-container text-on-surface font-telemetry-sm text-telemetry-sm font-semibold" id="today-count">… logged today</span>
+</div>
+<span class="font-telemetry-sm text-telemetry-sm text-on-surface-variant" id="recent-meta"></span>
+</div>
+<div class="bg-surface-container-lowest rounded-xl shadow-sm overflow-hidden flex flex-col">
+<div class="hidden md:grid grid-cols-12 gap-space-md px-space-lg py-space-sm bg-surface-container-low font-label-md text-label-md text-on-surface-variant">
+<div class="col-span-3">INCIDENT DETAILS</div>
+<div class="col-span-3">ASSIGNED FACILITY</div>
+<div class="col-span-2">TRANSIT TIME</div>
+<div class="col-span-2">STATUS</div>
+<div class="col-span-2 text-right">ACTION</div>
+</div>
+<div id="recent-rows"><div class="px-space-lg py-space-xl text-on-surface-variant font-telemetry-sm text-telemetry-sm">Loading live emergencies…</div></div>
+</div>
+<button class="hidden self-center px-space-lg py-space-sm rounded bg-surface-container-low hover:bg-surface-container text-on-surface font-label-md text-label-md transition-colors" id="recent-more" type="button">Load more</button>
+</div>
+<!-- Active Protocol Audit Information -->
+<div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-space-sm py-space-xs px-space-sm text-on-surface-variant font-telemetry-sm text-telemetry-sm">
+<div class="flex items-center gap-space-md">
+<span class="">Handover Verification: Enabled</span>
+<span class="text-outline-variant">•</span>
+<span class="">Registry Checksum: <span class="font-mono text-on-surface font-semibold">0x7B9C</span></span>
+<span class="text-outline-variant">•</span>
+<span class="">Live feed: <span class="font-mono text-on-surface font-semibold" id="feed-state">…</span></span>
+</div>
+<div>
+<span class="">Keyboard shortcut: Press <span class="px-1.5 py-0.5 bg-surface-container-low rounded font-semibold text-on-surface">N</span> to add new emergency</span>
+</div>
+</div>
+</section>
+
+<!-- ═════════════ VIEW: CREATE EMERGENCY (design d3) ═════════════ -->
+<section class="hidden px-margin pt-space-xl pb-32 flex-col gap-space-xl max-w-7xl mx-auto w-full" id="view-create">
+<div class="flex flex-col gap-space-md">
+<a class="inline-flex items-center gap-space-xs font-label-lg text-label-lg text-on-surface w-fit hover:text-primary" href="#dispatch"><span class="material-symbols-outlined text-[18px]">arrow_back</span>Back to Dispatcher Dashboard</a>
+<div class="flex flex-col gap-space-xs">
+<h1 class="font-display-lg text-display-lg text-on-surface tracking-tight">Create Emergency</h1>
+<p class="font-body-lg text-body-lg text-on-surface-variant">Select the departments and major equipment required for this emergency.</p>
+</div>
+</div>
+
+<!-- Type / Priority / Patient bar -->
+<div class="bg-surface-container-lowest rounded-xl shadow-sm px-space-lg py-space-md flex flex-wrap items-center gap-x-space-xl gap-y-space-md">
+<label class="flex items-center gap-space-md"><span class="font-label-md text-label-md text-on-surface-variant uppercase">Type</span>
+<select class="bg-surface-container-low rounded-lg px-space-md py-space-sm font-headline-sm text-headline-sm text-on-surface border-0 focus:outline-none focus:ring-2 focus:ring-[#18B9B5] cursor-pointer min-w-[200px]" id="f-type"></select></label>
+<span class="hidden md:block h-8 w-px bg-outline-variant"></span>
+<label class="flex items-center gap-space-md"><span class="font-label-md text-label-md text-on-surface-variant uppercase">Priority</span>
+<span class="relative inline-flex items-center rounded-full pl-8 pr-3 py-1.5" id="priority-pill">
+<span class="absolute left-2.5 w-4 h-4 rounded-full opacity-40" id="priority-dot"></span>
+<select class="appearance-none bg-transparent font-label-lg text-label-lg border-0 focus:outline-none cursor-pointer pr-1" id="f-priority"></select>
+</span></label>
+<span class="hidden md:block h-8 w-px bg-outline-variant"></span>
+<label class="flex items-center gap-space-md"><span class="font-label-md text-label-md text-on-surface-variant uppercase">Age</span>
+<input class="w-20 bg-surface-container-low rounded-lg px-space-md py-space-sm font-telemetry-md text-telemetry-md text-on-surface border-0 focus:outline-none focus:ring-2 focus:ring-[#18B9B5]" id="f-age" inputmode="numeric" max="120" min="0" placeholder="yrs" type="number"></label>
+<label class="flex items-center gap-space-md"><span class="font-label-md text-label-md text-on-surface-variant uppercase">Beds</span>
+<input class="w-16 bg-surface-container-low rounded-lg px-space-md py-space-sm font-telemetry-md text-telemetry-md text-on-surface border-0 focus:outline-none focus:ring-2 focus:ring-[#18B9B5]" id="f-beds" max="10" min="1" type="number" value="1"></label>
+<span class="hidden md:block h-8 w-px bg-outline-variant"></span>
+<div class="flex items-center gap-space-md flex-wrap">
+<span class="font-label-md text-label-md text-on-surface-variant uppercase">Pickup</span>
+<select class="bg-surface-container-low rounded-lg px-space-md py-space-sm font-body-md text-body-md text-on-surface border-0 focus:outline-none focus:ring-2 focus:ring-[#18B9B5] cursor-pointer" id="f-area" aria-label="Pickup area"></select>
+<button class="w-9 h-9 rounded-lg bg-surface-container-low hover:bg-surface-container flex items-center justify-center text-primary" id="f-geo" title="Use my current location" type="button"><span class="material-symbols-outlined text-[18px]">my_location</span></button>
+<span class="font-telemetry-sm text-telemetry-sm text-on-surface-variant" id="f-coords"></span>
+</div>
+</div>
+
+<!-- Departments -->
+<div class="flex flex-col gap-space-md">
+<div class="flex flex-col md:flex-row md:items-end justify-between gap-space-sm">
+<div class="flex flex-col gap-space-xs">
+<div class="flex items-center gap-space-sm"><h2 class="font-headline-lg text-headline-lg text-on-surface">Departments</h2>
+<span class="px-space-sm py-0.5 rounded-full bg-surface-container text-primary font-telemetry-sm text-telemetry-sm font-semibold" id="dept-count">0 Selected</span></div>
+<p class="font-body-md text-body-md text-on-surface-variant">Select the hospital departments required.</p>
+</div>
+<div class="flex items-center gap-space-sm flex-wrap"><span class="font-telemetry-sm text-telemetry-sm text-on-surface-variant">Quick Preset:</span><span class="flex gap-space-xs flex-wrap" id="presets"></span></div>
+</div>
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-space-md" id="dept-grid"></div>
+</div>
+
+<!-- Major Equipment -->
+<div class="flex flex-col gap-space-md">
+<div class="flex flex-col gap-space-xs">
+<div class="flex items-center gap-space-sm"><h2 class="font-headline-lg text-headline-lg text-on-surface">Major Equipment</h2>
+<span class="px-space-sm py-0.5 rounded-full bg-surface-container text-primary font-telemetry-sm text-telemetry-sm font-semibold" id="equip-count">0 Selected</span></div>
+<p class="font-body-md text-body-md text-on-surface-variant">Select specialized equipment required (high-tier critical routing items only).</p>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-space-md" id="equip-grid"></div>
+<p class="font-telemetry-sm text-telemetry-sm text-on-surface-variant flex items-center gap-space-xs"><span class="material-symbols-outlined text-[14px] text-primary">verified</span>Teal status = matched against live hospital capacity. “Info only” items are sent to the hospital as notes.</p>
+</div>
+</section>
+
+<!-- Sticky selection bar (Create view only) -->
+<div class="hidden fixed bottom-0 inset-x-0 z-40 bg-surface-container-lowest shadow-[0_-4px_16px_-4px_rgba(11,31,58,0.08)]" id="create-bar">
+<div class="max-w-7xl mx-auto px-margin py-space-md flex items-center justify-between gap-space-lg">
+<div class="flex items-center gap-space-md min-w-0">
+<div class="w-12 h-12 rounded-lg bg-secondary-container/40 flex items-center justify-center shrink-0"><span class="material-symbols-outlined text-primary">checklist</span></div>
+<div class="flex flex-col min-w-0"><span class="font-headline-md text-headline-md text-on-surface truncate" id="create-bar-text">0 Departments &amp; 0 Major Equipment selected</span>
+<span class="font-body-sm text-body-sm text-tertiary hidden" id="create-bar-error"></span></div>
+</div>
+<div class="flex items-center gap-space-lg shrink-0">
+<a class="font-label-lg text-label-lg text-on-surface hover:text-primary" href="#dispatch">Cancel</a>
+<button class="inline-flex items-center gap-space-sm px-space-xl py-space-md bg-tertiary hover:bg-tertiary-container text-on-tertiary rounded-lg font-label-lg text-label-lg font-semibold shadow-sm" id="proceed-btn" type="button">Proceed<span class="material-symbols-outlined text-[20px]">arrow_forward</span></button>
+</div>
+</div>
+</div>
+
+<!-- ═════════════ VIEW: EMERGENCY CART (design d2) ═════════════ -->
+<section class="hidden px-margin py-space-xl flex-col gap-space-xl max-w-7xl mx-auto w-full" id="view-cart">
+<div class="flex flex-col gap-space-xs">
+<span class="text-outline-variant font-telemetry-sm text-telemetry-sm">•</span>
+<h1 class="font-display-lg text-display-lg text-on-surface tracking-tight">Emergency Cart</h1>
+<p class="font-body-lg text-body-lg text-on-surface-variant">Review clinical requisition inventory before executing multi-node hospital capability match.</p>
+</div>
+<div id="cart-content"></div>
+</section>
+</div></main>
+
+<!-- ═════════════ SUMMARY DRAWER ═════════════ -->
+<div class="hidden fixed inset-0 z-[60]" id="drawer" aria-hidden="true">
+<div class="absolute inset-0 bg-[#071c36]/30" data-close-drawer></div>
+<aside class="absolute right-0 top-0 h-full w-full max-w-md bg-surface-container-lowest border-l border-outline-variant shadow-[0_4px_16px_-4px_rgba(11,31,58,0.08)] flex flex-col" role="dialog" aria-modal="true" aria-labelledby="drawer-title">
+<div class="flex items-center justify-between px-space-lg py-space-md border-b border-outline-variant">
+<h2 class="font-telemetry-lg text-telemetry-lg text-on-surface" id="drawer-title">Incident</h2>
+<button class="w-8 h-8 rounded hover:bg-surface-container-low flex items-center justify-center" data-close-drawer type="button" aria-label="Close"><span class="material-symbols-outlined">close</span></button>
+</div>
+<div class="flex-1 overflow-y-auto px-space-lg py-space-lg flex flex-col gap-space-xl" id="drawer-body"></div>
+</aside>
+</div>
+
+<!-- Toasts -->
+<div class="fixed bottom-space-xl right-space-xl z-[70] flex flex-col gap-space-sm w-[min(360px,calc(100vw-2rem))]" id="toasts" aria-live="polite"></div>
+
+<footer class="w-full bg-surface-container-lowest mt-space-2xl"><div class="w-full px-margin py-space-md flex flex-col md:flex-row items-center justify-between gap-space-sm text-on-surface-variant font-telemetry-sm text-telemetry-sm"><div class="flex items-center gap-space-md"><span class="">JeevanRoute Telemetry Grid v4.2.1</span><span class="text-outline">|</span><span class="">Encrypted Dispatch Link (TLS 1.3)</span></div><div class="flex items-center gap-space-md"><span>Prototype • HackMatrix 5.0</span></div></div></footer>
+
+<script src="/socket.io/socket.io.js"></script>
+<script src="js/api.js"></script>
+<script src="js/catalog.js"></script>
+<script src="js/dispatcher.js"></script>
+</body></html>

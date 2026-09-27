@@ -3,7 +3,23 @@
 Resource keys used everywhere: `icu`, `ventilator`, `oxygen_bed`, `general_bed`
 Freshness: `fresh` (≤5 min), `aging` (5–30 min), `stale` (>30 min)
 
+## 🖥️ UI (served by the same server)
+
+| URL | Page |
+|-----|------|
+| http://localhost:5000/ | Login (Dispatcher / Hospital) |
+| http://localhost:5000/dispatcher.html | Dispatcher portal: Dashboard · Create Emergency · Emergency Cart |
+| http://localhost:5000/live.html | Developer live-feed test page |
+
 ## ✅ Built
+
+### Auth (demo mode)
+| Method | Endpoint | Purpose |
+|--------|----------|---------|
+| POST | /api/auth/login | `{ role: "dispatcher" \| "hospital", identifier, password }` → `{ token, user }` |
+| GET | /api/auth/me | Check a token (`Authorization: Bearer <token>`) |
+
+Dispatcher IDs start with `DSP-` (e.g. `DSP-7704`); hospital staff use their hospital ID (e.g. `HSP-011`). Any password works in demo mode. Tokens are HMAC-signed and last 12 h.
 
 | Method | Endpoint | Purpose |
 |--------|----------|---------|
@@ -57,7 +73,7 @@ PATCH /api/hospitals/HSP-011/resources
 |--------|----------|---------|
 | GET | /api/requests/meta | Dropdown values + smart defaults for the "New emergency" form |
 | POST | /api/requests | Dispatcher logs a new emergency |
-| GET | /api/requests?active=true&since_minutes=60&severity=Critical | Queue (Critical first, then newest). Filters: `status` (comma list), `severity`, `emergency_type`, `active`, `since_minutes`, `limit` (≤200), `offset` |
+| GET | /api/requests?active=true&since_minutes=60&severity=Critical&sort=priority | List. `sort=priority` (Critical first) or `sort=recent` (newest first). Filters: `status` (comma list), `severity`, `emergency_type`, `active`, `since_minutes`, `limit` (≤200), `offset` |
 | GET | /api/requests/summary | Counts by status + active by severity |
 | GET | /api/requests/:id | Request + its reservations + handover timeline |
 
@@ -71,12 +87,16 @@ POST /api/requests
   "location": { "lat": 18.5204, "lng": 73.8567 },
   "requirements": { "icu": true, "trauma_care": true, "blood_bank": true, "operation_theatre": true },
   "required_specialist": "Trauma Surgeon",   // optional
-  "beds_required": 1                         // optional, default 1
+  "beds_required": 1,                        // optional, default 1
+  "additional_needs": ["CT Scanner"]         // optional: extra items not tracked in capacity data (notes for the hospital)
 }
 ```
 Requirement keys: `icu`, `ventilator`, `oxygen`, `trauma_care`, `cardiology`, `neurology`, `blood_bank`, `operation_theatre`, `dialysis` (any missing = false).
 
 Response `201`: `{ "request": { request_id, patient_id, status: "CREATED", ... }, "warnings": [] }`
+
+Every request object also has `assignment`: `null` until a hospital is assigned, then
+`{ hospital_id, hospital_name, distance_km, transit_minutes, transit_source: "actual" | "estimated" }`.
 Warnings (not errors): location outside Pune, or no requirements selected.
 Invalid input → `400` with `{ "error": "...", "details": ["every problem listed"] }`.
 

@@ -3,10 +3,38 @@ import db from '../db/index.js';
 import { nextId } from '../utils/ids.js';
 import { ApiError } from '../utils/errors.js';
 import bus, { EVENTS } from '../events.js';
+import { roadDistanceKm, etaMinutes } from './geo.js';
 import {
   EMERGENCY_TYPES, SEVERITIES, SPECIALISTS, REQUEST_STATUSES, ACTIVE_STATUSES,
   REQUIREMENTS, REQUIREMENT_KEYS, SERVICE_AREA,
 } from './requestConfig.js';
+
+// Which hospital is this patient going to? Accepted handover first, else a confirmed bed hold.
+function findAssignment(row) {
+  const wf = db.prepare(`
+    SELECT w.*, h.hospital_name, h.latitude, h.longitude
+    FROM emergency_workflow_handover w JOIN hospitals h ON h.hospital_id = w.hospital_id
+    WHERE w.request_id = ? AND w.hospital_response = 'ACCEPTED'
+    ORDER BY w.assignment_time DESC LIMIT 1`).get(row.request_id);
+  const target = wf || db.prepare(`
+    SELECT r.hospital_id, h.hospital_name, h.latitude, h.longitude
+    FROM reservations r JOIN hospitals h ON h.hospital_id = r.hospital_id
+    WHERE r.request_id = ? AND r.reservation_status IN ('CONFIRMED','PENDING') AND r.resource_type != 'Ventilator'
+    ORDER BY r.requested_at DESC LIMIT 1`).get(row.request_id);
+  if (!target) return null;
+
+  const distance_km = roadDistanceKm(row.patient_latitude, row.patient_longitude, target.latitude, target.longitude);
+  const actual = wf?.departure_time && wf?.arrival_time
+    ? Math.round((new Date(wf.arrival_time) - new Date(wf.departure_time)) / 60000)
+    : null;
+  return {
+    hospital_id: target.hospital_id,
+    hospital_name: target.hospital_name,
+    distance_km,
+    transit_minutes: actual ?? etaMinutes(distance_km, new Date(row.request_timestamp)),
+    transit_source: actual !== null ? 'actual' : 'estimated',
+  };
+}
 
 // DB row → clean JSON for the UI
 export function formatRequest(row) {
@@ -23,9 +51,11 @@ export function formatRequest(row) {
     required_specialist: row.required_specialist,
     beds_required: row.beds_required,
     ambulance_id: row.ambulance_id,
+    additional_needs: row.additional_needs ? JSON.parse(row.additional_needs) : [],
     status: row.request_status,
     created_at: row.request_timestamp,
     waiting_minutes: Math.round((Date.now() - new Date(row.request_timestamp)) / 6000) / 10,
+    assignment: findAssignment(row),
   };
 }
 
@@ -33,7 +63,7 @@ function validate(body) {
   const errors = [];
   const {
     emergency_type, severity, patient_age, location, requirements = {},
-    required_specialist = null, beds_required = 1,
+    required_specialist = null, beds_required = 1, additional_needs = [],
   } = body || {};
 
   if (!EMERGENCY_TYPES.includes(emergency_type)) errors.push(`emergency_type must be one of: ${EMERGENCY_TYPES.join(', ')}`);
@@ -56,9 +86,16 @@ function validate(body) {
     errors.push(`required_specialist must be null or one of: ${SPECIALISTS.join(', ')}`);
   }
   if (!Number.isInteger(beds_required) || beds_required < 1 || beds_required > 10) errors.push('beds_required must be 1–10');
+  if (!Array.isArray(additional_needs) || additional_needs.length > 20 ||
+      additional_needs.some(x => typeof x !== 'string' || !x.trim() || x.length > 60)) {
+    errors.push('additional_needs must be a list of up to 20 short text items');
+  }
 
   if (errors.length) throw new ApiError(400, 'Invalid emergency request', { details: errors });
-  return { emergency_type, severity, patient_age, lat, lng, requirements, required_specialist, beds_required };
+  return {
+    emergency_type, severity, patient_age, lat, lng, requirements, required_specialist, beds_required,
+    additional_needs: [...new Set(additional_needs.map(x => x.trim()))],
+  };
 }
 
 const insertRequest = db.transaction((data) => {
@@ -76,6 +113,7 @@ const insertRequest = db.transaction((data) => {
     ambulance_id: null,                      // set when an ambulance is dispatched (later step)
     request_timestamp: new Date().toISOString(),
     request_status: 'CREATED',
+    additional_needs: data.additional_needs.length ? JSON.stringify(data.additional_needs) : null,
   };
   for (const key of REQUIREMENT_KEYS) row[REQUIREMENTS[key]] = data.requirements[key] ? 1 : 0;
 
@@ -120,7 +158,7 @@ export function getRequestDetail(id) {
   return { ...request, reservations, workflow };
 }
 
-export function listRequests({ status, severity, emergency_type, active, since_minutes, limit = 50, offset = 0 } = {}) {
+export function listRequests({ status, severity, emergency_type, active, since_minutes, sort = 'priority', limit = 50, offset = 0 } = {}) {
   const where = [];
   const params = [];
 
@@ -150,11 +188,14 @@ export function listRequests({ status, severity, emergency_type, active, since_m
   const off = Math.max(Number(offset) || 0, 0);
 
   const total = db.prepare(`SELECT COUNT(*) AS n FROM emergency_requests ${whereSql}`).get(...params).n;
-  // Critical first, then newest: the order a dispatcher wants to see the queue in
+  if (!['priority', 'recent'].includes(sort)) throw new ApiError(400, 'sort must be priority or recent');
+  // priority: Critical first, then newest (the dispatcher queue). recent: newest first (the log).
+  const orderSql = sort === 'recent'
+    ? 'request_timestamp DESC, request_id DESC'
+    : `CASE severity WHEN 'Critical' THEN 0 WHEN 'High' THEN 1 WHEN 'Moderate' THEN 2 ELSE 3 END, request_timestamp DESC`;
   const rows = db.prepare(`
     SELECT * FROM emergency_requests ${whereSql}
-    ORDER BY CASE severity WHEN 'Critical' THEN 0 WHEN 'High' THEN 1 WHEN 'Moderate' THEN 2 ELSE 3 END,
-             request_timestamp DESC
+    ORDER BY ${orderSql}
     LIMIT ? OFFSET ?`).all(...params, lim, off);
 
   return { total, limit: lim, offset: off, requests: rows.map(formatRequest) };

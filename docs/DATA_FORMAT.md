@@ -1,25 +1,31 @@
-# Hospital Data Format
-Each hospital is one object. The file is `data/hospitals.json` (an array).
+# Data Format
 
-```json
-{
-  "id": "H001",
-  "name": "Ruby Hall Clinic",
-  "lat": 18.5314,
-  "lng": 73.8770,
-  "specialties": ["trauma", "cardiac", "neuro"],
-  "resources": {
-    "icu_beds":     { "total": 20,  "available": 4 },
-    "general_beds": { "total": 150, "available": 32 },
-    "ventilators":  { "total": 15,  "available": 3 },
-    "er_slots":     { "total": 10,  "available": 5 }
-  },
-  "last_updated": "2026-09-28T10:30:00Z"
-}
+The project uses the **ERRA synthetic dataset** in `data/erra_dataset/`, built by Jiya-03.
+Full column-by-column details are in [`data/erra_dataset/data_dictionary.md`](../data/erra_dataset/data_dictionary.md).
+
+## Tables (CSV → SQLite, same names)
+
+| Table | Rows | Used for |
+|---|---|---|
+| hospitals | 25 | Map, hospital cards, eligibility (ED, active) |
+| hospital_resources | 25 | **Live** ICU / ventilator / oxygen / general bed availability + freshness |
+| hospital_services | 25 | Trauma, cardiology, neurology, burn unit… + specialists |
+| ambulances | 100 | Ambulance positions and status |
+| emergency_requests | 5,000 | Incoming emergencies and what the patient needs |
+| reservations | 2,115 | Bed holds (PENDING → CONFIRMED / FAILED / EXPIRED…) |
+| emergency_workflow_handover | 1,639 | Assignment → departure → arrival → handover timeline |
+| resource_update_history | 10,000 | Every change in bed counts |
+| match_ranking_results | 10,300 | Reference output of the ranking engine (to verify ours) |
+
+## Rules
+- Resource types: `ICU`, `Ventilator`, `Oxygen Bed`, `General Bed`
+- Booleans: `TRUE`/`FALSE` in CSV → `1`/`0` in SQLite
+- Timestamps: `YYYY-MM-DD HH:MM:SS` (IST) in CSV → ISO-8601 UTC in SQLite
+- Freshness: ≤5 min = fresh, 5–30 min = aging, >30 min = stale
+
+## Loading
+```bash
+cd server
+npm run seed              # loads all CSVs, time-shifted so the data looks live now
+npm run seed -- --no-shift  # keeps the original 2026-09-28 12:00 IST timestamps
 ```
-
-Rules:
-- 6–10 hospitals, real Pune locations (lat/lng from Google Maps)
-- specialties allowed: trauma, cardiac, neuro, burn, pediatric, maternity
-- available must be ≤ total
-- last_updated in ISO format (UTC); make 1–2 hospitals deliberately old (stale test)

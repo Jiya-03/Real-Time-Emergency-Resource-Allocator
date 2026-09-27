@@ -1,0 +1,19 @@
+{
+  "name": "emergency-allocator-server",
+  "version": "0.1.0",
+  "description": "Backend for the Real-Time Emergency Resource Allocator (HLTH-02)",
+  "type": "module",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "nodemon src/index.js"
+  },
+  "dependencies": {
+    "better-sqlite3": "^12.11.1",
+    "cors": "^2.8.5",
+    "express": "^5.2.1"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.10"
+  }
+}

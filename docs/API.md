@@ -52,6 +52,35 @@ PATCH /api/hospitals/HSP-011/resources
 - `version` is optional. Send the version you last saw: if someone else updated first you get **409 Conflict** with the current data, so nobody overwrites fresher numbers.
 - Every change is logged in the history.
 
+### Simulator (demo control)
+| Method | Endpoint | Purpose |
+|--------|----------|---------|
+| GET | /api/simulator | Is it running, which hospitals have a live feed |
+| POST | /api/simulator/start | Start random admissions/discharges |
+| POST | /api/simulator/stop | Freeze numbers (useful while presenting) |
+
+Only hospitals that were **fresh** at server start get a live feed. Aging/stale hospitals are left alone on purpose, so the stale-data scenario stays visible.
+Env vars: `SIM_INTERVAL_MS=5000` (default), `SIMULATOR=off` to disable on start.
+
+## 📡 Real-time (Socket.io)
+
+Connect with the socket.io client to the same URL (`http://localhost:5000`).
+
+| Event | Payload | When |
+|-------|---------|------|
+| `hospital:update` | `{ hospital, changed: [{label, old, new}], source }` | Any bed count changes (simulator or staff) |
+| `hospitals:freshness` | `[{ hospital_id, status, age_minutes, score }]` | On connect + every 30 s |
+| `simulator:status` | `{ running, interval_ms, live_feed_hospitals, ticks }` | On connect + start/stop |
+
+```js
+import { io } from 'socket.io-client';
+const socket = io('http://localhost:5000');
+socket.on('hospital:update', ({ hospital }) => {
+  // replace this hospital in your list/map with the new object
+});
+```
+Test page: **http://localhost:5000/live.html**
+
 ### Errors
 All errors return `{ "error": "message" }` with status 400 (bad input), 404 (not found) or 409 (conflict).
 
@@ -65,4 +94,4 @@ All errors return `{ "error": "message" }` with status 400 (bad input), 404 (not
 | PATCH | /api/reservations/:id | Hospital accepts / rejects |
 | PATCH | /api/reservations/:id/status | en_route → arrived → handed_over |
 
-Socket events: `hospital:update`, `reservation:update`
+Socket event coming: `reservation:update`

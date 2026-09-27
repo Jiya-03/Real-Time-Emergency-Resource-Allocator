@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Live Feed Test</title>
+<style>
+  body { font-family: system-ui, sans-serif; background: #F3F7FA; color: #0B1F3A; margin: 0; padding: 20px; }
+  h1 { font-size: 20px; margin: 0 0 4px; }
+  .bar { display: flex; gap: 10px; align-items: center; margin: 12px 0 16px; flex-wrap: wrap; }
+  .pill { padding: 4px 10px; border-radius: 999px; font-size: 13px; background: #D9E2EA; }
+  .on { background: #36B37E; color: #fff; } .off { background: #F54B5E; color: #fff; }
+  button { border: 0; border-radius: 8px; padding: 8px 14px; background: #0F8F8C; color: #fff; cursor: pointer; }
+  #feed { list-style: none; padding: 0; margin: 0; max-width: 720px; }
+  #feed li { background: #fff; border-radius: 10px; padding: 10px 14px; margin-bottom: 8px;
+             box-shadow: 0 2px 8px rgba(11,31,58,.06); font-size: 14px; animation: in .4s; }
+  .up { color: #36B37E; font-weight: 600; } .down { color: #F54B5E; font-weight: 600; }
+  .muted { color: #64748B; font-size: 12px; }
+  @keyframes in { from { opacity: 0; transform: translateY(-6px); } }
+</style>
+</head>
+<body>
+  <h1>🚑 Live Feed Test</h1>
+  <div class="muted">Developer page to check that real-time updates work. The real UI lives in /client.</div>
+  <div class="bar">
+    <span id="conn" class="pill off">Disconnected</span>
+    <span id="sim" class="pill">Simulator: ?</span>
+    <span id="fresh" class="pill">Freshness: ?</span>
+    <button onclick="fetch('/api/simulator/start',{method:'POST'})">Start simulator</button>
+    <button onclick="fetch('/api/simulator/stop',{method:'POST'})">Stop simulator</button>
+  </div>
+  <ul id="feed"></ul>
+
+<script src="/socket.io/socket.io.js"></script>
+<script>
+  const socket = io();
+  const $ = (id) => document.getElementById(id);
+
+  socket.on('connect', () => { $('conn').textContent = 'Connected'; $('conn').className = 'pill on'; });
+  socket.on('disconnect', () => { $('conn').textContent = 'Disconnected'; $('conn').className = 'pill off'; });
+
+  socket.on('simulator:status', (s) => {
+    $('sim').textContent = s.running ? `Simulator: ON (${s.live_feed_hospitals.length} live hospitals)` : 'Simulator: OFF';
+  });
+
+  socket.on('hospitals:freshness', (list) => {
+    const c = { fresh: 0, aging: 0, stale: 0 };
+    list.forEach(h => c[h.status]++);
+    $('fresh').textContent = `🟢 ${c.fresh} fresh · 🟡 ${c.aging} aging · 🔴 ${c.stale} stale`;
+  });
+
+  socket.on('hospital:update', ({ hospital, changed, source }) => {
+    const li = document.createElement('li');
+    const parts = changed.length
+      ? changed.map(c => `${c.label}: ${c.old} → <span class="${c.new > c.old ? 'up' : 'down'}">${c.new}</span>`).join(', ')
+      : 're-confirmed availability';
+    li.innerHTML = `<b>${hospital.name}</b> (${hospital.hospital_id})<br>${parts}
+      <div class="muted">${source} · ${new Date().toLocaleTimeString()}</div>`;
+    $('feed').prepend(li);
+    while ($('feed').children.length > 30) $('feed').lastChild.remove();
+  });
+</script>
+</body>
+</html>

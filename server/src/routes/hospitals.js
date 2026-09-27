@@ -1,7 +1,7 @@
 // Hospital endpoints: live availability, freshness, staff updates
 import { Router } from 'express';
 import {
-  listHospitals, getHospital, getSummary, getHistory, updateResources, ApiError,
+  listHospitals, getHospital, getSummary, getHistory, updateHospitalResources, ApiError,
 } from '../services/hospitalService.js';
 import { RESOURCE_KEYS, SERVICES } from '../services/resources.js';
 
@@ -48,13 +48,13 @@ router.patch('/:id/resources', (req, res) => {
   const { version, source, ...changes } = req.body || {};
   if (Object.keys(changes).length === 0)
     throw new ApiError(400, `Send at least one of: ${RESOURCE_KEYS.join(', ')}`);
-  res.json(updateResources(req.params.id, changes, { expectedVersion: version, source }));
+  res.json(updateHospitalResources(req.params.id, changes, { expectedVersion: version, source }));
 });
 
 // POST /api/hospitals/:id/confirm  → "our numbers are still correct" (clears stale warning)
 router.post('/:id/confirm', (req, res) => {
   const { version, source } = req.body || {};
-  res.json(updateResources(req.params.id, {}, { expectedVersion: version, source }));
+  res.json(updateHospitalResources(req.params.id, {}, { expectedVersion: version, source }));
 });
 
 export default router;

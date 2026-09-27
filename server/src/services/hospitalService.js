@@ -3,6 +3,7 @@ import db from '../db/index.js';
 import { RESOURCES, RESOURCE_KEYS, SERVICES, UPDATE_SOURCES } from './resources.js';
 import { getFreshness } from './freshness.js';
 import { nextId } from '../utils/ids.js';
+import bus, { EVENTS } from '../events.js';
 
 const BASE_QUERY = `
   SELECT h.*, r.*, s.*
@@ -99,7 +100,7 @@ export class ApiError extends Error {
  *   expectedVersion (optional): if another update landed first, reject with 409
  * Also used with empty changes to simply re-confirm (refresh) stale data.
  */
-export const updateResources = db.transaction((id, changes = {}, { expectedVersion, source = 'Hospital Staff' } = {}) => {
+const updateResources = db.transaction((id, changes = {}, { expectedVersion, source = 'Hospital Staff' } = {}) => {
   const row = db.prepare('SELECT * FROM hospital_resources WHERE hospital_id = ?').get(id);
   if (!row) throw new ApiError(404, `Hospital ${id} not found`);
   if (!UPDATE_SOURCES.includes(source)) throw new ApiError(400, `source must be one of: ${UPDATE_SOURCES.join(', ')}`);
@@ -143,5 +144,12 @@ export const updateResources = db.transaction((id, changes = {}, { expectedVersi
     insertLog.run(nextId(db, 'resource_update_history', 'update_id', 'UPD', 6), id, l.label, l.old, l.new, nowISO, source);
   }
 
-  return { hospital: getHospital(id), changed: logs };
+  return { hospital: getHospital(id), changed: logs, source };
 });
+
+// Public version: runs the DB transaction, then tells everyone (sockets) what changed
+export function updateHospitalResources(id, changes, opts) {
+  const result = updateResources(id, changes, opts);
+  bus.emit(EVENTS.HOSPITAL_UPDATE, result);
+  return result;
+}

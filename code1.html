@@ -1,0 +1,568 @@
+<!DOCTYPE html><html lang="en" style=""><head><meta charset="utf-8"><meta content="width=device-width, initial-scale=1.0" name="viewport"><meta content="web_standard" name="shell-type"><link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet"><link href="https://fonts.googleapis.com" rel="preconnect"><link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"><link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@500;600&amp;family=Public+Sans:wght@400;600&amp;family=Space+Grotesk:wght@600;700&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"><style>@layer base{html,body{margin:0;padding:0;}body{overscroll-behavior:none;}main>:first-child{margin-top:0!important;}main>:last-child{margin-bottom:0!important;}}::-webkit-scrollbar{display:none;}</style><script src="https://cdn.tailwindcss.com"></script><script id="tailwind-config">tailwind.config={darkMode:"class",theme:{extend:{"colors":{"outline":"#6d7978","error-container":"#ffdad6","tertiary-fixed-dim":"#ffb3b4","tertiary-fixed":"#ffdada","on-secondary-fixed-variant":"#00504e","on-tertiary":"#ffffff","primary-fixed":"#8cf4ef","on-tertiary-fixed-variant":"#920025","surface-bright":"#f9f9ff","surface-variant":"#d6e3ff","inverse-surface":"#1f314d","surface-container-highest":"#d6e3ff","on-surface":"#071c36","surface-tint":"#006a67","tertiary":"#b51735","surface-dim":"#c8dbfe","on-primary-fixed":"#00201f","on-primary-fixed-variant":"#00504e","surface-container-high":"#dee8ff","on-error":"#ffffff","on-tertiary-container":"#fffbff","on-secondary-container":"#006e6c","primary":"#006765","on-secondary-fixed":"#00201f","primary-fixed-dim":"#6fd7d3","on-error-container":"#93000a","surface-container-lowest":"#ffffff","on-background":"#071c36","on-primary":"#ffffff","inverse-primary":"#6fd7d3","secondary-fixed":"#71f7f2","secondary":"#006a67","surface-container":"#e7eeff","on-primary-container":"#f3fffd","inverse-on-surface":"#ecf1ff","secondary-container":"#6ef4ef","tertiary-container":"#d8354b","background":"#f9f9ff","error":"#ba1a1a","primary-container":"#008280","surface":"#f9f9ff","secondary-fixed-dim":"#4fdad6","outline-variant":"#bcc9c8","surface-container-low":"#f0f3ff","on-tertiary-fixed":"#40000b","on-surface-variant":"#3d4948","on-secondary":"#ffffff"},"borderRadius":{"DEFAULT":"0.125rem","lg":"0.25rem","xl":"0.5rem","full":"0.75rem"},"spacing":{"space-sm":"0.5rem","space-xs":"0.25rem","gutter-dense":"0.5rem","space-lg":"1rem","space-md":"0.75rem","margin-dense":"1rem","space-xl":"1.5rem","margin":"1.5rem","space-2xl":"2rem","gutter":"1rem"},"fontFamily":{"body-md":["Public Sans"],"label-md":["Public Sans"],"headline-md":["Space Grotesk"],"telemetry-lg":["JetBrains Mono"],"body-lg":["Public Sans"],"telemetry-md":["JetBrains Mono"],"telemetry-sm":["JetBrains Mono"],"headline-lg":["Space Grotesk"],"body-sm":["Public Sans"],"headline-sm":["Space Grotesk"],"label-lg":["Public Sans"],"display-lg":["Space Grotesk"]},"fontSize":{"body-md":["14px",{"lineHeight":"20px","fontWeight":"400"}],"label-md":["12px",{"lineHeight":"16px","letterSpacing":"0.02em","fontWeight":"600"}],"headline-md":["20px",{"lineHeight":"26px","letterSpacing":"-0.01em","fontWeight":"600"}],"telemetry-lg":["20px",{"lineHeight":"24px","letterSpacing":"-0.02em","fontWeight":"600"}],"body-lg":["16px",{"lineHeight":"24px","fontWeight":"400"}],"telemetry-md":["14px",{"lineHeight":"18px","letterSpacing":"-0.01em","fontWeight":"500"}],"telemetry-sm":["11px",{"lineHeight":"14px","letterSpacing":"0.01em","fontWeight":"500"}],"headline-lg":["24px",{"lineHeight":"30px","letterSpacing":"-0.015em","fontWeight":"600"}],"body-sm":["13px",{"lineHeight":"18px","fontWeight":"400"}],"headline-sm":["16px",{"lineHeight":"22px","letterSpacing":"-0.005em","fontWeight":"600"}],"label-lg":["14px",{"lineHeight":"18px","fontWeight":"600"}],"display-lg":["32px",{"lineHeight":"38px","letterSpacing":"-0.02em","fontWeight":"700"}]}}}}</script></head><body class="bg-surface font-body-md text-on-surface antialiased"><header class="fixed top-0 w-full z-50 bg-surface-container-lowest shadow-[0_1px_8px_rgba(0,0,0,0.04)]"><div class="h-16 w-full px-margin flex items-center justify-between gap-space-lg"><div class="flex items-center gap-space-xl"><div class="flex items-center gap-space-sm"><div class="w-9 h-9 rounded bg-primary flex items-center justify-center"><span class="material-symbols-outlined text-on-primary text-[20px]">emergency</span></div><div class="flex flex-col"><span class="font-headline-sm text-headline-sm text-on-surface tracking-tight leading-none">JeevanRoute</span><span class="font-telemetry-sm text-telemetry-sm text-primary tracking-wider font-semibold uppercase mt-space-xs">Dispatcher Portal</span></div></div><div class="h-6 w-px bg-outline-variant hidden md:block"></div><nav class="hidden md:flex items-center gap-space-xs" data-active-classes="bg-primary-container text-on-primary-container font-semibold rounded"><a class="px-space-md py-space-xs text-on-surface-variant hover:text-on-surface hover:bg-surface-container-low transition-colors font-label-md text-label-md rounded" data-path="emergency-dispatch" href="#">Emergency Dispatch</a><a aria-current="page" class="px-space-md py-space-xs transition-colors bg-primary-container text-on-primary-container font-semibold rounded" data-path="create-emergency" href="#">Create Emergency</a><a class="px-space-md py-space-xs text-on-surface-variant hover:text-on-surface hover:bg-surface-container-low transition-colors font-label-md text-label-md rounded" data-path="emergency-cart" href="#">Emergency Cart</a></nav></div><div class="flex items-center gap-space-md"><div class="hidden lg:flex items-center gap-space-xs px-space-md py-space-xs rounded bg-surface-container-low text-on-surface font-telemetry-sm text-telemetry-sm"></div><div class="h-6 w-px bg-outline-variant"></div><div class="flex items-center gap-space-sm pl-space-xs"><div class="hidden sm:flex flex-col text-right"><span class="font-label-md text-label-md text-on-surface leading-tight">Ctrl Dispatcher</span><span class="font-telemetry-sm text-telemetry-sm text-on-surface-variant leading-tight">ID #8042</span></div><div class="w-8 h-8 rounded-full bg-primary flex items-center justify-center"><span class="material-symbols-outlined text-on-primary text-[18px]">person</span></div></div></div></div></header><main class="w-full pt-16 bg-surface"><div class="flex flex-col w-full">
+<div class="w-full max-w-7xl mx-auto px-margin py-space-xl flex flex-col gap-space-2xl pb-32">
+<!-- Top Nav / Back & Breadcrumb Context -->
+<div class="flex flex-col gap-space-md">
+<div class="flex items-center justify-between">
+<a class="inline-flex items-center gap-space-xs font-label-md text-label-md text-on-surface-variant hover:text-primary transition-colors py-space-xs" href="#">
+<span class="material-symbols-outlined text-[18px]">arrow_back</span>
+<span class="">Back to Dispatcher Dashboard</span>
+</a>
+
+</div>
+<div class="flex flex-col md:flex-row md:items-end justify-between gap-space-md">
+<div>
+<h1 class="font-headline-lg text-headline-lg text-on-surface tracking-tight">Create Emergency</h1>
+<p class="font-body-md text-body-md text-on-surface-variant mt-space-xs">Select the departments and major equipment required for this emergency.</p>
+</div>
+
+</div>
+</div>
+<!-- Compact Emergency Information Bar -->
+<div class="w-full bg-surface-container-lowest rounded-xl shadow-sm p-space-md flex flex-wrap items-center justify-between gap-space-md">
+<div class="flex flex-wrap items-center gap-space-lg">
+<!-- Emergency Type Selector -->
+<div class="flex items-center gap-space-sm">
+<span class="font-label-md text-label-md text-on-surface-variant uppercase tracking-wider">Type</span>
+<div class="relative inline-flex items-center">
+<select class="appearance-none bg-surface-container-low font-headline-sm text-headline-sm text-on-surface pl-space-md pr-space-xl py-space-xs rounded-lg cursor-pointer focus:bg-surface-container focus:outline-none">
+<option selected="" value="critical-trauma">Critical Trauma</option>
+<option value="cardiac-arrest">Cardiac Arrest</option>
+<option value="acute-stroke">Acute Stroke Protocol</option>
+<option value="mva-mass-casualty">MVA / Mass Casualty</option>
+<option value="pediatric-distress">Pediatric Respiratory</option>
+</select>
+<span class="material-symbols-outlined absolute right-space-sm pointer-events-none text-on-surface-variant text-[18px]">expand_more</span>
+</div>
+</div>
+<div class="h-6 w-px bg-surface-variant hidden sm:block"></div>
+<!-- Priority Pill -->
+<div class="flex items-center gap-space-sm">
+<span class="font-label-md text-label-md text-on-surface-variant uppercase tracking-wider">Priority</span>
+<div class="inline-flex items-center gap-space-xs px-space-md py-space-xs rounded-full bg-tertiary-fixed text-on-tertiary-fixed">
+<span class="w-2.5 h-2.5 rounded-full bg-tertiary animate-ping"></span>
+<span class="font-label-md text-label-md text-tertiary font-bold tracking-wide">Critical (Code Red)</span>
+</div>
+</div>
+<div class="h-6 w-px bg-surface-variant hidden md:block"></div>
+<!-- Assigned Ambulance -->
+<div class="flex items-center gap-space-sm">
+
+
+</div>
+</div>
+<!-- Live Sync / Context State -->
+
+</div>
+<!-- SECTION 1: DEPARTMENTS -->
+<section class="flex flex-col gap-space-lg">
+<div class="flex flex-col md:flex-row md:items-end justify-between gap-space-xs pb-space-xs">
+<div>
+<div class="flex items-center gap-space-sm">
+<h2 class="font-headline-md text-headline-md text-on-surface">Departments</h2>
+<span class="px-space-sm py-0.5 rounded-full bg-surface-container font-telemetry-sm text-telemetry-sm text-primary font-semibold" id="dept-badge-count">0 Selected</span>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant mt-0.5">Select the hospital departments required.</p>
+</div>
+<div class="flex items-center gap-space-sm">
+<span class="font-telemetry-sm text-telemetry-sm text-on-surface-variant">Quick Preset:</span>
+<button class="text-primary hover:text-on-surface font-label-md text-label-md px-space-sm py-space-xs rounded bg-surface-container hover:bg-surface-container-high transition-colors" onclick="presetTrauma()" type="button">Level-1 Trauma</button>
+<button class="text-on-surface-variant hover:text-on-surface font-label-md text-label-md px-space-sm py-space-xs rounded bg-surface-container-low hover:bg-surface-container transition-colors" onclick="presetCardiac()" type="button">Cardiac Cath</button>
+</div>
+</div>
+<!-- Menu Grid for Departments -->
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-space-md" id="departments-grid">
+<!-- 1. Trauma & Emergency (Active) -->
+<div class="item-card group relative bg-surface-container-low rounded-xl p-space-md flex flex-col justify-between transition-all duration-200 shadow-sm cursor-pointer hover:shadow-md bg-surface-container-lowest" data-category="dept" data-id="trauma-er">
+<div class="flex items-start gap-space-md mb-space-md">
+<div class="w-10 h-10 rounded-lg flex items-center justify-center shrink-0 bg-surface-container text-on-surface">
+<span class="material-symbols-outlined text-[22px]">e911_emergency</span>
+</div>
+<div class="flex flex-col min-w-0">
+<h3 class="font-headline-sm text-headline-sm text-on-surface leading-tight truncate">Trauma &amp; Emergency</h3>
+<p class="font-body-sm text-body-sm text-on-surface-variant line-clamp-2 mt-1">Level-1 emergency resuscitation</p>
+</div>
+</div>
+<div class="flex items-center justify-between pt-space-sm">
+<span class="font-telemetry-sm text-telemetry-sm text-primary font-semibold">Priority Ready</span>
+<button class="action-btn inline-flex items-center gap-1 px-space-md py-space-xs rounded-lg font-label-md text-label-md transition-all bg-surface-container-high text-on-surface" type="button"><span class="material-symbols-outlined text-[16px]">add</span><span class="">Add</span></button>
+</div>
+</div>
+<!-- 2. Intensive Care Unit (ICU) (Active) -->
+<div class="item-card group relative bg-surface-container-low rounded-xl p-space-md flex flex-col justify-between transition-all duration-200 shadow-sm cursor-pointer hover:shadow-md bg-surface-container-lowest" data-category="dept" data-id="icu">
+<div class="flex items-start gap-space-md mb-space-md">
+<div class="w-10 h-10 rounded-lg flex items-center justify-center shrink-0 bg-surface-container text-on-surface">
+<span class="material-symbols-outlined text-[22px]">vital_signs</span>
+</div>
+<div class="flex flex-col min-w-0">
+<h3 class="font-headline-sm text-headline-sm text-on-surface leading-tight truncate">ICU (Intensive Care)</h3>
+<p class="font-body-sm text-body-sm text-on-surface-variant line-clamp-2 mt-1">Critical care beds &amp; monitoring</p>
+</div>
+</div>
+<div class="flex items-center justify-between pt-space-sm">
+<span class="font-telemetry-sm text-telemetry-sm text-primary font-semibold">Beds In-Route</span>
+<button class="action-btn inline-flex items-center gap-1 px-space-md py-space-xs rounded-lg font-label-md text-label-md transition-all bg-surface-container-high text-on-surface" type="button"><span class="material-symbols-outlined text-[16px]">add</span><span class="">Add</span></button>
+</div>
+</div>
+<!-- 3. Operation Theatre (OT) (Active) -->
+<div class="item-card group relative bg-surface-container-low rounded-xl p-space-md flex flex-col justify-between transition-all duration-200 shadow-sm cursor-pointer hover:shadow-md bg-surface-container-lowest" data-category="dept" data-id="ot">
+<div class="flex items-start gap-space-md mb-space-md">
+<div class="w-10 h-10 rounded-lg flex items-center justify-center shrink-0 bg-surface-container text-on-surface">
+<span class="material-symbols-outlined text-[22px]">medical_services</span>
+</div>
+<div class="flex flex-col min-w-0">
+<h3 class="font-headline-sm text-headline-sm text-on-surface leading-tight truncate">Operation Theatre (OT)</h3>
+<p class="font-body-sm text-body-sm text-on-surface-variant line-clamp-2 mt-1">Emergency surgical suites</p>
+</div>
+</div>
+<div class="flex items-center justify-between pt-space-sm">
+<span class="font-telemetry-sm text-telemetry-sm text-primary font-semibold">Immediate Pre-Op</span>
+<button class="action-btn inline-flex items-center gap-1 px-space-md py-space-xs rounded-lg font-label-md text-label-md transition-all bg-surface-container-high text-on-surface" type="button"><span class="material-symbols-outlined text-[16px]">add</span><span class="">Add</span></button>
+</div>
+</div>
+<!-- 4. Cardiology -->
+<div class="item-card group relative bg-surface-container-lowest rounded-xl p-space-md flex flex-col justify-between transition-all duration-200 shadow-sm cursor-pointer hover:shadow-md hover:bg-surface-container-low" data-category="dept" data-id="cardiology">
+<div class="flex items-start gap-space-md mb-space-md">
+<div class="w-10 h-10 rounded-lg flex items-center justify-center shrink-0 bg-surface-container text-on-surface">
+<span class="material-symbols-outlined text-[22px]">cardiology</span>
+</div>
+<div class="flex flex-col min-w-0">
+<h3 class="font-headline-sm text-headline-sm text-on-surface leading-tight truncate">Cardiology</h3>
+<p class="font-body-sm text-body-sm text-on-surface-variant line-clamp-2 mt-1">Cardiac care &amp; catheterization</p>
+</div>
+</div>
+<div class="flex items-center justify-between pt-space-sm">
+<span class="font-telemetry-sm text-telemetry-sm text-on-surface-variant">Available</span>
+<button class="action-btn inline-flex items-center gap-1 px-space-md py-space-xs rounded-lg font-label-md text-label-md transition-all bg-surface-container-high text-on-surface hover:bg-primary hover:text-on-primary" type="button">
+<span class="material-symbols-outlined text-[16px]">add</span>
+<span class="">Add</span>
+</button>
+</div>
+</div>
+<!-- 5. Neurology -->
+<div class="item-card group relative bg-surface-container-lowest rounded-xl p-space-md flex flex-col justify-between transition-all duration-200 shadow-sm cursor-pointer hover:shadow-md hover:bg-surface-container-low" data-category="dept" data-id="neurology">
+<div class="flex items-start gap-space-md mb-space-md">
+<div class="w-10 h-10 rounded-lg flex items-center justify-center shrink-0 bg-surface-container text-on-surface">
+<span class="material-symbols-outlined text-[22px]">neurology</span>
+</div>
+<div class="flex flex-col min-w-0">
+<h3 class="font-headline-sm text-headline-sm text-on-surface leading-tight truncate">Neurology</h3>
+<p class="font-body-sm text-body-sm text-on-surface-variant line-clamp-2 mt-1">Acute neurological care</p>
+</div>
+</div>
+<div class="flex items-center justify-between pt-space-sm">
+<span class="font-telemetry-sm text-telemetry-sm text-on-surface-variant">Available</span>
+<button class="action-btn inline-flex items-center gap-1 px-space-md py-space-xs rounded-lg font-label-md text-label-md transition-all bg-surface-container-high text-on-surface hover:bg-primary hover:text-on-primary" type="button">
+<span class="material-symbols-outlined text-[16px]">add</span>
+<span class="">Add</span>
+</button>
+</div>
+</div>
+<!-- 6. Orthopedics -->
+<div class="item-card group relative bg-surface-container-lowest rounded-xl p-space-md flex flex-col justify-between transition-all duration-200 shadow-sm cursor-pointer hover:shadow-md hover:bg-surface-container-low" data-category="dept" data-id="orthopedics">
+<div class="flex items-start gap-space-md mb-space-md">
+<div class="w-10 h-10 rounded-lg flex items-center justify-center shrink-0 bg-surface-container text-on-surface">
+<span class="material-symbols-outlined text-[22px]">skeleton</span>
+</div>
+<div class="flex flex-col min-w-0">
+<h3 class="font-headline-sm text-headline-sm text-on-surface leading-tight truncate">Orthopedics</h3>
+<p class="font-body-sm text-body-sm text-on-surface-variant line-clamp-2 mt-1">Trauma &amp; bone fracture stabilization</p>
+</div>
+</div>
+<div class="flex items-center justify-between pt-space-sm">
+<span class="font-telemetry-sm text-telemetry-sm text-on-surface-variant">Available</span>
+<button class="action-btn inline-flex items-center gap-1 px-space-md py-space-xs rounded-lg font-label-md text-label-md transition-all bg-surface-container-high text-on-surface hover:bg-primary hover:text-on-primary" type="button">
+<span class="material-symbols-outlined text-[16px]">add</span>
+<span class="">Add</span>
+</button>
+</div>
+</div>
+<!-- 7. Neurosurgery -->
+<div class="item-card group relative bg-surface-container-lowest rounded-xl p-space-md flex flex-col justify-between transition-all duration-200 shadow-sm cursor-pointer hover:shadow-md hover:bg-surface-container-low" data-category="dept" data-id="neurosurgery">
+<div class="flex items-start gap-space-md mb-space-md">
+<div class="w-10 h-10 rounded-lg flex items-center justify-center shrink-0 bg-surface-container text-on-surface">
+<span class="material-symbols-outlined text-[22px]">psychology</span>
+</div>
+<div class="flex flex-col min-w-0">
+<h3 class="font-headline-sm text-headline-sm text-on-surface leading-tight truncate">Neurosurgery</h3>
+<p class="font-body-sm text-body-sm text-on-surface-variant line-clamp-2 mt-1">Emergency brain &amp; spine surgery</p>
+</div>
+</div>
+<div class="flex items-center justify-between pt-space-sm">
+<span class="font-telemetry-sm text-telemetry-sm text-on-surface-variant">On Standby</span>
+<button class="action-btn inline-flex items-center gap-1 px-space-md py-space-xs rounded-lg font-label-md text-label-md transition-all bg-surface-container-high text-on-surface hover:bg-primary hover:text-on-primary" type="button">
+<span class="material-symbols-outlined text-[16px]">add</span>
+<span class="">Add</span>
+</button>
+</div>
+</div>
+<!-- 8. Burns Unit -->
+<div class="item-card group relative bg-surface-container-lowest rounded-xl p-space-md flex flex-col justify-between transition-all duration-200 shadow-sm cursor-pointer hover:shadow-md hover:bg-surface-container-low" data-category="dept" data-id="burns">
+<div class="flex items-start gap-space-md mb-space-md">
+<div class="w-10 h-10 rounded-lg flex items-center justify-center shrink-0 bg-surface-container text-on-surface">
+<span class="material-symbols-outlined text-[22px]">local_fire_department</span>
+</div>
+<div class="flex flex-col min-w-0">
+<h3 class="font-headline-sm text-headline-sm text-on-surface leading-tight truncate">Burns Unit</h3>
+<p class="font-body-sm text-body-sm text-on-surface-variant line-clamp-2 mt-1">Specialized burn resuscitation</p>
+</div>
+</div>
+<div class="flex items-center justify-between pt-space-sm">
+<span class="font-telemetry-sm text-telemetry-sm text-on-surface-variant">Available</span>
+<button class="action-btn inline-flex items-center gap-1 px-space-md py-space-xs rounded-lg font-label-md text-label-md transition-all bg-surface-container-high text-on-surface hover:bg-primary hover:text-on-primary" type="button">
+<span class="material-symbols-outlined text-[16px]">add</span>
+<span class="">Add</span>
+</button>
+</div>
+</div>
+<!-- 9. Pediatrics -->
+<div class="item-card group relative bg-surface-container-lowest rounded-xl p-space-md flex flex-col justify-between transition-all duration-200 shadow-sm cursor-pointer hover:shadow-md hover:bg-surface-container-low" data-category="dept" data-id="pediatrics">
+<div class="flex items-start gap-space-md mb-space-md">
+<div class="w-10 h-10 rounded-lg flex items-center justify-center shrink-0 bg-surface-container text-on-surface">
+<span class="material-symbols-outlined text-[22px]">child_care</span>
+</div>
+<div class="flex flex-col min-w-0">
+<h3 class="font-headline-sm text-headline-sm text-on-surface leading-tight truncate">Pediatrics</h3>
+<p class="font-body-sm text-body-sm text-on-surface-variant line-clamp-2 mt-1">Emergency neonatal &amp; child care</p>
+</div>
+</div>
+<div class="flex items-center justify-between pt-space-sm">
+<span class="font-telemetry-sm text-telemetry-sm text-on-surface-variant">Available</span>
+<button class="action-btn inline-flex items-center gap-1 px-space-md py-space-xs rounded-lg font-label-md text-label-md transition-all bg-surface-container-high text-on-surface hover:bg-primary hover:text-on-primary" type="button">
+<span class="material-symbols-outlined text-[16px]">add</span>
+<span class="">Add</span>
+</button>
+</div>
+</div>
+<!-- 10. Obstetrics & Gynecology -->
+<div class="item-card group relative bg-surface-container-lowest rounded-xl p-space-md flex flex-col justify-between transition-all duration-200 shadow-sm cursor-pointer hover:shadow-md hover:bg-surface-container-low" data-category="dept" data-id="obgyn">
+<div class="flex items-start gap-space-md mb-space-md">
+<div class="w-10 h-10 rounded-lg flex items-center justify-center shrink-0 bg-surface-container text-on-surface">
+<span class="material-symbols-outlined text-[22px]">pregnant_woman</span>
+</div>
+<div class="flex flex-col min-w-0">
+<h3 class="font-headline-sm text-headline-sm text-on-surface leading-tight truncate">Obstetrics &amp; Gynecology</h3>
+<p class="font-body-sm text-body-sm text-on-surface-variant line-clamp-2 mt-1">Emergency maternity &amp; delivery</p>
+</div>
+</div>
+<div class="flex items-center justify-between pt-space-sm">
+<span class="font-telemetry-sm text-telemetry-sm text-on-surface-variant">Available</span>
+<button class="action-btn inline-flex items-center gap-1 px-space-md py-space-xs rounded-lg font-label-md text-label-md transition-all bg-surface-container-high text-on-surface hover:bg-primary hover:text-on-primary" type="button">
+<span class="material-symbols-outlined text-[16px]">add</span>
+<span class="">Add</span>
+</button>
+</div>
+</div>
+</div>
+</section>
+<!-- SECTION 2: MAJOR EQUIPMENT -->
+<section class="flex flex-col gap-space-lg">
+<div class="flex flex-col md:flex-row md:items-end justify-between gap-space-xs pb-space-xs">
+<div>
+<div class="flex items-center gap-space-sm">
+<h2 class="font-headline-md text-headline-md text-on-surface">Major Equipment</h2>
+<span class="px-space-sm py-0.5 rounded-full bg-surface-container font-telemetry-sm text-telemetry-sm text-primary font-semibold" id="equip-badge-count">0 Selected</span>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant mt-0.5">Select specialized equipment required (high-tier critical routing items only).</p>
+</div>
+<div class="flex items-center gap-space-xs font-telemetry-sm text-telemetry-sm text-outline">
+
+
+</div>
+</div>
+<!-- Menu Grid for Major Equipment -->
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-space-md" id="equipment-grid">
+<!-- 1. Mechanical Ventilator (Active) -->
+<div class="item-card group relative bg-surface-container-low rounded-xl p-space-md flex flex-col justify-between transition-all duration-200 shadow-sm cursor-pointer hover:shadow-md bg-surface-container-lowest" data-category="equip" data-id="ventilator">
+<div class="flex items-start gap-space-md mb-space-md">
+<div class="w-11 h-11 rounded-lg flex items-center justify-center shrink-0 bg-surface-container text-on-surface">
+<span class="material-symbols-outlined text-[24px]">air</span>
+</div>
+<div class="flex flex-col min-w-0">
+<div class="flex items-center gap-space-xs">
+<h3 class="font-headline-sm text-headline-sm text-on-surface leading-tight truncate">Mechanical Ventilator</h3>
+<span class="px-1.5 py-0.5 rounded bg-surface-container font-telemetry-sm text-telemetry-sm text-on-surface-variant">Class IV</span>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant line-clamp-2 mt-1">Advanced respiratory support</p>
+</div>
+</div>
+<div class="flex items-center justify-between pt-space-sm">
+<span class="font-telemetry-sm text-telemetry-sm text-primary font-semibold">Pre-Reserved</span>
+<button class="action-btn inline-flex items-center gap-1 px-space-md py-space-xs rounded-lg font-label-md text-label-md transition-all bg-surface-container-high text-on-surface" type="button"><span class="material-symbols-outlined text-[16px]">add</span><span class="">Add</span></button>
+</div>
+</div>
+<!-- 2. CT Scanner (Active) -->
+<div class="item-card group relative bg-surface-container-low rounded-xl p-space-md flex flex-col justify-between transition-all duration-200 shadow-sm cursor-pointer hover:shadow-md bg-surface-container-lowest" data-category="equip" data-id="ct-scanner">
+<div class="flex items-start gap-space-md mb-space-md">
+<div class="w-11 h-11 rounded-lg flex items-center justify-center shrink-0 bg-surface-container text-on-surface">
+<span class="material-symbols-outlined text-[24px]">radiology</span>
+</div>
+<div class="flex flex-col min-w-0">
+<div class="flex items-center gap-space-xs">
+<h3 class="font-headline-sm text-headline-sm text-on-surface leading-tight truncate">CT Scanner</h3>
+<span class="px-1.5 py-0.5 rounded bg-surface-container font-telemetry-sm text-telemetry-sm text-on-surface-variant">128-Slice</span>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant line-clamp-2 mt-1">Rapid trauma imaging (128-slice)</p>
+</div>
+</div>
+<div class="flex items-center justify-between pt-space-sm">
+<span class="font-telemetry-sm text-telemetry-sm text-primary font-semibold">Trauma Bay Sync</span>
+<button class="action-btn inline-flex items-center gap-1 px-space-md py-space-xs rounded-lg font-label-md text-label-md transition-all bg-surface-container-high text-on-surface" type="button"><span class="material-symbols-outlined text-[16px]">add</span><span class="">Add</span></button>
+</div>
+</div>
+<!-- 3. ECMO -->
+<div class="item-card group relative bg-surface-container-lowest rounded-xl p-space-md flex flex-col justify-between transition-all duration-200 shadow-sm cursor-pointer hover:shadow-md hover:bg-surface-container-low" data-category="equip" data-id="ecmo">
+<div class="flex items-start gap-space-md mb-space-md">
+<div class="w-11 h-11 rounded-lg flex items-center justify-center shrink-0 bg-surface-container text-on-surface">
+<span class="material-symbols-outlined text-[24px]">fluid_med</span>
+</div>
+<div class="flex flex-col min-w-0">
+<div class="flex items-center gap-space-xs">
+<h3 class="font-headline-sm text-headline-sm text-on-surface leading-tight truncate">ECMO</h3>
+<span class="px-1.5 py-0.5 rounded bg-surface-container font-telemetry-sm text-telemetry-sm text-on-surface-variant">Tier-1</span>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant line-clamp-2 mt-1">Extracorporeal membrane oxygenation</p>
+</div>
+</div>
+<div class="flex items-center justify-between pt-space-sm">
+<span class="font-telemetry-sm text-telemetry-sm text-on-surface-variant">Ready on Call</span>
+<button class="action-btn inline-flex items-center gap-1 px-space-md py-space-xs rounded-lg font-label-md text-label-md transition-all bg-surface-container-high text-on-surface hover:bg-primary hover:text-on-primary" type="button">
+<span class="material-symbols-outlined text-[16px]">add</span>
+<span class="">Add</span>
+</button>
+</div>
+</div>
+<!-- 4. Defibrillator -->
+<div class="item-card group relative bg-surface-container-lowest rounded-xl p-space-md flex flex-col justify-between transition-all duration-200 shadow-sm cursor-pointer hover:shadow-md hover:bg-surface-container-low" data-category="equip" data-id="defibrillator">
+<div class="flex items-start gap-space-md mb-space-md">
+<div class="w-11 h-11 rounded-lg flex items-center justify-center shrink-0 bg-surface-container text-on-surface">
+<span class="material-symbols-outlined text-[24px]">electric_bolt</span>
+</div>
+<div class="flex flex-col min-w-0">
+<h3 class="font-headline-sm text-headline-sm text-on-surface leading-tight truncate">Defibrillator</h3>
+<p class="font-body-sm text-body-sm text-on-surface-variant line-clamp-2 mt-1">Advanced cardiac life support</p>
+</div>
+</div>
+<div class="flex items-center justify-between pt-space-sm">
+<span class="font-telemetry-sm text-telemetry-sm text-on-surface-variant">Ready on Call</span>
+<button class="action-btn inline-flex items-center gap-1 px-space-md py-space-xs rounded-lg font-label-md text-label-md transition-all bg-surface-container-high text-on-surface hover:bg-primary hover:text-on-primary" type="button">
+<span class="material-symbols-outlined text-[16px]">add</span>
+<span class="">Add</span>
+</button>
+</div>
+</div>
+<!-- 5. MRI -->
+<div class="item-card group relative bg-surface-container-lowest rounded-xl p-space-md flex flex-col justify-between transition-all duration-200 shadow-sm cursor-pointer hover:shadow-md hover:bg-surface-container-low" data-category="equip" data-id="mri">
+<div class="flex items-start gap-space-md mb-space-md">
+<div class="w-11 h-11 rounded-lg flex items-center justify-center shrink-0 bg-surface-container text-on-surface">
+<span class="material-symbols-outlined text-[24px]">chips</span>
+</div>
+<div class="flex flex-col min-w-0">
+<h3 class="font-headline-sm text-headline-sm text-on-surface leading-tight truncate">MRI</h3>
+<p class="font-body-sm text-body-sm text-on-surface-variant line-clamp-2 mt-1">Emergency diagnostic neuro-imaging</p>
+</div>
+</div>
+<div class="flex items-center justify-between pt-space-sm">
+<span class="font-telemetry-sm text-telemetry-sm text-on-surface-variant">Ready on Call</span>
+<button class="action-btn inline-flex items-center gap-1 px-space-md py-space-xs rounded-lg font-label-md text-label-md transition-all bg-surface-container-high text-on-surface hover:bg-primary hover:text-on-primary" type="button">
+<span class="material-symbols-outlined text-[16px]">add</span>
+<span class="">Add</span>
+</button>
+</div>
+</div>
+<!-- 6. Dialysis Machine -->
+<div class="item-card group relative bg-surface-container-lowest rounded-xl p-space-md flex flex-col justify-between transition-all duration-200 shadow-sm cursor-pointer hover:shadow-md hover:bg-surface-container-low" data-category="equip" data-id="dialysis">
+<div class="flex items-start gap-space-md mb-space-md">
+<div class="w-11 h-11 rounded-lg flex items-center justify-center shrink-0 bg-surface-container text-on-surface">
+<span class="material-symbols-outlined text-[24px]">blood_pressure</span>
+</div>
+<div class="flex flex-col min-w-0">
+<h3 class="font-headline-sm text-headline-sm text-on-surface leading-tight truncate">Dialysis Machine</h3>
+<p class="font-body-sm text-body-sm text-on-surface-variant line-clamp-2 mt-1">Acute renal replacement therapy</p>
+</div>
+</div>
+<div class="flex items-center justify-between pt-space-sm">
+<span class="font-telemetry-sm text-telemetry-sm text-on-surface-variant">Ready on Call</span>
+<button class="action-btn inline-flex items-center gap-1 px-space-md py-space-xs rounded-lg font-label-md text-label-md transition-all bg-surface-container-high text-on-surface hover:bg-primary hover:text-on-primary" type="button">
+<span class="material-symbols-outlined text-[16px]">add</span>
+<span class="">Add</span>
+</button>
+</div>
+</div>
+<!-- 7. Anesthesia Machine -->
+<div class="item-card group relative bg-surface-container-lowest rounded-xl p-space-md flex flex-col justify-between transition-all duration-200 shadow-sm cursor-pointer hover:shadow-md hover:bg-surface-container-low" data-category="equip" data-id="anesthesia">
+<div class="flex items-start gap-space-md mb-space-md">
+<div class="w-11 h-11 rounded-lg flex items-center justify-center shrink-0 bg-surface-container text-on-surface">
+<span class="material-symbols-outlined text-[24px]">masks</span>
+</div>
+<div class="flex flex-col min-w-0">
+<h3 class="font-headline-sm text-headline-sm text-on-surface leading-tight truncate">Anesthesia Machine</h3>
+<p class="font-body-sm text-body-sm text-on-surface-variant line-clamp-2 mt-1">Rapid sequence induction &amp; surgery</p>
+</div>
+</div>
+<div class="flex items-center justify-between pt-space-sm">
+<span class="font-telemetry-sm text-telemetry-sm text-on-surface-variant">Ready on Call</span>
+<button class="action-btn inline-flex items-center gap-1 px-space-md py-space-xs rounded-lg font-label-md text-label-md transition-all bg-surface-container-high text-on-surface hover:bg-primary hover:text-on-primary" type="button">
+<span class="material-symbols-outlined text-[16px]">add</span>
+<span class="">Add</span>
+</button>
+</div>
+</div>
+<!-- 8. Cardiac Cath Lab -->
+<div class="item-card group relative bg-surface-container-lowest rounded-xl p-space-md flex flex-col justify-between transition-all duration-200 shadow-sm cursor-pointer hover:shadow-md hover:bg-surface-container-low" data-category="equip" data-id="cath-lab">
+<div class="flex items-start gap-space-md mb-space-md">
+<div class="w-11 h-11 rounded-lg flex items-center justify-center shrink-0 bg-surface-container text-on-surface">
+<span class="material-symbols-outlined text-[24px]">monitor_heart</span>
+</div>
+<div class="flex flex-col min-w-0">
+<h3 class="font-headline-sm text-headline-sm text-on-surface leading-tight truncate">Cardiac Cath Lab</h3>
+<p class="font-body-sm text-body-sm text-on-surface-variant line-clamp-2 mt-1">Percutaneous coronary intervention</p>
+</div>
+</div>
+<div class="flex items-center justify-between pt-space-sm">
+<span class="font-telemetry-sm text-telemetry-sm text-on-surface-variant">Ready on Call</span>
+<button class="action-btn inline-flex items-center gap-1 px-space-md py-space-xs rounded-lg font-label-md text-label-md transition-all bg-surface-container-high text-on-surface hover:bg-primary hover:text-on-primary" type="button">
+<span class="material-symbols-outlined text-[16px]">add</span>
+<span class="">Add</span>
+</button>
+</div>
+</div>
+<!-- 9. Blood Bank -->
+<div class="item-card group relative bg-surface-container-lowest rounded-xl p-space-md flex flex-col justify-between transition-all duration-200 shadow-sm cursor-pointer hover:shadow-md hover:bg-surface-container-low" data-category="equip" data-id="blood-bank">
+<div class="flex items-start gap-space-md mb-space-md">
+<div class="w-11 h-11 rounded-lg flex items-center justify-center shrink-0 bg-surface-container text-on-surface">
+<span class="material-symbols-outlined text-[24px]">bloodtype</span>
+</div>
+<div class="flex flex-col min-w-0">
+<h3 class="font-headline-sm text-headline-sm text-on-surface leading-tight truncate">Blood Bank</h3>
+<p class="font-body-sm text-body-sm text-on-surface-variant line-clamp-2 mt-1">Type-O negative &amp; plasma on standby</p>
+</div>
+</div>
+<div class="flex items-center justify-between pt-space-sm">
+<span class="font-telemetry-sm text-telemetry-sm text-on-surface-variant">Ready on Call</span>
+<button class="action-btn inline-flex items-center gap-1 px-space-md py-space-xs rounded-lg font-label-md text-label-md transition-all bg-surface-container-high text-on-surface hover:bg-primary hover:text-on-primary" type="button">
+<span class="material-symbols-outlined text-[16px]">add</span>
+<span class="">Add</span>
+</button>
+</div>
+</div>
+</div>
+</section>
+</div>
+<!-- BOTTOM ACTION FOOTER (Sticky bar docked at bottom viewport) -->
+<div class="fixed bottom-0 left-0 right-0 z-40 bg-surface-container-lowest shadow-[0_-4px_24px_rgba(7,28,54,0.08)] py-space-md px-margin">
+<div class="w-full max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-space-md">
+<!-- Selection Indicator Text -->
+<div class="flex items-center gap-space-md">
+<div class="w-10 h-10 rounded-full bg-primary-fixed/40 flex items-center justify-center text-primary">
+<span class="material-symbols-outlined text-[22px]">checklist</span>
+</div>
+<div class="flex flex-col">
+<span class="font-headline-sm text-headline-sm text-on-surface" id="summary-selection-text">0 Departments &amp; 0 Major Equipment selected</span>
+
+</div>
+</div>
+<!-- Action Group -->
+<div class="flex items-center gap-space-lg w-full sm:w-auto justify-end">
+<a class="font-label-lg text-label-lg text-on-surface-variant hover:text-error hover:underline transition-colors px-space-sm" href="#">
+          Cancel
+        </a>
+<a class="inline-flex items-center justify-center gap-space-sm px-space-xl py-space-md bg-tertiary hover:bg-tertiary-container text-on-tertiary rounded-xl font-label-lg text-label-lg shadow-md hover:shadow-lg transition-all active:scale-[0.99] font-bold" data-path="emergency-cart" href="#">
+<span class="">Proceed</span>
+<span class="material-symbols-outlined text-[20px]">arrow_forward</span>
+</a>
+</div>
+</div>
+</div>
+</div>
+<script>
+  // Dynamic Item Card State Controller (Intuitive Food-Delivery Interaction Pattern)
+  function updateCounts() {
+    const selectedDepts = document.querySelectorAll('#departments-grid .item-card.ring-2').length;
+    const selectedEquip = document.querySelectorAll('#equipment-grid .item-card.ring-2').length;
+
+    const deptBadge = document.getElementById('dept-badge-count');
+    const equipBadge = document.getElementById('equip-badge-count');
+    const summaryText = document.getElementById('summary-selection-text');
+
+    if (deptBadge) deptBadge.textContent = selectedDepts + ' Selected';
+    if (equipBadge) equipBadge.textContent = selectedEquip + ' Selected';
+    if (summaryText) {
+      summaryText.textContent = selectedDepts + ' Departments & ' + selectedEquip + ' Major Equipment selected';
+    }
+  }
+
+  function toggleCard(card) {
+    const isAdded = card.classList.contains('ring-2');
+    const btn = card.querySelector('.action-btn');
+    const iconContainer = card.querySelector('.rounded-lg:first-child');
+    
+    if (isAdded) {
+      // Switch to unselected state
+      card.classList.remove('ring-2', 'ring-primary', 'bg-primary-fixed/15');
+      card.classList.add('bg-surface-container-lowest');
+      
+      if (iconContainer) {
+        iconContainer.classList.remove('bg-primary', 'text-on-primary');
+        iconContainer.classList.add('bg-surface-container', 'text-on-surface');
+      }
+
+      if (btn) {
+        btn.classList.remove('bg-primary', 'text-on-primary');
+        btn.classList.add('bg-surface-container-high', 'text-on-surface');
+        btn.innerHTML = '<span class="material-symbols-outlined text-[16px]">add</span><span>Add</span>';
+      }
+    } else {
+      // Switch to selected state
+      card.classList.add('ring-2', 'ring-primary', 'bg-primary-fixed/15');
+      card.classList.remove('bg-surface-container-lowest');
+
+      if (iconContainer) {
+        iconContainer.classList.add('bg-primary', 'text-on-primary');
+        iconContainer.classList.remove('bg-surface-container', 'text-on-surface');
+      }
+
+      if (btn) {
+        btn.classList.add('bg-primary', 'text-on-primary');
+        btn.classList.remove('bg-surface-container-high', 'text-on-surface');
+        btn.innerHTML = '<span class="material-symbols-outlined text-[16px]">check</span><span>Added</span>';
+      }
+    }
+
+    updateCounts();
+  }
+
+  document.querySelectorAll('.item-card').forEach(function(card) {
+    card.addEventListener('click', function(e) {
+      toggleCard(card);
+    });
+  });
+
+  function presetTrauma() {
+    // Turn on trauma essentials: Trauma & ER, ICU, OT, Ventilator, CT Scanner
+    const traumaIds = ['trauma-er', 'icu', 'ot', 'ventilator', 'ct-scanner', 'blood-bank'];
+    document.querySelectorAll('.item-card').forEach(function(card) {
+      const id = card.getAttribute('data-id');
+      const shouldSelect = traumaIds.includes(id);
+      const isSelected = card.classList.contains('ring-2');
+      if (shouldSelect !== isSelected) {
+        toggleCard(card);
+      }
+    });
+  }
+
+  function presetCardiac() {
+    // Turn on cardiac essentials: Cardiology, ICU, OT, Defibrillator, Cath Lab
+    const cardiacIds = ['cardiology', 'icu', 'ot', 'defibrillator', 'cath-lab'];
+    document.querySelectorAll('.item-card').forEach(function(card) {
+      const id = card.getAttribute('data-id');
+      const shouldSelect = cardiacIds.includes(id);
+      const isSelected = card.classList.contains('ring-2');
+      if (shouldSelect !== isSelected) {
+        toggleCard(card);
+      }
+    });
+  }
+</script></main><footer class="w-full bg-surface-container-lowest mt-space-2xl"><div class="w-full px-margin py-space-md flex flex-col md:flex-row items-center justify-between gap-space-sm text-on-surface-variant font-telemetry-sm text-telemetry-sm"><div class="flex items-center gap-space-md"><span class="">JeevanRoute Telemetry Grid v4.2.1</span><span class="text-outline">|</span><span class="">Encrypted Dispatch Link (TLS 1.3)</span></div><div class="flex items-center gap-space-md"><span class="">Console: A-12 WS</span><span class="">Latency: 14ms</span></div></div></footer>
+
+</body></html>

@@ -9,6 +9,8 @@ export const EVENTS = {
   HOSPITAL_UPDATE: 'hospital:update',
   FRESHNESS_TICK: 'hospitals:freshness',
   SIMULATOR_STATUS: 'simulator:status',
+  REQUEST_NEW: 'request:new',
+  REQUEST_UPDATE: 'request:update',
 };
 
 export default bus;

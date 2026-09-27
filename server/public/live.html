@@ -49,6 +49,15 @@
     $('fresh').textContent = `🟢 ${c.fresh} fresh · 🟡 ${c.aging} aging · 🔴 ${c.stale} stale`;
   });
 
+  socket.on('request:new', (r) => {
+    const li = document.createElement('li');
+    li.style.borderLeft = '4px solid #F54B5E';
+    li.innerHTML = `🚨 <b>New emergency ${r.request_id}</b>: ${r.severity} ${r.emergency_type}, age ${r.patient_age}
+      <div class="muted">needs: ${Object.keys(r.requirements).filter(k => r.requirements[k]).join(', ') || 'general bed'}
+      · ${new Date().toLocaleTimeString()}</div>`;
+    $('feed').prepend(li);
+  });
+
   socket.on('hospital:update', ({ hospital, changed, source }) => {
     const li = document.createElement('li');
     const parts = changed.length

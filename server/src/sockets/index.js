@@ -4,6 +4,8 @@
 //   hospital:update      → { hospital, changed, source }      whenever beds change
 //   hospitals:freshness  → [{ hospital_id, status, age_minutes, score }]  every 30 s
 //   simulator:status     → { running, interval_ms, ... }
+//   request:new          → request object                      when a dispatcher logs an emergency
+//   request:update       → request object                      when its status changes
 import { Server } from 'socket.io';
 import db from '../db/index.js';
 import bus, { EVENTS } from '../events.js';
@@ -34,6 +36,8 @@ export function initSockets(httpServer) {
 
   bus.on(EVENTS.HOSPITAL_UPDATE, (payload) => io.emit(EVENTS.HOSPITAL_UPDATE, payload));
   bus.on(EVENTS.SIMULATOR_STATUS, (payload) => io.emit(EVENTS.SIMULATOR_STATUS, payload));
+  bus.on(EVENTS.REQUEST_NEW, (payload) => io.emit(EVENTS.REQUEST_NEW, payload));
+  bus.on(EVENTS.REQUEST_UPDATE, (payload) => io.emit(EVENTS.REQUEST_UPDATE, payload));
 
   // Freshness decays with time even when nothing changes, so re-broadcast it regularly
   setInterval(() => io.emit(EVENTS.FRESHNESS_TICK, freshnessSnapshot()), FRESHNESS_EVERY_MS).unref();

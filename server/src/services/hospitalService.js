@@ -4,6 +4,7 @@ import { RESOURCES, RESOURCE_KEYS, SERVICES, UPDATE_SOURCES } from './resources.
 import { getFreshness } from './freshness.js';
 import { nextId } from '../utils/ids.js';
 import bus, { EVENTS } from '../events.js';
+import { ApiError } from '../utils/errors.js';
 
 const BASE_QUERY = `
   SELECT h.*, r.*, s.*
@@ -89,10 +90,8 @@ export function getHistory(id, { type, limit = 20 } = {}) {
   ).all(...params);
 }
 
-// Custom error so routes can send the right HTTP status
-export class ApiError extends Error {
-  constructor(status, message, details) { super(message); this.status = status; this.details = details; }
-}
+// ApiError lives in utils/errors.js (shared by all services); re-exported for existing imports
+export { ApiError };
 
 /**
  * Hospital staff update availability.

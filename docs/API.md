@@ -52,6 +52,38 @@ PATCH /api/hospitals/HSP-011/resources
 - `version` is optional. Send the version you last saw: if someone else updated first you get **409 Conflict** with the current data, so nobody overwrites fresher numbers.
 - Every change is logged in the history.
 
+### Emergency requests (dispatcher)
+| Method | Endpoint | Purpose |
+|--------|----------|---------|
+| GET | /api/requests/meta | Dropdown values + smart defaults for the "New emergency" form |
+| POST | /api/requests | Dispatcher logs a new emergency |
+| GET | /api/requests?active=true&since_minutes=60&severity=Critical | Queue (Critical first, then newest). Filters: `status` (comma list), `severity`, `emergency_type`, `active`, `since_minutes`, `limit` (≤200), `offset` |
+| GET | /api/requests/summary | Counts by status + active by severity |
+| GET | /api/requests/:id | Request + its reservations + handover timeline |
+
+#### Create an emergency
+```http
+POST /api/requests
+{
+  "emergency_type": "Road Accident",          // Road Accident | Cardiac | Stroke | Burn | Respiratory | Other
+  "severity": "Critical",                    // Critical | High | Moderate | Low
+  "patient_age": 28,
+  "location": { "lat": 18.5204, "lng": 73.8567 },
+  "requirements": { "icu": true, "trauma_care": true, "blood_bank": true, "operation_theatre": true },
+  "required_specialist": "Trauma Surgeon",   // optional
+  "beds_required": 1                         // optional, default 1
+}
+```
+Requirement keys: `icu`, `ventilator`, `oxygen`, `trauma_care`, `cardiology`, `neurology`, `blood_bank`, `operation_theatre`, `dialysis` (any missing = false).
+
+Response `201`: `{ "request": { request_id, patient_id, status: "CREATED", ... }, "warnings": [] }`
+Warnings (not errors): location outside Pune, or no requirements selected.
+Invalid input → `400` with `{ "error": "...", "details": ["every problem listed"] }`.
+
+**Form tip:** `GET /api/requests/meta` returns `type_defaults` (e.g. Cardiac → cardiology + Cardiologist) and `severity_defaults` (Critical/High → icu). Pre-tick those checkboxes so the dispatcher logs a call in seconds.
+
+Request status flow: `CREATED → MATCHING → ASSIGNED → IN_TRANSIT → COMPLETED` (or `NO_MATCH`)
+
 ### Simulator (demo control)
 | Method | Endpoint | Purpose |
 |--------|----------|---------|
@@ -71,6 +103,8 @@ Connect with the socket.io client to the same URL (`http://localhost:5000`).
 | `hospital:update` | `{ hospital, changed: [{label, old, new}], source }` | Any bed count changes (simulator or staff) |
 | `hospitals:freshness` | `[{ hospital_id, status, age_minutes, score }]` | On connect + every 30 s |
 | `simulator:status` | `{ running, interval_ms, live_feed_hospitals, ticks }` | On connect + start/stop |
+| `request:new` | request object | Dispatcher logs a new emergency |
+| `request:update` | request object | Request status changes (coming with ranking/reservations) |
 
 ```js
 import { io } from 'socket.io-client';
@@ -88,7 +122,6 @@ All errors return `{ "error": "message" }` with status 400 (bad input), 404 (not
 
 | Method | Endpoint | Purpose |
 |--------|----------|---------|
-| POST | /api/requests | Dispatcher creates emergency |
 | GET | /api/requests/:id/rankings | Ranked hospital list |
 | POST | /api/reservations | Reserve a hospital |
 | PATCH | /api/reservations/:id | Hospital accepts / rejects |

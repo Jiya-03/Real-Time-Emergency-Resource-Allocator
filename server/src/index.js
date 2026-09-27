@@ -7,6 +7,7 @@ import path from 'node:path';
 import healthRouter from './routes/health.js';
 import hospitalsRouter from './routes/hospitals.js';
 import simulatorRouter from './routes/simulator.js';
+import requestsRouter from './routes/requests.js';
 import { initSockets } from './sockets/index.js';
 import { startSimulator } from './services/simulator.js';
 
@@ -22,6 +23,7 @@ app.get('/', (req, res) => res.send('🚑 Emergency Resource Allocator API is ru
 app.use('/api/health', healthRouter);
 app.use('/api/hospitals', hospitalsRouter);
 app.use('/api/simulator', simulatorRouter);
+app.use('/api/requests', requestsRouter);
 
 // Unknown routes
 app.use((req, res) => res.status(404).json({ error: 'Not found' }));

@@ -1,0 +1,26 @@
+hospital_id,hospital_name,hospital_type,latitude,longitude,address,emergency_department,active_status
+HSP-001,Mula Riverside Multispeciality Hospital,Multispecialty,18.559219,73.80334,"Plot 96, ITI Road, Aundh, Pune, Maharashtra 411007",TRUE,TRUE
+HSP-002,Sahyagiri Trauma & Critical Care Centre,Trauma Center,18.588576,73.74379,"Plot 99, Phase 1 Road, Hinjewadi, Pune, Maharashtra 411057",TRUE,TRUE
+HSP-003,Pune Municipal General Hospital,Government,18.504773,73.865773,"Plot 169, Shankarseth Road, Swargate, Pune, Maharashtra 411042",TRUE,TRUE
+HSP-004,Deccan Heart Institute,Specialty,18.519873,73.839605,"Plot 102, Fergusson College Road, Deccan, Pune, Maharashtra 411004",TRUE,TRUE
+HSP-005,Shivneri Neuro & Stroke Centre,Specialty,18.502617,73.809648,"Plot 158, Paud Road, Kothrud, Pune, Maharashtra 411038",TRUE,TRUE
+HSP-006,Kharadi Lifeline Hospital,Private,18.55445,73.931266,"Plot 28, EON IT Park Road, Kharadi, Pune, Maharashtra 411014",TRUE,TRUE
+HSP-007,Viman Care Multispeciality Hospital,Multispecialty,18.569327,73.920153,"Plot 41, Airport Road, Viman Nagar, Pune, Maharashtra 411014",TRUE,TRUE
+HSP-008,PCMC District Civil Hospital,Government,18.625955,73.800685,"Plot 127, Old Mumbai-Pune Highway, Pimpri, Pune, Maharashtra 411018",TRUE,TRUE
+HSP-009,Chinchwad Metro Hospital,Private,18.640198,73.787488,"Plot 35, Link Road, Chinchwad, Pune, Maharashtra 411033",TRUE,TRUE
+HSP-010,Nigdi Expressway Trauma Centre,Trauma Center,18.657546,73.766272,"Plot 59, Mumbai-Pune Service Road, Nigdi, Pune, Maharashtra 411044",TRUE,TRUE
+HSP-011,Hadapsar Sunrise Hospital,Private,18.509023,73.924063,"Plot 214, Solapur Road, Hadapsar, Pune, Maharashtra 411028",TRUE,TRUE
+HSP-012,Magarpatta Multispeciality Hospital,Multispecialty,18.516262,73.932823,"Plot 93, Magarpatta City Road, Magarpatta, Pune, Maharashtra 411013",TRUE,TRUE
+HSP-013,Katraj Ghat Trauma & Burns Centre,Trauma Center,18.452814,73.864527,"Plot 80, Pune-Satara Road, Katraj, Pune, Maharashtra 411046",TRUE,TRUE
+HSP-014,Kondhwa Community Hospital,Government,18.475,73.888114,"Plot 40, NIBM Road, Kondhwa, Pune, Maharashtra 411048",TRUE,TRUE
+HSP-015,Baner Crest Hospital,Private,18.557992,73.78741,"Plot 212, Baner-Pashan Link Road, Baner, Pune, Maharashtra 411045",TRUE,TRUE
+HSP-016,Yerawada Kidney & Dialysis Centre,Specialty,18.55771,73.878756,"Plot 74, Nagar Road, Yerawada, Pune, Maharashtra 411006",FALSE,TRUE
+HSP-017,Wakad Greenfield Hospital,Private,18.598432,73.760312,"Plot 39, Datta Mandir Road, Wakad, Pune, Maharashtra 411057",TRUE,TRUE
+HSP-018,Shivajinagar Sassoon-Road Chest Hospital,Specialty,18.524474,73.853404,"Plot 116, JM Road, Shivajinagar, Pune, Maharashtra 411005",TRUE,TRUE
+HSP-019,Bhosari Industrial Area Hospital,Government,18.625626,73.844711,"Plot 81, Nashik Highway, Bhosari, Pune, Maharashtra 411026",TRUE,TRUE
+HSP-020,Camp Cantonment Multispeciality Hospital,Multispecialty,18.516759,73.880097,"Plot 151, MG Road, Camp, Pune, Maharashtra 411001",TRUE,TRUE
+HSP-021,Warje Riverside Hospital,Private,18.472666,73.797287,"Plot 148, Warje Malwadi Road, Warje, Pune, Maharashtra 411058",TRUE,FALSE
+HSP-022,Sinhagad Road Medical Centre,Private,18.471571,73.815838,"Plot 36, Dhayari Phata Road, Sinhagad Road, Pune, Maharashtra 411041",TRUE,TRUE
+HSP-023,Wagholi Highway Hospital,Private,18.581534,73.979475,"Plot 152, Pune-Ahmednagar Highway, Wagholi, Pune, Maharashtra 412207",TRUE,TRUE
+HSP-024,Chakan MIDC Trauma Hospital,Trauma Center,18.760741,73.862477,"Plot 50, Talegaon-Chakan Road, Chakan, Pune, Maharashtra 410501",TRUE,TRUE
+HSP-025,Mulshi Valley Rural Hospital,Government,18.513662,73.685341,"Plot 181, Paud Road, Pirangut, Pune, Maharashtra 412115",TRUE,TRUE

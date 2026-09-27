@@ -1,0 +1,26 @@
+service_record_id,hospital_id,trauma_care,cardiology,neurology,blood_bank,operation_theatre,dialysis,burn_unit,specialists
+SRV-001,HSP-001,TRUE,TRUE,FALSE,TRUE,TRUE,TRUE,FALSE,Cardiologist;Trauma Surgeon;General Surgeon;Nephrologist
+SRV-002,HSP-002,TRUE,FALSE,TRUE,TRUE,TRUE,TRUE,FALSE,Neurologist;Trauma Surgeon;General Surgeon
+SRV-003,HSP-003,FALSE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,Cardiologist;Neurologist;General Surgeon;Pulmonologist;Nephrologist
+SRV-004,HSP-004,FALSE,TRUE,FALSE,TRUE,TRUE,TRUE,FALSE,Cardiologist;General Surgeon;Nephrologist
+SRV-005,HSP-005,FALSE,FALSE,TRUE,FALSE,TRUE,FALSE,FALSE,Neurologist;General Surgeon
+SRV-006,HSP-006,FALSE,TRUE,FALSE,TRUE,TRUE,TRUE,FALSE,Cardiologist;General Surgeon;Nephrologist
+SRV-007,HSP-007,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,FALSE,Cardiologist;Neurologist;Trauma Surgeon;General Surgeon;Nephrologist
+SRV-008,HSP-008,TRUE,FALSE,TRUE,FALSE,TRUE,TRUE,TRUE,Neurologist;Trauma Surgeon;General Surgeon;Nephrologist
+SRV-009,HSP-009,FALSE,FALSE,FALSE,FALSE,TRUE,FALSE,FALSE,General Surgeon;Pulmonologist
+SRV-010,HSP-010,TRUE,FALSE,FALSE,TRUE,TRUE,TRUE,TRUE,Trauma Surgeon;General Surgeon;Nephrologist
+SRV-011,HSP-011,FALSE,FALSE,FALSE,TRUE,FALSE,TRUE,FALSE,Nephrologist
+SRV-012,HSP-012,FALSE,TRUE,TRUE,TRUE,TRUE,TRUE,FALSE,Cardiologist;Neurologist;General Surgeon;Pulmonologist;Nephrologist
+SRV-013,HSP-013,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,Cardiologist;Neurologist;Trauma Surgeon;General Surgeon;Nephrologist
+SRV-014,HSP-014,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,Cardiologist;Neurologist;Trauma Surgeon;General Surgeon;Pulmonologist;Nephrologist
+SRV-015,HSP-015,FALSE,TRUE,FALSE,TRUE,TRUE,FALSE,FALSE,Cardiologist;General Surgeon
+SRV-016,HSP-016,FALSE,FALSE,FALSE,FALSE,FALSE,TRUE,FALSE,Nephrologist
+SRV-017,HSP-017,FALSE,FALSE,FALSE,FALSE,TRUE,FALSE,TRUE,General Surgeon;Pulmonologist
+SRV-018,HSP-018,FALSE,FALSE,FALSE,FALSE,TRUE,FALSE,FALSE,General Surgeon;Pulmonologist
+SRV-019,HSP-019,TRUE,TRUE,FALSE,TRUE,FALSE,TRUE,FALSE,Cardiologist;Trauma Surgeon;Pulmonologist;Nephrologist
+SRV-020,HSP-020,TRUE,TRUE,FALSE,TRUE,TRUE,TRUE,TRUE,Cardiologist;Trauma Surgeon;Pulmonologist;Nephrologist
+SRV-021,HSP-021,FALSE,FALSE,FALSE,FALSE,TRUE,TRUE,FALSE,General Surgeon;Nephrologist
+SRV-022,HSP-022,TRUE,FALSE,FALSE,TRUE,TRUE,TRUE,FALSE,Trauma Surgeon;General Surgeon;Nephrologist
+SRV-023,HSP-023,FALSE,TRUE,TRUE,TRUE,TRUE,FALSE,FALSE,Cardiologist;Neurologist;General Surgeon
+SRV-024,HSP-024,TRUE,FALSE,TRUE,TRUE,TRUE,FALSE,FALSE,Neurologist;Trauma Surgeon;General Surgeon
+SRV-025,HSP-025,FALSE,FALSE,FALSE,FALSE,TRUE,FALSE,FALSE,General Surgeon;Pulmonologist

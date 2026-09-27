@@ -6,6 +6,7 @@
 // no `req` → "info only": not tracked in the capacity dataset, but saved with the
 //          emergency (additional_needs) so the receiving hospital still sees it.
 // `specialist` → specialist this item implies (used when the emergency type has none)
+// Oxygen beds have no card: Respiratory and Burn emergencies request them automatically.
 
 const CATALOG = {
   departments: [
@@ -21,29 +22,27 @@ const CATALOG = {
     { id: 'obgyn',       name: 'Obstetrics & Gynecology', desc: 'Emergency maternity & delivery',      icon: 'pregnant_woman',         code: 'OB/GYN' },
   ],
   equipment: [
-    { id: 'ventilator',  name: 'Mechanical Ventilator',  tag: 'Class IV',   desc: 'Advanced respiratory support',            icon: 'air',            req: ['ventilator'], specialist: 'Pulmonologist' },
-    { id: 'oxygen',      name: 'Oxygen Support Bed',     tag: 'O₂',         desc: 'High-flow oxygen therapy bed',            icon: 'pulmonology',    req: ['oxygen'],     specialist: 'Pulmonologist' },
-    { id: 'blood',       name: 'Blood Bank',             tag: 'O-neg',      desc: 'Type-O negative & plasma on standby',     icon: 'bloodtype',      req: ['blood_bank'] },
-    { id: 'dialysis',    name: 'Dialysis Machine',       tag: 'CRRT',       desc: 'Acute renal replacement therapy',         icon: 'nephrology',     req: ['dialysis'],   specialist: 'Nephrologist' },
-    { id: 'cathlab',     name: 'Cardiac Cath Lab',       tag: 'PCI',        desc: 'Percutaneous coronary intervention',      icon: 'ecg_heart',      req: ['cardiology'], specialist: 'Cardiologist' },
+    { id: 'ventilator',  name: 'Mechanical Ventilator',  tag: 'Class IV',   code: 'Invasive ICU', desc: 'Advanced respiratory support',        icon: 'air',            req: ['ventilator'], specialist: 'Pulmonologist' },
     { id: 'ct',          name: 'CT Scanner',             tag: '128-Slice',  desc: 'Rapid trauma imaging (128-slice)',        icon: 'radiology' },
-    { id: 'mri',         name: 'MRI',                    tag: '3T',         desc: 'Emergency diagnostic neuro-imaging',      icon: 'view_in_ar' },
     { id: 'ecmo',        name: 'ECMO',                   tag: 'Tier-1',     desc: 'Extracorporeal membrane oxygenation',     icon: 'blood_pressure' },
-    { id: 'defib',       name: 'Defibrillator',          tag: 'ACLS',       desc: 'Advanced cardiac life support',           icon: 'bolt' },
-    { id: 'anesthesia',  name: 'Anesthesia Machine',     tag: 'RSI',        desc: 'Rapid sequence induction & surgery',      icon: 'masks' },
+    { id: 'defib',       name: 'Defibrillator',                             desc: 'Advanced cardiac life support',           icon: 'bolt' },
+    { id: 'mri',         name: 'MRI',                                       desc: 'Emergency diagnostic neuro-imaging',      icon: 'view_in_ar' },
+    { id: 'dialysis',    name: 'Dialysis Machine',                          desc: 'Acute renal replacement therapy',         icon: 'nephrology',     req: ['dialysis'],   specialist: 'Nephrologist' },
+    { id: 'anesthesia',  name: 'Anesthesia Machine',                        desc: 'Rapid sequence induction & surgery',      icon: 'masks' },
+    { id: 'cathlab',     name: 'Cardiac Cath Lab',                          desc: 'Percutaneous coronary intervention',      icon: 'ecg_heart',      req: ['cardiology'], specialist: 'Cardiologist' },
+    { id: 'blood',       name: 'Blood Bank',                                desc: 'Type-O negative & plasma on standby',     icon: 'bloodtype',      req: ['blood_bank'] },
   ],
   presets: {
     'Level-1 Trauma': { departments: ['trauma', 'icu', 'ot'], equipment: ['ventilator', 'blood', 'ct'] },
     'Cardiac Cath':   { departments: ['cardiology', 'icu'],   equipment: ['cathlab', 'defib'] },
-    'Stroke':         { departments: ['neurology', 'icu'],    equipment: ['ct', 'mri'] },
   },
   // What a type pre-selects when the dispatcher changes it
   typeDefaults: {
     'Road Accident': { departments: ['trauma', 'ot'], equipment: ['blood'] },
     'Cardiac':       { departments: ['cardiology'],   equipment: [] },
     'Stroke':        { departments: ['neurology'],    equipment: [] },
-    'Respiratory':   { departments: [],               equipment: ['oxygen'] },
-    'Burn':          { departments: ['trauma', 'burns'], equipment: ['oxygen'] },
+    'Respiratory':   { departments: ['icu'],          equipment: ['ventilator'] },
+    'Burn':          { departments: ['trauma', 'burns'], equipment: [] },
     'Other':         { departments: [],               equipment: [] },
   },
   priorities: {

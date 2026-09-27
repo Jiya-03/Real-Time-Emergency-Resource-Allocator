@@ -19,8 +19,7 @@
 <a class="nav-link px-space-md py-space-xs transition-colors rounded" data-path="emergency-cart" href="#cart">Emergency Cart</a>
 </nav></div>
 <div class="flex items-center gap-space-md">
-<div class="hidden lg:flex items-center gap-space-xs px-space-md py-space-xs rounded bg-surface-container-low text-on-surface font-telemetry-sm text-telemetry-sm"><span class="material-symbols-outlined text-[16px] text-primary">airport_shuttle</span><span class="">Ambulance A-12</span><span class="text-outline">•</span><span class="text-primary font-semibold">On Duty</span></div>
-<div class="flex items-center gap-space-xs px-space-md py-space-xs rounded bg-surface-container-low font-telemetry-sm text-telemetry-sm text-on-surface"><span class="w-2 h-2 rounded-full bg-outline" id="conn-dot"></span><span class="hidden sm:inline" id="conn-text">Connecting…</span></div>
+<div class="flex items-center px-space-md py-space-xs rounded bg-surface-container-low" id="conn-pill" title="Connecting…"><span class="w-2 h-2 rounded-full bg-outline" id="conn-dot"></span></div>
 <div class="h-6 w-px bg-outline-variant"></div>
 <div class="relative">
 <button class="flex items-center gap-space-sm pl-space-xs" id="user-btn" type="button" aria-haspopup="true" aria-expanded="false"><div class="hidden sm:flex flex-col text-right"><span class="font-label-md text-label-md text-on-surface leading-tight" id="user-name">Ctrl Dispatcher</span><span class="font-telemetry-sm text-telemetry-sm text-on-surface-variant leading-tight" id="user-id">ID —</span></div><div class="w-8 h-8 rounded-full bg-primary flex items-center justify-center"><span class="material-symbols-outlined text-on-primary text-[18px]">person</span></div></button>
@@ -56,7 +55,6 @@
 <h2 class="font-headline-md text-headline-md text-on-surface">Recent Emergencies</h2>
 <span class="px-space-sm py-0.5 rounded-full bg-surface-container text-on-surface font-telemetry-sm text-telemetry-sm font-semibold" id="today-count">… logged today</span>
 </div>
-<span class="font-telemetry-sm text-telemetry-sm text-on-surface-variant" id="recent-meta"></span>
 </div>
 <div class="bg-surface-container-lowest rounded-xl shadow-sm overflow-hidden flex flex-col">
 <div class="hidden md:grid grid-cols-12 gap-space-md px-space-lg py-space-sm bg-surface-container-low font-label-md text-label-md text-on-surface-variant">
@@ -75,9 +73,6 @@
 <div class="flex items-center gap-space-md">
 <span class="">Handover Verification: Enabled</span>
 <span class="text-outline-variant">•</span>
-<span class="">Registry Checksum: <span class="font-mono text-on-surface font-semibold">0x7B9C</span></span>
-<span class="text-outline-variant">•</span>
-<span class="">Live feed: <span class="font-mono text-on-surface font-semibold" id="feed-state">…</span></span>
 </div>
 <div>
 <span class="">Keyboard shortcut: Press <span class="px-1.5 py-0.5 bg-surface-container-low rounded font-semibold text-on-surface">N</span> to add new emergency</span>
@@ -95,8 +90,8 @@
 </div>
 </div>
 
-<!-- Type / Priority / Patient bar -->
-<div class="bg-surface-container-lowest rounded-xl shadow-sm px-space-lg py-space-md flex flex-wrap items-center gap-x-space-xl gap-y-space-md">
+<!-- Type / Priority bar (+ patient age & pickup, needed by the backend) -->
+<div class="bg-surface-container-lowest rounded-xl shadow-sm px-space-lg py-space-md flex flex-wrap items-center gap-x-space-lg gap-y-space-md">
 <label class="flex items-center gap-space-md"><span class="font-label-md text-label-md text-on-surface-variant uppercase">Type</span>
 <select class="bg-surface-container-low rounded-lg px-space-md py-space-sm font-headline-sm text-headline-sm text-on-surface border-0 focus:outline-none focus:ring-2 focus:ring-[#18B9B5] cursor-pointer min-w-[200px]" id="f-type"></select></label>
 <span class="hidden md:block h-8 w-px bg-outline-variant"></span>
@@ -106,17 +101,10 @@
 <select class="appearance-none bg-transparent font-label-lg text-label-lg border-0 focus:outline-none cursor-pointer pr-1" id="f-priority"></select>
 </span></label>
 <span class="hidden md:block h-8 w-px bg-outline-variant"></span>
-<label class="flex items-center gap-space-md"><span class="font-label-md text-label-md text-on-surface-variant uppercase">Age</span>
+<label class="flex items-center gap-space-sm"><span class="font-label-md text-label-md text-on-surface-variant uppercase">Age</span>
 <input class="w-20 bg-surface-container-low rounded-lg px-space-md py-space-sm font-telemetry-md text-telemetry-md text-on-surface border-0 focus:outline-none focus:ring-2 focus:ring-[#18B9B5]" id="f-age" inputmode="numeric" max="120" min="0" placeholder="yrs" type="number"></label>
-<label class="flex items-center gap-space-md"><span class="font-label-md text-label-md text-on-surface-variant uppercase">Beds</span>
-<input class="w-16 bg-surface-container-low rounded-lg px-space-md py-space-sm font-telemetry-md text-telemetry-md text-on-surface border-0 focus:outline-none focus:ring-2 focus:ring-[#18B9B5]" id="f-beds" max="10" min="1" type="number" value="1"></label>
-<span class="hidden md:block h-8 w-px bg-outline-variant"></span>
-<div class="flex items-center gap-space-md flex-wrap">
-<span class="font-label-md text-label-md text-on-surface-variant uppercase">Pickup</span>
-<select class="bg-surface-container-low rounded-lg px-space-md py-space-sm font-body-md text-body-md text-on-surface border-0 focus:outline-none focus:ring-2 focus:ring-[#18B9B5] cursor-pointer" id="f-area" aria-label="Pickup area"></select>
-<button class="w-9 h-9 rounded-lg bg-surface-container-low hover:bg-surface-container flex items-center justify-center text-primary" id="f-geo" title="Use my current location" type="button"><span class="material-symbols-outlined text-[18px]">my_location</span></button>
-<span class="font-telemetry-sm text-telemetry-sm text-on-surface-variant" id="f-coords"></span>
-</div>
+<label class="flex items-center gap-space-sm"><span class="font-label-md text-label-md text-on-surface-variant uppercase">Pickup</span>
+<select class="bg-surface-container-low rounded-lg px-space-md py-space-sm font-body-md text-body-md text-on-surface border-0 focus:outline-none focus:ring-2 focus:ring-[#18B9B5] cursor-pointer" id="f-area"></select></label>
 </div>
 
 <!-- Departments -->
@@ -140,7 +128,6 @@
 <p class="font-body-md text-body-md text-on-surface-variant">Select specialized equipment required (high-tier critical routing items only).</p>
 </div>
 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-space-md" id="equip-grid"></div>
-<p class="font-telemetry-sm text-telemetry-sm text-on-surface-variant flex items-center gap-space-xs"><span class="material-symbols-outlined text-[14px] text-primary">verified</span>Teal status = matched against live hospital capacity. “Info only” items are sent to the hospital as notes.</p>
 </div>
 </section>
 
@@ -164,7 +151,6 @@
 <div class="flex flex-col gap-space-xs">
 <span class="text-outline-variant font-telemetry-sm text-telemetry-sm">•</span>
 <h1 class="font-display-lg text-display-lg text-on-surface tracking-tight">Emergency Cart</h1>
-<p class="font-body-lg text-body-lg text-on-surface-variant">Review clinical requisition inventory before executing multi-node hospital capability match.</p>
 </div>
 <div id="cart-content"></div>
 </section>
@@ -185,7 +171,7 @@
 <!-- Toasts -->
 <div class="fixed bottom-space-xl right-space-xl z-[70] flex flex-col gap-space-sm w-[min(360px,calc(100vw-2rem))]" id="toasts" aria-live="polite"></div>
 
-<footer class="w-full bg-surface-container-lowest mt-space-2xl"><div class="w-full px-margin py-space-md flex flex-col md:flex-row items-center justify-between gap-space-sm text-on-surface-variant font-telemetry-sm text-telemetry-sm"><div class="flex items-center gap-space-md"><span class="">JeevanRoute Telemetry Grid v4.2.1</span><span class="text-outline">|</span><span class="">Encrypted Dispatch Link (TLS 1.3)</span></div><div class="flex items-center gap-space-md"><span>Prototype • HackMatrix 5.0</span></div></div></footer>
+<footer class="w-full bg-surface-container-lowest mt-space-2xl"><div class="w-full px-margin py-space-md flex flex-col md:flex-row items-center justify-between gap-space-sm text-on-surface-variant font-telemetry-sm text-telemetry-sm"><div class="flex items-center gap-space-md"><span class="">JeevanRoute Telemetry Grid v4.2.1</span><span class="text-outline">|</span><span class="">Encrypted Dispatch Link (TLS 1.3)</span></div><div class="flex items-center gap-space-md"></div></div></footer>
 
 <script src="/socket.io/socket.io.js"></script>
 <script src="js/api.js"></script>

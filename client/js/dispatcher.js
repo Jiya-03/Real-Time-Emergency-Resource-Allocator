@@ -67,11 +67,16 @@
   };
   const TONE = {
     done:     { chip: 'bg-surface-container text-on-surface', dot: 'bg-primary' },
-    active:   { chip: 'bg-[#ECFDF5] border border-[#6EE7B7] text-[#065F46]', dot: 'bg-[#36B37E]' },
-    standby:  { chip: 'bg-[#F1F5F9] border border-[#CBD5E1] text-[#475569]', dot: 'bg-[#64748B]' },
-    warn:     { chip: 'bg-[#FFFBEB] border border-[#FCD34D] text-[#92400E]', dot: 'bg-[#D97706]' },
-    critical: { chip: 'bg-[#FEF2F2] border border-[#F87171] text-[#991B1B]', dot: 'bg-[#F54B5E] crit-dot' },
+    active:   { chip: 'bg-surface-container text-on-surface', dot: 'bg-[#36B37E]' },
+    standby:  { chip: 'bg-surface-container text-on-surface', dot: 'bg-outline' },
+    warn:     { chip: 'bg-surface-container text-on-surface', dot: 'bg-[#D97706]' },
+    critical: { chip: 'bg-surface-container text-tertiary', dot: 'bg-tertiary crit-dot' },
   };
+
+  // "Severe Trauma", "Acute Cardiac", "Respiratory Distress"… (clinical wording from the design)
+  const TYPE_NOUN = { 'Road Accident': 'Trauma', Cardiac: 'Cardiac', Stroke: 'Stroke', Burn: 'Burns', Respiratory: 'Respiratory Distress', Other: 'Emergency' };
+  const SEV_PREFIX = { Critical: 'Severe', High: 'Acute', Moderate: 'Moderate', Low: 'Minor' };
+  const clinicalLabel = (r) => `${SEV_PREFIX[r.severity] || ''} ${TYPE_NOUN[r.emergency_type] || r.emergency_type}`.trim();
 
   function statusChip(r) {
     const st = STATUS[r.status] || { label: r.status, tone: 'standby' };
@@ -88,24 +93,22 @@
     const facility = a
       ? `<span class="material-symbols-outlined text-outline text-[18px]">local_hospital</span>
          <span class="font-body-md text-body-md font-semibold">${esc(a.hospital_name)}</span>`
-      : `<span class="material-symbols-outlined text-outline text-[18px]">pending</span>
-         <span class="font-body-md text-body-md text-on-surface-variant italic">Awaiting hospital match</span>`;
+      : `<span class="material-symbols-outlined text-outline text-[18px]">local_hospital</span>
+         <span class="font-body-md text-body-md text-on-surface-variant">Awaiting hospital match</span>`;
     const transit = a
       ? `<span class="font-telemetry-md text-telemetry-md text-on-surface font-semibold">${a.transit_minutes} min ${a.transit_source === 'actual' ? 'transit' : 'ETA'}</span>
          <span class="font-telemetry-sm text-telemetry-sm text-on-surface-variant">Distance: ${a.distance_km} km</span>`
       : `<span class="font-telemetry-md text-telemetry-md text-on-surface font-semibold">—</span>
          <span class="font-telemetry-sm text-telemetry-sm text-on-surface-variant">Waiting ${waitText(r.waiting_minutes)}</span>`;
-    const critBorder = r.severity === 'Critical' && ['CREATED', 'MATCHING'].includes(r.status) ? 'border-l-2 border-[#F54B5E]' : 'border-l-2 border-transparent';
-
     return `
-<div class="req-row grid grid-cols-1 md:grid-cols-12 gap-space-sm md:gap-space-md px-space-lg py-space-md hover:bg-surface-container-low transition-colors duration-100 items-center border-b border-surface-container-low ${critBorder}" data-id="${esc(r.request_id)}">
+<div class="req-row grid grid-cols-1 md:grid-cols-12 gap-space-sm md:gap-space-md px-space-lg py-space-md hover:bg-surface-container-low transition-colors duration-100 items-center border-b border-surface-container-low last:border-b-0" data-id="${esc(r.request_id)}">
   <div class="md:col-span-3 flex flex-col">
     <div class="flex items-center gap-space-xs flex-wrap">
       <span class="font-telemetry-md text-telemetry-md text-on-surface font-semibold tracking-tight">#${esc(r.request_id)}</span>
       <span class="text-outline-variant font-telemetry-sm text-telemetry-sm">•</span>
-      <span class="font-label-md text-label-md ${isUrgent(r) ? 'text-tertiary' : 'text-primary'} font-semibold">${esc(r.severity)} ${esc(r.emergency_type)}</span>
+      <span class="font-label-md text-label-md ${isUrgent(r) ? 'text-tertiary' : 'text-primary'} font-semibold">${esc(clinicalLabel(r))}</span>
     </div>
-    <span class="font-telemetry-sm text-telemetry-sm text-on-surface-variant mt-0.5">Logged: ${fmt.timeIST(r.created_at)} · Age ${r.patient_age}</span>
+    <span class="font-telemetry-sm text-telemetry-sm text-on-surface-variant mt-0.5">Logged: ${fmt.timeIST(r.created_at)}</span>
   </div>
   <div class="md:col-span-3 flex items-center gap-space-xs text-on-surface">${facility}</div>
   <div class="md:col-span-2 flex flex-col">${transit}</div>
@@ -137,7 +140,6 @@
       else $('recent-rows').insertAdjacentHTML('beforeend', html);
       state.recent.offset += data.requests.length;
       $('recent-more').classList.toggle('hidden', state.recent.offset >= data.total);
-      $('recent-meta').textContent = `${data.total} in the last 24 h`;
     } catch (err) {
       $('recent-rows').innerHTML = emptyHTML(`Could not load emergencies: ${esc(err.message)}`);
     }
@@ -155,7 +157,9 @@
   $('recent-more').addEventListener('click', () => loadRecent(false));
 
   // ───────────── Draft emergency (Create → Cart → Start Searching) ─────────────
-  const DRAFT_KEY = 'jeevanroute.draft';
+  const DRAFT_KEY = 'jeevanroute.draft.v2';
+  // The dispatcher rides in Ambulance A-12 (AMB-012 in the dataset): its GPS is the default pickup point
+  const AMBULANCE = { name: 'Ambulance A-12 GPS', lat: 18.625969, lng: 73.79929 };
   const byId = (list) => Object.fromEntries(list.map(x => [x.id, x]));
   const DEPTS = byId(CATALOG.departments);
   const EQUIP = byId(CATALOG.equipment);
@@ -164,7 +168,7 @@
     return {
       ref: `NEW-${Math.floor(1000 + Math.random() * 9000)}`,
       type: 'Road Accident', priority: 'Critical', age: '', beds: 1,
-      area: '', lat: null, lng: null,
+      area: AMBULANCE.name, lat: AMBULANCE.lat, lng: AMBULANCE.lng,
       departments: [], equipment: [],
     };
   }
@@ -178,6 +182,7 @@
     draft.departments.forEach(id => (DEPTS[id].req || []).forEach(k => keys.add(k)));
     draft.equipment.forEach(id => (EQUIP[id].req || []).forEach(k => keys.add(k)));
     if (['Critical', 'High'].includes(draft.priority)) (meta?.severity_defaults?.[draft.priority] || []).forEach(k => keys.add(k));
+    if (['Respiratory', 'Burn'].includes(draft.type)) keys.add('oxygen');
     return [...keys];
   }
   function draftInfoOnly() {
@@ -231,8 +236,8 @@
   function buildCreate() {
     $('f-type').innerHTML = meta.emergency_types.map(t => `<option>${esc(t)}</option>`).join('');
     $('f-priority').innerHTML = meta.severities.map(s => `<option value="${s}">${CATALOG.priorities[s].label}</option>`).join('');
-    $('f-area').innerHTML = `<option value="">Select Pune area…</option>` + AREAS.map(([n]) => `<option>${n}</option>`).join('')
-      + `<option value="__custom">Custom coordinates…</option>`;
+    $('f-area').innerHTML = `<option>${AMBULANCE.name}</option>` + AREAS.map(([n]) => `<option>${n}</option>`).join('')
+      + `<option value="__geo">My current location</option><option value="__custom">Custom coordinates…</option>`;
     $('presets').innerHTML = Object.keys(CATALOG.presets).map((p, i) => `
       <button class="px-space-md py-space-xs rounded ${i === 0 ? 'bg-surface-container text-primary' : 'bg-surface-container-low text-on-surface'} hover:bg-surface-container font-label-lg text-label-lg" data-preset="${esc(p)}" type="button">${esc(p)}</button>`).join('');
 
@@ -274,9 +279,11 @@
     $('f-type').value = draft.type;
     $('f-priority').value = draft.priority;
     $('f-age').value = draft.age;
-    $('f-beds').value = draft.beds;
-    $('f-area').value = draft.area || '';
-    $('f-coords').textContent = draft.lat != null ? `${Number(draft.lat).toFixed(4)}, ${Number(draft.lng).toFixed(4)}` : '';
+    if (draft.area === '__custom' && !$('f-area').querySelector('option[value="__pin"]')) {
+      $('f-area').insertAdjacentHTML('afterbegin', '<option value="__pin">Pinned location</option>');
+    }
+    $('f-area').value = draft.area === '__custom' ? '__pin' : (draft.area || AMBULANCE.name);
+    $('f-area').title = draft.lat != null ? `${Number(draft.lat).toFixed(4)}, ${Number(draft.lng).toFixed(4)}` : '';
     priorityStyle();
 
     document.querySelectorAll('.sel-card').forEach(card => {
@@ -335,28 +342,28 @@
   });
   $('f-priority').addEventListener('change', (e) => { draft.priority = e.target.value; syncCreate(); });
   $('f-age').addEventListener('input', (e) => { draft.age = e.target.value; saveDraft(); });
-  $('f-beds').addEventListener('input', (e) => { draft.beds = Math.max(1, Math.min(10, Number(e.target.value) || 1)); saveDraft(); });
   $('f-area').addEventListener('change', (e) => {
     const v = e.target.value;
-    if (v === '__custom') {
+    if (v === '__pin') return;
+    if (v === '__geo') {
+      if (!navigator.geolocation) { toast('Location unavailable', 'This browser cannot share location.', 'warn'); return syncCreate(); }
+      navigator.geolocation.getCurrentPosition(
+        (pos) => { draft.lat = +pos.coords.latitude.toFixed(6); draft.lng = +pos.coords.longitude.toFixed(6); draft.area = '__custom'; syncCreate(); },
+        () => { toast('Location blocked', 'Allow location access or pick an area.', 'warn'); syncCreate(); },
+        { timeout: 8000 },
+      );
+      return;
+    } else if (v === '__custom') {
       const input = prompt('Enter pickup coordinates as "lat, lng"', draft.lat != null ? `${draft.lat}, ${draft.lng}` : '18.5204, 73.8567');
       const m = input && input.match(/(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)/);
       if (m) { draft.lat = Number(m[1]); draft.lng = Number(m[2]); draft.area = '__custom'; }
-    } else if (v) {
+    } else if (v === AMBULANCE.name) {
+      draft.area = v; draft.lat = AMBULANCE.lat; draft.lng = AMBULANCE.lng;
+    } else {
       const [, la, ln] = AREAS.find(a => a[0] === v);
       draft.area = v; draft.lat = la; draft.lng = ln;
-    } else {
-      draft.area = ''; draft.lat = null; draft.lng = null;
     }
     syncCreate();
-  });
-  $('f-geo').addEventListener('click', () => {
-    if (!navigator.geolocation) return toast('Location unavailable', 'This browser cannot share location.', 'warn');
-    navigator.geolocation.getCurrentPosition(
-      (pos) => { draft.lat = +pos.coords.latitude.toFixed(6); draft.lng = +pos.coords.longitude.toFixed(6); draft.area = '__custom'; syncCreate(); },
-      () => toast('Location blocked', 'Allow location access or pick an area.', 'warn'),
-      { timeout: 8000 },
-    );
   });
 
   function validateDraft() {
@@ -389,14 +396,15 @@
   function cartPreview() {
     const keys = draftRequirementKeys();
     const capable = hospitals.filter(h => hospitalMeets(h, keys, Number(draft.beds) || 1));
-    if (draft.lat == null || !capable.length) return { capable: capable.length, eta: null };
-    const nearest = Math.min(...capable.map(h => Geo.roadKm({ lat: draft.lat, lng: draft.lng }, h.location)));
-    return { capable: capable.length, eta: Geo.eta(nearest) };
+    if (draft.lat == null || !capable.length) return { capable: capable.length, inRadius: 0, eta: null };
+    const dists = capable.map(h => Geo.roadKm({ lat: draft.lat, lng: draft.lng }, h.location));
+    const nearest = Math.min(...dists);
+    return { capable: capable.length, inRadius: dists.filter(d => d <= 15).length, eta: Geo.eta(nearest) };
   }
 
   function cartItemHTML(item, kind) {
     const a = availabilityText(item);
-    const code = kind === 'dept' ? item.code : item.tag;
+    const code = item.code || item.tag;
     return `
 <div class="flex items-center gap-space-md bg-surface-container-low rounded-lg px-space-lg py-space-md">
   <div class="w-11 h-11 rounded-lg bg-surface-container-lowest flex items-center justify-center shrink-0"><span class="material-symbols-outlined text-primary">${item.icon}</span></div>
@@ -405,7 +413,7 @@
     ${code ? `<span class="px-1.5 py-0.5 rounded ${item.req ? 'bg-surface-container text-primary' : 'bg-surface-container-high text-on-surface-variant'} font-telemetry-sm text-telemetry-sm uppercase">${esc(code)}</span>` : ''}</div>
     <span class="font-body-md text-body-md text-on-surface-variant">${esc(item.desc)}</span>
   </div>
-  <span class="hidden sm:inline px-space-sm py-1 rounded font-telemetry-sm text-telemetry-sm ${a.live ? 'bg-secondary-container/40 text-primary' : item.req ? 'bg-tertiary-fixed text-tertiary' : 'bg-surface-container text-on-surface-variant'}">${a.live || !item.req ? esc(a.text) : 'Unavailable'}</span>
+  <span class="hidden sm:inline px-space-sm py-1 rounded font-telemetry-sm text-telemetry-sm ${a.live ? 'bg-secondary-container/40 text-primary' : item.req ? 'bg-tertiary-fixed text-tertiary' : 'text-on-surface-variant'}">${a.live || !item.req ? esc(a.text) : 'Unavailable'}</span>
   <button class="w-8 h-8 rounded hover:bg-surface-container flex items-center justify-center text-on-surface-variant" data-remove="${item.id}" data-kind="${kind}" type="button" aria-label="Remove ${esc(item.name)}"><span class="material-symbols-outlined">close</span></button>
 </div>`;
   }
@@ -428,7 +436,9 @@
     const criteria = depts.length + equip.length;
     const preview = cartPreview();
     const unavailable = [...depts, ...equip].filter(x => x.req && !availabilityText(x).live);
-    const conflicts = preview.capable === 0 ? 'No hospital meets all criteria' : unavailable.length ? `${unavailable.length} item${unavailable.length > 1 ? 's' : ''} unavailable` : 'Zero Protocol Conflicts';
+    const conflicts = preview.capable === 0 ? 'No hospital meets all criteria'
+      : preview.inRadius === 0 ? 'No capable hospital within 15 km'
+      : unavailable.length ? `${unavailable.length} item${unavailable.length > 1 ? 's' : ''} unavailable` : 'Zero Protocol Conflicts';
 
     $('cart-content').innerHTML = `
 <div class="grid grid-cols-1 lg:grid-cols-3 gap-space-xl items-start">
@@ -436,23 +446,16 @@
   <div class="lg:col-span-2 bg-surface-container-lowest rounded-xl shadow-sm overflow-hidden">
     <div class="h-1.5 bg-tertiary"></div>
     <div class="p-space-xl flex flex-col gap-space-xl">
-      <div class="flex flex-col md:flex-row md:items-center justify-between gap-space-md">
-        <div class="flex items-center gap-space-md flex-wrap">
-          <div class="w-12 h-12 rounded-lg bg-tertiary-fixed flex items-center justify-center"><span class="material-symbols-outlined text-tertiary">e911_emergency</span></div>
-          <h2 class="font-headline-lg text-headline-lg text-on-surface">Emergency #${esc(draft.ref)}</h2>
-          <span class="px-space-sm py-0.5 rounded bg-tertiary-fixed text-tertiary font-telemetry-sm text-telemetry-sm font-semibold uppercase">Pending Hospital Dispatch</span>
+      <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-space-md">
+        <div class="flex items-center gap-space-md min-w-0">
+          <div class="w-11 h-11 rounded-lg bg-tertiary-fixed flex items-center justify-center shrink-0"><span class="material-symbols-outlined text-tertiary">e911_emergency</span></div>
+          <h2 class="font-headline-md text-headline-md text-on-surface whitespace-nowrap">Emergency #${esc(draft.ref)}</h2>
+          <span class="px-space-sm py-0.5 rounded bg-tertiary-fixed text-tertiary font-telemetry-sm text-telemetry-sm font-semibold uppercase whitespace-nowrap">Pending Hospital Dispatch</span>
         </div>
-        <div class="flex items-center gap-space-xs flex-wrap">
-          <span class="inline-flex items-center gap-1 px-space-sm py-1 rounded bg-surface-container-low font-label-lg text-label-lg text-on-surface"><span class="material-symbols-outlined text-[16px] text-tertiary">warning</span>${esc(draft.type)}</span>
+        <div class="flex items-center gap-space-xs shrink-0">
+          <span class="inline-flex items-center gap-1 px-space-sm py-1 rounded bg-surface-container-low font-label-lg text-label-lg text-on-surface"><span class="material-symbols-outlined text-[16px] text-tertiary">warning</span>${esc(TYPE_NOUN[draft.type] || draft.type)}</span>
           <span class="inline-flex items-center gap-1.5 px-space-sm py-1 rounded font-label-lg text-label-lg" style="background:${p.bg};color:${p.color}"><span class="w-2 h-2 rounded-full" style="background:${p.color}"></span>Priority: ${esc(draft.priority)}</span>
         </div>
-      </div>
-      <div class="flex flex-wrap gap-x-space-xl gap-y-space-xs font-telemetry-sm text-telemetry-sm text-on-surface-variant -mt-space-md">
-        <span>Patient age <b class="text-on-surface">${esc(draft.age)}</b></span>
-        <span>Beds <b class="text-on-surface">${esc(draft.beds)}</b></span>
-        <span>Pickup <b class="text-on-surface">${esc(areaLabel())}</b></span>
-        <span>Specialist <b class="text-on-surface">${esc(draftSpecialist() || 'None')}</b></span>
-        <a class="text-primary font-semibold" href="#create">Edit</a>
       </div>
 
       <div class="flex flex-col gap-space-sm">
@@ -477,7 +480,7 @@
 
       <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-space-sm rounded-lg bg-surface-container-low px-space-lg py-space-md">
         <span class="flex items-center gap-space-sm font-label-lg text-label-lg text-on-surface"><span class="material-symbols-outlined text-primary">verified</span>Clinical Validation: ${criteria} Criteria Locked</span>
-        <span class="font-telemetry-sm text-telemetry-sm text-on-surface-variant">Geo-Boundary: ${esc(areaLabel())} <span class="mx-1">•</span>
+        <span class="font-telemetry-sm text-telemetry-sm text-on-surface-variant" title="Pickup: ${esc(areaLabel())}">Geo-Boundary: 15km Radius <span class="mx-1">•</span>
           <span class="${conflicts === 'Zero Protocol Conflicts' ? 'text-primary' : 'text-tertiary'} font-semibold">${conflicts}</span></span>
       </div>
     </div>
@@ -487,11 +490,10 @@
   <aside class="bg-surface-container-lowest rounded-xl shadow-sm p-space-xl flex flex-col gap-space-lg lg:sticky lg:top-24">
     <div class="flex items-center justify-between"><h2 class="font-headline-md text-headline-md text-on-surface">Requisition Summary</h2>
       <span class="px-space-sm py-0.5 rounded bg-surface-container text-primary font-telemetry-sm text-telemetry-sm font-semibold">VERIFIED</span></div>
-    <div class="flex flex-col gap-space-md font-body-lg text-body-lg">
+    <div class="flex flex-col gap-space-md font-body-md text-body-md">
       <div class="flex justify-between"><span class="text-on-surface-variant">Selected Departments</span><span class="font-telemetry-md text-telemetry-md text-on-surface">${depts.length} items</span></div>
       <div class="flex justify-between"><span class="text-on-surface-variant">Major Medical Equipment</span><span class="font-telemetry-md text-telemetry-md text-on-surface">${equip.length} units</span></div>
       <div class="flex justify-between"><span class="text-on-surface-variant">Incident Severity Coeff.</span><span class="font-telemetry-md text-telemetry-md" style="color:${p.color}">${p.level}</span></div>
-      <div class="flex justify-between"><span class="text-on-surface-variant">Capable Hospitals</span><span class="font-telemetry-md text-telemetry-md ${preview.capable ? 'text-on-surface' : 'text-tertiary'}">${hospitals.length ? `${preview.capable} of ${hospitals.length}` : '…'}</span></div>
       <div class="flex justify-between"><span class="text-on-surface-variant">Expected Response Radius</span><span class="font-telemetry-md text-telemetry-md text-on-surface">${preview.eta ? `&lt; ${preview.eta} min ETA` : '—'}</span></div>
     </div>
     <div class="h-px bg-surface-container-high"></div>
@@ -634,7 +636,7 @@
 
     return `
       <div class="flex items-center gap-space-sm flex-wrap">
-        <span class="font-label-lg text-label-lg ${isUrgent(r) ? 'text-tertiary' : 'text-primary'}">${esc(r.severity)} ${esc(r.emergency_type)}</span>
+        <span class="font-label-lg text-label-lg ${isUrgent(r) ? 'text-tertiary' : 'text-primary'}">${esc(clinicalLabel(r))}</span>
         ${statusChip(r)}
       </div>
       ${section('Patient', kv('Patient ID', esc(r.patient_id)) + kv('Age', r.patient_age) + kv('Beds required', r.beds_required) + kv('Logged', fmt.dateTimeIST(r.created_at)) + kv('Waiting', waitText(r.waiting_minutes)))}
@@ -703,9 +705,8 @@
 
   // ───────────── Live updates (Socket.io) ─────────────
   function setConnection(online) {
-    $('conn-dot').className = `w-2 h-2 rounded-full ${online ? 'bg-primary animate-pulse' : 'bg-[#F54B5E]'}`;
-    $('conn-text').textContent = online ? 'System Online' : 'Reconnecting…';
-    $('feed-state').textContent = online ? 'Connected' : 'Offline';
+    $('conn-dot').className = `w-2 h-2 rounded-full ${online ? 'bg-primary animate-pulse' : 'bg-tertiary'}`;
+    $('conn-pill').title = online ? 'Live link online' : 'Reconnecting…';
   }
 
   if (window.io) {
@@ -723,7 +724,7 @@
         $('recent-rows').firstElementChild.classList.add('row-new');
         state.recent.offset++;
       }
-      if (isUrgent(r)) toast(`🚨 New ${r.severity} emergency`, `#${esc(r.request_id)} · ${esc(r.emergency_type)} · age ${r.patient_age}`, 'critical');
+      if (isUrgent(r)) toast(`🚨 ${clinicalLabel(r)}`, `#${esc(r.request_id)} · patient age ${r.patient_age}`, 'critical');
     });
 
     socket.on('request:update', (r) => {

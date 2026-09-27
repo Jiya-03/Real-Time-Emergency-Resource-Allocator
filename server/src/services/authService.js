@@ -53,3 +53,14 @@ export function readUser(req) {
   const header = req.headers.authorization || '';
   return verifyToken(header.startsWith('Bearer ') ? header.slice(7) : null);
 }
+
+// Express middleware: only let these roles through (sets req.user)
+export function requireRole(...roles) {
+  return (req, res, next) => {
+    const user = readUser(req);
+    if (!user) return next(new ApiError(401, 'Sign in required'));
+    if (!roles.includes(user.role)) return next(new ApiError(403, `Only ${roles.join(' / ')} users can do this`));
+    req.user = user;
+    next();
+  };
+}

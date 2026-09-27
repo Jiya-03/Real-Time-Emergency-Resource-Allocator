@@ -36,6 +36,7 @@ async function api(path, { method = 'GET', body } = {}) {
     const err = new Error(data.error || `Request failed (${res.status})`);
     err.status = res.status;
     err.details = data.details || [];
+    err.body = data;
     throw err;
   }
   return data;

@@ -11,6 +11,7 @@ export const EVENTS = {
   SIMULATOR_STATUS: 'simulator:status',
   REQUEST_NEW: 'request:new',
   REQUEST_UPDATE: 'request:update',
+  RESERVATION_UPDATE: 'reservation:update',
 };
 
 export default bus;

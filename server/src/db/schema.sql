@@ -102,7 +102,8 @@ CREATE TABLE IF NOT EXISTS reservations (
   reservation_status  TEXT NOT NULL CHECK (reservation_status IN ('PENDING','CONFIRMED','FAILED','RELEASED','EXPIRED','CANCELLED')),
   requested_at        TEXT NOT NULL,
   confirmed_at        TEXT CHECK (confirmed_at IS NULL OR confirmed_at >= requested_at),
-  expires_at          TEXT NOT NULL CHECK (expires_at > requested_at)
+  expires_at          TEXT NOT NULL CHECK (expires_at > requested_at),
+  holds_capacity      INTEGER NOT NULL DEFAULT 0   -- OUR addition: 1 = this hold subtracted beds (so releasing it returns them). Dataset rows = 0.
 );
 
 CREATE TABLE IF NOT EXISTS emergency_workflow_handover (

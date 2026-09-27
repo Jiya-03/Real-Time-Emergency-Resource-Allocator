@@ -557,10 +557,12 @@
       document.getElementById('tab-hospital')?.addEventListener('click', () => switchPortal('hospital'));
       document.getElementById('password-toggle-btn')?.addEventListener('click', togglePasswordVisibility);
 
-      // Already signed in as a dispatcher? Go straight to the portal.
+      // Already signed in? Go straight to the right portal.
       const s = Session.get();
-      if (s?.user?.role === 'dispatcher') {
-        api('/api/auth/me').then(() => location.replace('dispatcher.html')).catch(() => Session.clear());
+      if (s?.user?.role) {
+        api('/api/auth/me')
+          .then(() => location.replace(s.user.role === 'dispatcher' ? 'dispatcher.html' : 'hospital.html'))
+          .catch(() => Session.clear());
       }
     });
 
@@ -618,13 +620,7 @@
         btn.classList.add('from-successGreen', 'to-emerald-600');
 
         setTimeout(() => {
-          if (user.role === 'dispatcher') {
-            location.href = 'dispatcher.html';
-          } else {
-            // Hospital portal is the next build step
-            resetButton(btn, btnText, origText);
-            showError(`Signed in as ${user.name}. The hospital portal is coming in the next update. Use the Dispatcher tab for now.`);
-          }
+          location.href = user.role === 'dispatcher' ? 'dispatcher.html' : 'hospital.html';
         }, 700);
       } catch (err) {
         resetButton(btn, btnText, origText);

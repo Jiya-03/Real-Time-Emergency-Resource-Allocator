@@ -8,7 +8,8 @@ Freshness: `fresh` (≤5 min), `aging` (5–30 min), `stale` (>30 min)
 | URL | Page |
 |-----|------|
 | http://localhost:5000/ | Login (Dispatcher / Hospital) |
-| http://localhost:5000/dispatcher.html | Dispatcher portal: Dashboard · Create Emergency · Emergency Cart |
+| http://localhost:5000/dispatcher.html | Dispatcher portal: Dashboard · Create Emergency · Emergency Cart · Hospital Match |
+| http://localhost:5000/hospital.html | Hospital portal: accept/reject incoming requests, update live capacity |
 | http://localhost:5000/live.html | Developer live-feed test page |
 
 ## ✅ Built
@@ -122,6 +123,34 @@ Each ranking row: `{ rank, hospital_id, hospital_name, eligible, scores: { resou
 
 **Verified:** `npm run test:ranking` replays all 1,920 reference rankings: 99.97% of hospital scores match exactly, and in the 273 cases where our #1 differs, ours is an eligible hospital with a strictly higher score (found beyond the 5 nearest).
 
+### Bed reservations (hold → accept / reject / expire)
+| Method | Endpoint | Who | Purpose |
+|--------|----------|-----|---------|
+| POST | /api/reservations `{ request_id, hospital_id }` | Dispatcher | Hold the bed(s) at a hospital. Beds leave availability immediately |
+| PATCH | /api/reservations/:id `{ action: "accept" \| "reject", reason }` | That hospital only | Answer a pending hold |
+| POST | /api/reservations/:id/cancel | Dispatcher | Release a pending/confirmed hold |
+| GET | /api/reservations | Hospital | Own inbox: PENDING first, then CONFIRMED patients still on the way |
+| GET | /api/reservations/meta | Any | Reject reasons + hold times |
+
+What gets held: the primary bed (ICU → Oxygen Bed → General Bed) × `beds_required`, plus 1 ventilator if needed.
+
+| Event | Result |
+|-------|--------|
+| Hold | reservations `PENDING` (expires in 10 min), workflow `PENDING`, request `MATCHING` |
+| Accept | reservations `CONFIRMED` (kept 15 min+), workflow `ACCEPTED`, request `ASSIGNED` |
+| Reject | reservations `RELEASED`, beds returned, workflow `REJECTED` + reason, request back to `MATCHING` |
+| No answer in 10 min | reservations `EXPIRED`, beds returned automatically (sweeper every 5 s) |
+| Cancel | reservations `CANCELLED`, beds returned |
+
+**Double-booking protection:** taking a bed is one conditional update inside a transaction:
+`UPDATE … SET available = available − n WHERE hospital_id = ? AND available >= n`.
+If two dispatchers race for the last bed, the second update matches 0 rows, so availability can never go negative. The loser gets
+`409 { code: "BED_TAKEN", alternatives: [next best hospitals with free beds] }`. Other 409 codes: `ALREADY_HELD` (one active hold per emergency), `NOT_PENDING`.
+
+Auth: these endpoints need `Authorization: Bearer <token>`; wrong role → 403, no token → 401.
+
+**Verified:** `npm run test:booking`. 20 simultaneous holds for 3 ICU beds → exactly 3 succeed, 17 get BED_TAKEN, availability ends at 0.
+
 ### Simulator (demo control)
 | Method | Endpoint | Purpose |
 |--------|----------|---------|
@@ -143,6 +172,7 @@ Connect with the socket.io client to the same URL (`http://localhost:5000`).
 | `simulator:status` | `{ running, interval_ms, live_feed_hospitals, ticks }` | On connect + start/stop |
 | `request:new` | request object | Dispatcher logs a new emergency |
 | `request:update` | request object | Request status changes (e.g. CREATED → MATCHING after ranking) |
+| `reservation:update` | `{ action, request, hospital_id, hospital_name, reservations, reason? }` | action = held · failed · accepted · rejected · cancelled · expired |
 
 ```js
 import { io } from 'socket.io-client';
@@ -160,8 +190,4 @@ All errors return `{ "error": "message" }` with status 400 (bad input), 404 (not
 
 | Method | Endpoint | Purpose |
 |--------|----------|---------|
-| POST | /api/reservations | Reserve a hospital |
-| PATCH | /api/reservations/:id | Hospital accepts / rejects |
-| PATCH | /api/reservations/:id/status | en_route → arrived → handed_over |
-
-Socket event coming: `reservation:update`
+| PATCH | /api/requests/:id/status | Handoff: en route → arrived → handed over |

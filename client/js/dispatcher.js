@@ -570,13 +570,16 @@
   // ───────────── View: Hospital Match (ranking results) ─────────────
   state.match = { id: null, data: null, changed: new Set() };
 
-  async function openMatch(id, { rerun = false } = {}) {
+  async function openMatch(id, { rerun = false, keepHold = false } = {}) {
     state.match = { id, data: null, changed: new Set() };
+    if (!keepHold) { state.hold = null; renderHold(); }
     $('match-stale-banner').classList.add('hidden');
     $('match-content').innerHTML = emptyHTML('Ranking hospitals…');
     try {
       const request = await api(`/api/requests/${encodeURIComponent(id)}`);
+      if (!keepHold) state.hold = holdFromDetail(request);
       let result;
+      if (request.status === 'ASSIGNED' || request.status === 'IN_TRANSIT' || request.status === 'COMPLETED') rerun = false;
       if (rerun || request.status === 'CREATED') {
         result = await api(`/api/requests/${encodeURIComponent(id)}/match`, { method: 'POST' });
       } else {
@@ -589,6 +592,7 @@
       }
       state.match.data = result;
       renderMatch();
+      renderHold();
     } catch (err) {
       $('match-content').innerHTML = emptyHTML(`Could not rank hospitals: ${esc(err.message)}`);
     }
@@ -661,7 +665,7 @@
   ${r.eligible && f.status === 'stale' ? '<div class="font-body-sm text-body-sm text-tertiary flex items-center gap-space-xs"><span class="material-symbols-outlined text-[16px]">warning</span>Availability data is stale. Confirm with the hospital before dispatch.</div>' : ''}
   <details class="group"><summary class="cursor-pointer font-label-md text-label-md text-primary list-none flex items-center gap-1"><span class="material-symbols-outlined text-[16px] group-open:rotate-90 transition-transform">chevron_right</span>Why this rank?</summary>
     <p class="mt-space-xs font-telemetry-sm text-telemetry-sm text-on-surface-variant leading-5">${esc(r.explanation)}</p></details>
-  ${r.eligible ? `<div class="flex justify-end"><button class="inline-flex items-center gap-space-sm px-space-lg py-space-sm rounded-lg ${isBest ? 'bg-tertiary hover:bg-tertiary-container text-on-tertiary' : 'bg-surface-container-high hover:bg-surface-container-highest text-on-surface'} font-label-lg text-label-lg" data-request-confirm="${r.hospital_id}" type="button"><span class="material-symbols-outlined text-[18px]">send</span>Request Confirmation</button></div>` : ''}
+  ${r.eligible ? `<div class="flex justify-end"><button class="inline-flex items-center gap-space-sm px-space-lg py-space-sm rounded-lg ${isBest ? 'bg-tertiary hover:bg-tertiary-container text-on-tertiary' : 'bg-surface-container-high hover:bg-surface-container-highest text-on-surface'} font-label-lg text-label-lg" data-request-confirm="${r.hospital_id}" type="button"><span class="material-symbols-outlined text-[18px]">send</span><span>Request Confirmation</span></button></div>` : ''}
 </div>`;
   }
 
@@ -705,7 +709,7 @@
   $('match-stale-refresh').addEventListener('click', () => state.match.id && openMatch(state.match.id, { rerun: true }));
   document.addEventListener('click', (e) => {
     const b = e.target.closest('[data-request-confirm]');
-    if (b) toast('Bed confirmation comes next', 'Reserving a bed and hospital accept/reject arrive in Step 8.', 'info');
+    if (b && !b.disabled) requestConfirmation(b.dataset.requestConfirm);
   });
 
   // Live: if a ranked hospital's availability changes, offer a refresh
@@ -716,6 +720,122 @@
     const names = [...state.match.changed];
     $('match-stale-text').textContent = `Availability changed at ${names.slice(0, 2).join(', ')}${names.length > 2 ? ` +${names.length - 2} more` : ''} since this match ran.`;
     $('match-stale-banner').classList.remove('hidden');
+  }
+
+  // ───────────── Bed hold (reservation) on the match screen ─────────────
+  state.hold = null;            // { hospital_id, hospital_name, status, reservation_id, expires_at, reason }
+  // Emergencies whose beds THIS dispatcher held (only these raise accept/reject/expiry alerts)
+  const MINE_KEY = 'jeevanroute.myHolds';
+  const myHolds = new Set((() => { try { return JSON.parse(sessionStorage.getItem(MINE_KEY)) || []; } catch { return []; } })());
+  const rememberHold = (id) => { myHolds.add(id); try { sessionStorage.setItem(MINE_KEY, JSON.stringify([...myHolds])); } catch {} };
+  let holdTimer = null;
+
+  function holdFromDetail(detail) {
+    const active = (detail.reservations || []).filter(r => ['PENDING', 'CONFIRMED'].includes(r.reservation_status));
+    if (!active.length) return null;
+    const r = active[0];
+    return { hospital_id: r.hospital_id, hospital_name: r.hospital_name, status: r.reservation_status, reservation_id: r.reservation_id, expires_at: r.expires_at };
+  }
+
+  function mmss(sec) { const s = Math.max(0, Math.round(sec)); return `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`; }
+
+  function renderHold() {
+    clearInterval(holdTimer);
+    const h = state.hold;
+    const panel = $('hold-panel');
+    document.querySelectorAll('[data-request-confirm]').forEach(b => {
+      const busy = h && ['PENDING', 'CONFIRMED'].includes(h.status);
+      b.disabled = !!busy;
+      b.classList.toggle('opacity-50', !!busy);
+      b.classList.toggle('cursor-not-allowed', !!busy);
+    });
+    if (!h) { panel.innerHTML = ''; return; }
+
+    const box = (tone, icon, title, body, actions = '') => `
+<div class="rounded-xl border-2 ${tone} bg-surface-container-lowest px-space-xl py-space-lg flex flex-col md:flex-row md:items-center justify-between gap-space-md">
+  <div class="flex items-center gap-space-md">
+    <span class="material-symbols-outlined text-[28px]">${icon}</span>
+    <div class="flex flex-col"><span class="font-headline-sm text-headline-sm text-on-surface">${title}</span><span class="font-body-md text-body-md text-on-surface-variant">${body}</span></div>
+  </div>
+  <div class="flex items-center gap-space-md">${actions}</div>
+</div>`;
+
+    if (h.status === 'PENDING') {
+      panel.innerHTML = box('border-[#D97706] text-[#92400E]', 'hourglass_top',
+        `Bed held at ${esc(h.hospital_name)}. Waiting for hospital confirmation`,
+        'The bed is reserved for this patient and removed from availability. The hospital must accept before it expires.',
+        `<span class="font-telemetry-lg text-telemetry-lg text-[#92400E]" id="hold-countdown">--:--</span>
+         <button class="px-space-lg py-space-sm rounded-lg border border-outline-variant font-label-lg text-label-lg text-on-surface hover:bg-surface-container-low" data-cancel-hold="${h.reservation_id}" type="button">Cancel hold</button>`);
+      const tick = () => {
+        const left = (new Date(h.expires_at) - Date.now()) / 1000;
+        const el = $('hold-countdown'); if (el) el.textContent = mmss(left);
+      };
+      tick(); holdTimer = setInterval(tick, 1000);
+    } else if (h.status === 'CONFIRMED') {
+      panel.innerHTML = box('border-[#36B37E] text-[#065F46]', 'verified',
+        `${esc(h.hospital_name)} accepted. Bed confirmed`,
+        'The emergency is ASSIGNED. The bed stays reserved for the arriving ambulance.',
+        `<button class="px-space-lg py-space-sm rounded-lg border border-outline-variant font-label-lg text-label-lg text-on-surface hover:bg-surface-container-low" data-cancel-hold="${h.reservation_id}" type="button">Release bed</button>
+         <a class="inline-flex items-center gap-space-sm px-space-lg py-space-sm rounded-lg bg-primary text-on-primary font-label-lg text-label-lg" href="#dispatch"><span class="material-symbols-outlined text-[18px]">local_shipping</span>Back to dashboard</a>`);
+    } else if (h.status === 'REJECTED' || h.status === 'EXPIRED' || h.status === 'CANCELLED') {
+      const title = h.status === 'REJECTED' ? `${esc(h.hospital_name)} declined${h.reason ? `: ${esc(h.reason)}` : ''}`
+        : h.status === 'EXPIRED' ? `${esc(h.hospital_name)} did not answer in time. Hold expired` : `Hold at ${esc(h.hospital_name)} cancelled`;
+      panel.innerHTML = box('border-tertiary text-tertiary', h.status === 'EXPIRED' ? 'timer_off' : 'block', title,
+        'The bed was released. The ranking below has been refreshed. Request confirmation from the next hospital.');
+    }
+  }
+
+  async function requestConfirmation(hospitalId) {
+    const id = state.match.id;
+    const btn = document.querySelector(`[data-request-confirm="${hospitalId}"]`);
+    if (btn) { btn.disabled = true; btn.lastElementChild.textContent = 'Holding bed…'; }
+    try {
+      const res = await api('/api/reservations', { method: 'POST', body: { request_id: id, hospital_id: hospitalId } });
+      const r = res.reservations.find(x => x.status === 'PENDING');
+      state.hold = { hospital_id: hospitalId, hospital_name: res.hospital_name, status: 'PENDING', reservation_id: r.reservation_id, expires_at: r.expires_at };
+      rememberHold(id);
+      toast('Bed held', `${esc(res.hospital_name)} has ${res.hold_minutes} min to confirm.`, 'success');
+      renderHold();
+    } catch (err) {
+      if (err.status === 409 && err.body?.code === 'BED_TAKEN') {
+        const alts = err.body.alternatives || [];
+        toast('Bed just taken', `${esc(err.message)} ${alts.length ? `Next best: ${esc(alts[0].hospital_name)}.` : ''}`, 'critical');
+        await openMatch(id, { rerun: true });
+      } else {
+        toast('Could not hold bed', esc(err.message), 'critical');
+        if (btn) { btn.disabled = false; btn.lastElementChild.textContent = 'Request Confirmation'; }
+      }
+    }
+  }
+
+  async function cancelHold(reservationId) {
+    try {
+      await api(`/api/reservations/${encodeURIComponent(reservationId)}/cancel`, { method: 'POST' });
+      toast('Hold released', 'The bed is available to other patients again.', 'info');
+    } catch (err) { toast('Could not cancel', esc(err.message), 'critical'); }
+  }
+
+  document.addEventListener('click', (e) => {
+    const c = e.target.closest('[data-cancel-hold]');
+    if (c) cancelHold(c.dataset.cancelHold);
+  });
+
+  // Live: hospital answered / hold expired / cancelled
+  function onReservationUpdate(p) {
+    if (p.action === 'held' || p.action === 'failed') return;
+    const mine = state.view === 'match' && state.match.id === p.request.request_id;
+    const status = { accepted: 'CONFIRMED', rejected: 'REJECTED', expired: 'EXPIRED', cancelled: 'CANCELLED' }[p.action];
+    if (mine) {
+      const active = p.reservations.find(r => ['PENDING', 'CONFIRMED'].includes(r.status));
+      state.hold = { hospital_id: p.hospital_id, hospital_name: p.hospital_name, status, reason: p.reason,
+                     reservation_id: active?.reservation_id || p.reservations[0]?.reservation_id, expires_at: active?.expires_at };
+      renderHold();
+      if (['rejected', 'expired', 'cancelled'].includes(p.action)) openMatch(p.request.request_id, { rerun: true, keepHold: true });
+    }
+    if (!myHolds.has(p.request.request_id)) return;
+    if (p.action === 'accepted') toast(`✅ ${p.hospital_name} accepted`, `#${esc(p.request.request_id)} is now ASSIGNED.`, 'success');
+    if (p.action === 'rejected') toast(`${p.hospital_name} declined`, `#${esc(p.request.request_id)}${p.reason ? ` · ${esc(p.reason)}` : ''}. Pick the next hospital.`, 'critical');
+    if (p.action === 'expired') toast('Hold expired', `${esc(p.hospital_name)} did not answer #${esc(p.request.request_id)} in time.`, 'warn');
   }
 
   // ───────────── Summary drawer ─────────────
@@ -884,7 +1004,8 @@
       document.querySelectorAll(`.req-row[data-id="${r.request_id}"]`).forEach(el => { el.outerHTML = rowHTML(r); });
     });
 
-    socket.on('hospital:update', (p) => { onHospitalUpdate(p); onHospitalChangeForMatch(p); });
+    socket.on('hospital:update', (p) => { onHospitalUpdate(p); if (p.source !== 'Reservation') onHospitalChangeForMatch(p); });
+    socket.on('reservation:update', onReservationUpdate);
   } else {
     setConnection(false);
   }

@@ -9,6 +9,8 @@ import hospitalsRouter from './routes/hospitals.js';
 import simulatorRouter from './routes/simulator.js';
 import requestsRouter from './routes/requests.js';
 import authRouter from './routes/auth.js';
+import reservationsRouter from './routes/reservations.js';
+import { startExpirySweeper } from './services/reservationService.js';
 import { initSockets } from './sockets/index.js';
 import { startSimulator } from './services/simulator.js';
 
@@ -26,6 +28,7 @@ app.use('/api/auth', authRouter);
 app.use('/api/hospitals', hospitalsRouter);
 app.use('/api/simulator', simulatorRouter);
 app.use('/api/requests', requestsRouter);
+app.use('/api/reservations', reservationsRouter);
 
 // Unknown routes
 app.use((req, res) => res.status(404).json({ error: 'Not found' }));
@@ -45,4 +48,5 @@ server.listen(PORT, () => {
   console.log(`✅ Server running at http://localhost:${PORT}   (JeevanRoute UI)`);
   console.log(`📡 Live test page: http://localhost:${PORT}/live.html`);
   if (process.env.SIMULATOR !== 'off') startSimulator();
+  startExpirySweeper();
 });

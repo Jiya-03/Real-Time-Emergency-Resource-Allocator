@@ -8,7 +8,9 @@
     "start": "node src/index.js",
     "dev": "nodemon src/index.js",
     "seed": "node src/db/seed.js",
-    "test:ranking": "node tests/ranking-replay.test.mjs"
+    "test:ranking": "node tests/ranking-replay.test.mjs",
+    "test:booking": "node tests/double-booking.test.mjs",
+    "test": "npm run test:ranking && npm run test:booking"
   },
   "dependencies": {
     "better-sqlite3": "^12.11.1",

@@ -1,0 +1,85 @@
+<!DOCTYPE html><html lang="en" style=""><head><meta charset="utf-8"><meta content="width=device-width, initial-scale=1.0" name="viewport"><meta content="web_standard" name="shell-type"><title>JeevanRoute — Hospital Portal</title><link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet"><link href="https://fonts.googleapis.com" rel="preconnect"><link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"><link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@500;600&amp;family=Public+Sans:wght@400;600&amp;family=Space+Grotesk:wght@600;700&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"><style>@layer base{html,body{margin:0;padding:0;}body{overscroll-behavior:none;}main>:first-child{margin-top:0!important;}main>:last-child{margin-bottom:0!important;}}::-webkit-scrollbar{display:none;}</style><script src="https://cdn.tailwindcss.com"></script><script id="tailwind-config">tailwind.config={darkMode:"class",theme:{extend:{"colors":{"outline":"#6d7978","error-container":"#ffdad6","tertiary-fixed-dim":"#ffb3b4","tertiary-fixed":"#ffdada","on-secondary-fixed-variant":"#00504e","on-tertiary":"#ffffff","primary-fixed":"#8cf4ef","on-tertiary-fixed-variant":"#920025","surface-bright":"#f9f9ff","surface-variant":"#d6e3ff","inverse-surface":"#1f314d","surface-container-highest":"#d6e3ff","on-surface":"#071c36","surface-tint":"#006a67","tertiary":"#b51735","surface-dim":"#c8dbfe","on-primary-fixed":"#00201f","on-primary-fixed-variant":"#00504e","surface-container-high":"#dee8ff","on-error":"#ffffff","on-tertiary-container":"#fffbff","on-secondary-container":"#006e6c","primary":"#006765","on-secondary-fixed":"#00201f","primary-fixed-dim":"#6fd7d3","on-error-container":"#93000a","surface-container-lowest":"#ffffff","on-background":"#071c36","on-primary":"#ffffff","inverse-primary":"#6fd7d3","secondary-fixed":"#71f7f2","secondary":"#006a67","surface-container":"#e7eeff","on-primary-container":"#f3fffd","inverse-on-surface":"#ecf1ff","secondary-container":"#6ef4ef","tertiary-container":"#d8354b","background":"#f9f9ff","error":"#ba1a1a","primary-container":"#008280","surface":"#f9f9ff","secondary-fixed-dim":"#4fdad6","outline-variant":"#bcc9c8","surface-container-low":"#f0f3ff","on-tertiary-fixed":"#40000b","on-surface-variant":"#3d4948","on-secondary":"#ffffff"},"borderRadius":{"DEFAULT":"0.125rem","lg":"0.25rem","xl":"0.5rem","full":"0.75rem"},"spacing":{"space-sm":"0.5rem","space-xs":"0.25rem","gutter-dense":"0.5rem","space-lg":"1rem","space-md":"0.75rem","margin-dense":"1rem","space-xl":"1.5rem","margin":"1.5rem","space-2xl":"2rem","gutter":"1rem"},"fontFamily":{"body-md":["Public Sans"],"label-md":["Public Sans"],"headline-md":["Space Grotesk"],"telemetry-lg":["JetBrains Mono"],"body-lg":["Public Sans"],"telemetry-md":["JetBrains Mono"],"telemetry-sm":["JetBrains Mono"],"headline-lg":["Space Grotesk"],"body-sm":["Public Sans"],"headline-sm":["Space Grotesk"],"label-lg":["Public Sans"],"display-lg":["Space Grotesk"]},"fontSize":{"body-md":["14px",{"lineHeight":"20px","fontWeight":"400"}],"label-md":["12px",{"lineHeight":"16px","letterSpacing":"0.02em","fontWeight":"600"}],"headline-md":["20px",{"lineHeight":"26px","letterSpacing":"-0.01em","fontWeight":"600"}],"telemetry-lg":["20px",{"lineHeight":"24px","letterSpacing":"-0.02em","fontWeight":"600"}],"body-lg":["16px",{"lineHeight":"24px","fontWeight":"400"}],"telemetry-md":["14px",{"lineHeight":"18px","letterSpacing":"-0.01em","fontWeight":"500"}],"telemetry-sm":["11px",{"lineHeight":"14px","letterSpacing":"0.01em","fontWeight":"500"}],"headline-lg":["24px",{"lineHeight":"30px","letterSpacing":"-0.015em","fontWeight":"600"}],"body-sm":["13px",{"lineHeight":"18px","fontWeight":"400"}],"headline-sm":["16px",{"lineHeight":"22px","letterSpacing":"-0.005em","fontWeight":"600"}],"label-lg":["14px",{"lineHeight":"18px","fontWeight":"600"}],"display-lg":["32px",{"lineHeight":"38px","letterSpacing":"-0.02em","fontWeight":"700"}]}}}}</script><style>
+  @keyframes rowFlash { 0% { background:#ffdada; } 100% { background:transparent; } }
+  .row-new { animation: rowFlash 2.4s ease-out; }
+  @keyframes critPulse { 0%,100% { opacity:1; transform:scale(1);} 50% { opacity:.45; transform:scale(.8);} }
+  .crit-dot { animation: critPulse 1.4s ease-in-out infinite; }
+  .req-chip[aria-pressed="true"] { background:#006765; color:#fff; border-color:#006765; }
+  .seg[aria-pressed="true"] { background:#006765; color:#fff; border-color:#006765; }
+  .seg-crit[aria-pressed="true"] { background:#b51735; border-color:#b51735; color:#fff; }
+  .field { width:100%; background:#fff; border:1px solid #bcc9c8; border-radius:0.25rem; padding:0.5rem 0.75rem; font-size:14px; color:#071c36; }
+  .field:focus { outline:none; border:1.5px solid #18B9B5; }
+  .drawer-open { overflow:hidden; }
+</style>
+</head><body class="bg-surface font-body-md text-on-surface antialiased">
+<header class="fixed top-0 w-full z-50 bg-surface-container-lowest shadow-[0_1px_8px_rgba(0,0,0,0.04)]"><div class="h-16 w-full px-margin flex items-center justify-between gap-space-lg"><div class="flex items-center gap-space-xl"><div class="flex items-center gap-space-sm"><div class="w-9 h-9 rounded bg-primary flex items-center justify-center"><span class="material-symbols-outlined text-on-primary text-[20px]">local_hospital</span></div><div class="flex flex-col"><span class="font-headline-sm text-headline-sm text-on-surface tracking-tight leading-none">JeevanRoute</span><span class="font-telemetry-sm text-telemetry-sm text-primary tracking-wider font-semibold uppercase mt-space-xs">Hospital Portal</span></div></div><div class="h-6 w-px bg-outline-variant hidden md:block"></div>
+<span class="hidden md:inline font-label-lg text-label-lg text-on-surface" id="hosp-name">…</span></div>
+<div class="flex items-center gap-space-md">
+<div class="flex items-center px-space-md py-space-xs rounded bg-surface-container-low" id="conn-pill" title="Connecting…"><span class="w-2 h-2 rounded-full bg-outline" id="conn-dot"></span></div>
+<div class="h-6 w-px bg-outline-variant"></div>
+<div class="relative">
+<button class="flex items-center gap-space-sm pl-space-xs" id="user-btn" type="button" aria-haspopup="true" aria-expanded="false"><div class="hidden sm:flex flex-col text-right"><span class="font-label-md text-label-md text-on-surface leading-tight">Hospital Staff</span><span class="font-telemetry-sm text-telemetry-sm text-on-surface-variant leading-tight" id="user-id">ID —</span></div><div class="w-8 h-8 rounded-full bg-primary flex items-center justify-center"><span class="material-symbols-outlined text-on-primary text-[18px]">person</span></div></button>
+<div class="hidden absolute right-0 mt-2 w-44 bg-surface-container-lowest border border-outline-variant rounded-lg shadow-[0_4px_16px_-4px_rgba(11,31,58,0.08)] py-1 z-50" id="user-menu">
+<button class="w-full text-left px-space-md py-space-sm font-label-md text-label-md text-on-surface hover:bg-surface-container-low flex items-center gap-space-xs" id="logout-btn" type="button"><span class="material-symbols-outlined text-[16px]">logout</span>Sign out</button>
+</div></div></div></div></header>
+
+<main class="w-full pt-16 bg-surface min-h-[calc(100vh-3rem)]">
+<section class="px-margin py-space-xl flex flex-col gap-space-xl max-w-7xl mx-auto w-full">
+<div class="flex flex-col gap-space-xs">
+<span class="text-outline-variant font-telemetry-sm text-telemetry-sm">•</span>
+<h1 class="font-display-lg text-display-lg text-on-surface tracking-tight">Incoming Emergencies</h1>
+<p class="font-body-lg text-body-lg text-on-surface-variant">Accept or reject bed requests from ambulances. Unanswered holds are released automatically.</p>
+</div>
+
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-space-xl items-start">
+<!-- Inbox -->
+<div class="lg:col-span-2 flex flex-col gap-space-md">
+<div class="flex items-center gap-space-sm">
+<h2 class="font-headline-md text-headline-md text-on-surface">Awaiting Response</h2>
+<span class="px-space-sm py-0.5 rounded-full bg-tertiary-fixed text-tertiary font-telemetry-sm text-telemetry-sm font-semibold" id="pending-count">0</span>
+</div>
+<div class="flex flex-col gap-space-md" id="pending-list"></div>
+<div class="flex items-center gap-space-sm mt-space-lg">
+<h2 class="font-headline-md text-headline-md text-on-surface">Confirmed · Ambulance Incoming</h2>
+<span class="px-space-sm py-0.5 rounded-full bg-surface-container text-primary font-telemetry-sm text-telemetry-sm font-semibold" id="confirmed-count">0</span>
+</div>
+<div class="flex flex-col gap-space-md" id="confirmed-list"></div>
+</div>
+
+<!-- Live capacity -->
+<aside class="bg-surface-container-lowest rounded-xl shadow-sm p-space-xl flex flex-col gap-space-lg lg:sticky lg:top-24">
+<div class="flex items-center justify-between"><h2 class="font-headline-md text-headline-md text-on-surface">Live Capacity</h2>
+<span class="px-space-sm py-0.5 rounded font-telemetry-sm text-telemetry-sm font-semibold" id="fresh-chip">…</span></div>
+<p class="font-body-sm text-body-sm text-on-surface-variant -mt-space-sm">What ambulances see right now. Keep it current: stale data pushes your hospital down the ranking.</p>
+<div class="flex flex-col gap-space-md" id="capacity"></div>
+<div class="hidden rounded-lg border border-[#F87171] bg-[#FEF2F2] px-space-md py-space-sm font-body-sm text-body-sm text-[#991B1B]" id="cap-error"></div>
+<button class="w-full py-space-md rounded-lg bg-primary hover:bg-primary-container text-on-primary font-label-lg text-label-lg disabled:opacity-50" disabled id="cap-save" type="button">Publish changes</button>
+<button class="w-full py-space-sm rounded-lg border border-outline-variant text-on-surface font-label-lg text-label-lg hover:bg-surface-container-low flex items-center justify-center gap-space-xs" id="cap-confirm" type="button"><span class="material-symbols-outlined text-[18px]">task_alt</span>Numbers are still correct</button>
+<p class="font-telemetry-sm text-telemetry-sm text-on-surface-variant" id="cap-meta"></p>
+</aside>
+</div>
+</section>
+</main>
+
+<!-- Reject dialog -->
+<div class="hidden fixed inset-0 z-[60] items-center justify-center p-space-lg" id="reject-dialog" role="dialog" aria-modal="true" aria-labelledby="reject-title">
+<div class="absolute inset-0 bg-[#071c36]/30" data-close-reject></div>
+<div class="relative bg-surface-container-lowest rounded-xl border border-outline-variant shadow-[0_4px_16px_-4px_rgba(11,31,58,0.12)] w-full max-w-md p-space-xl flex flex-col gap-space-lg">
+<h2 class="font-headline-md text-headline-md text-on-surface" id="reject-title">Reject request</h2>
+<p class="font-body-md text-body-md text-on-surface-variant" id="reject-sub"></p>
+<div class="flex flex-col gap-space-sm" id="reject-reasons"></div>
+<div class="flex justify-end gap-space-md">
+<button class="px-space-lg py-space-sm rounded-lg border border-outline-variant font-label-lg text-label-lg" data-close-reject type="button">Back</button>
+<button class="px-space-lg py-space-sm rounded-lg bg-tertiary text-on-tertiary font-label-lg text-label-lg disabled:opacity-50" disabled id="reject-confirm" type="button">Reject &amp; release bed</button>
+</div>
+</div>
+</div>
+
+<div class="fixed bottom-space-xl right-space-xl z-[70] flex flex-col gap-space-sm w-[min(360px,calc(100vw-2rem))]" id="toasts" aria-live="polite"></div>
+
+<footer class="w-full bg-surface-container-lowest mt-space-2xl"><div class="w-full px-margin py-space-md flex flex-col md:flex-row items-center justify-between gap-space-sm text-on-surface-variant font-telemetry-sm text-telemetry-sm"><div class="flex items-center gap-space-md"><span class="">JeevanRoute Telemetry Grid v4.2.1</span><span class="text-outline">|</span><span class="">Encrypted Dispatch Link (TLS 1.3)</span></div><div class="flex items-center gap-space-md"></div></div></footer>
+
+<script src="/socket.io/socket.io.js"></script>
+<script src="js/api.js"></script>
+<script src="js/hospital.js"></script>
+</body></html>

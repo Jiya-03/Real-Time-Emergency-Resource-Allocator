@@ -62,7 +62,7 @@
     const li = document.createElement('li');
     const parts = changed.length
       ? changed.map(c => `${c.label}: ${c.old} → <span class="${c.new > c.old ? 'up' : 'down'}">${c.new}</span>`).join(', ')
-      : 're-confirmed availability';
+      : source === 'Reservation' ? 'bed hold changed' : 're-confirmed availability';
     li.innerHTML = `<b>${hospital.name}</b> (${hospital.hospital_id})<br>${parts}
       <div class="muted">${source} · ${new Date().toLocaleTimeString()}</div>`;
     $('feed').prepend(li);

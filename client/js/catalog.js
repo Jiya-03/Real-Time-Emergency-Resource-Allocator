@@ -51,6 +51,15 @@ const CATALOG = {
     Moderate: { label: 'Moderate (Code Yellow)',  level: 'Level 3 (Yellow)', color: '#92400e', bg: '#fef3c7' },
     Low:      { label: 'Low (Code Green)',        level: 'Level 4 (Green)',  color: '#065f46', bg: '#d1fae5' },
   },
+  // Patient condition the dispatcher picks (dropdown). Each maps to the severity the ranking engine uses.
+  conditions: {
+    'Critical':        { severity: 'Critical', code: 'Code Red',    level: 'Level 1 (Red)',    color: '#b51735', bg: '#ffdada', hint: 'Life-threatening, immediate intervention' },
+    'Serious':         { severity: 'High',     code: 'Code Orange', level: 'Level 2 (Orange)', color: '#b45309', bg: '#ffedd5', hint: 'Unstable or worsening, urgent care' },
+    'Need Assistance': { severity: 'Moderate', code: 'Code Yellow', level: 'Level 3 (Yellow)', color: '#92400e', bg: '#fef3c7', hint: 'Needs medical help soon, not deteriorating' },
+    'Stable':          { severity: 'Low',      code: 'Code Green',  level: 'Level 4 (Green)',  color: '#065f46', bg: '#d1fae5', hint: 'Vitals stable, monitored transfer' },
+    'Minor':           { severity: 'Low',      code: 'Code Blue',   level: 'Level 5 (Blue)',   color: '#1d4ed8', bg: '#dbeafe', hint: 'Minor injury, non-urgent' },
+  },
+  conditionForSeverity: { Critical: 'Critical', High: 'Serious', Moderate: 'Need Assistance', Low: 'Stable' },
 };
 
 const BED_KEYS = { icu: 'icu', ventilator: 'ventilator', oxygen: 'oxygen_bed' };
@@ -83,4 +92,10 @@ function hospitalMeets(h, reqKeys, beds = 1) {
   }
   if (!reqKeys.some(k => k === 'icu' || k === 'oxygen') && h.resources.general_bed.available < beds) return false;
   return true;
+}
+
+// A request's condition (falls back to its severity for older / dataset requests)
+function condOf(r) {
+  const key = r?.condition && CATALOG.conditions[r.condition] ? r.condition : CATALOG.conditionForSeverity[r?.severity] || 'Need Assistance';
+  return { key, ...CATALOG.conditions[key] };
 }

@@ -4,7 +4,7 @@ import { nextId } from '../utils/ids.js';
 import { ApiError } from '../utils/errors.js';
 import bus, { EVENTS } from '../events.js';
 import { roadDistanceKm, etaMinutes } from './geo.js';
-import {
+import { PATIENT_CONDITIONS, CONDITION_FOR_SEVERITY,
   EMERGENCY_TYPES, SEVERITIES, SPECIALISTS, REQUEST_STATUSES, ACTIVE_STATUSES,
   REQUIREMENTS, REQUIREMENT_KEYS, SERVICE_AREA,
 } from './requestConfig.js';
@@ -45,6 +45,7 @@ export function formatRequest(row) {
     patient_id: row.patient_id,
     emergency_type: row.emergency_type,
     severity: row.severity,
+    condition: row.patient_condition || CONDITION_FOR_SEVERITY[row.severity] || row.severity,
     patient_age: row.patient_age,
     location: { lat: row.patient_latitude, lng: row.patient_longitude },
     requirements,
@@ -64,9 +65,14 @@ export function formatRequest(row) {
 function validate(body) {
   const errors = [];
   const {
-    emergency_type, severity, patient_age, location, requirements = {},
+    emergency_type, patient_age, location, requirements = {},
     required_specialist = null, beds_required = 1, additional_needs = [], field_report = null,
   } = body || {};
+  let { severity, patient_condition = null } = body || {};
+  if (patient_condition !== null && patient_condition !== undefined) {
+    if (!PATIENT_CONDITIONS[patient_condition]) errors.push(`patient_condition must be one of: ${Object.keys(PATIENT_CONDITIONS).join(', ')}`);
+    else if (!severity) severity = PATIENT_CONDITIONS[patient_condition].severity;   // condition decides the severity if none given
+  }
 
   if (!EMERGENCY_TYPES.includes(emergency_type)) errors.push(`emergency_type must be one of: ${EMERGENCY_TYPES.join(', ')}`);
   if (!SEVERITIES.includes(severity)) errors.push(`severity must be one of: ${SEVERITIES.join(', ')}`);
@@ -108,7 +114,7 @@ function validate(body) {
 
   if (errors.length) throw new ApiError(400, 'Invalid emergency request', { details: errors });
   return {
-    emergency_type, severity, patient_age, lat, lng, requirements, required_specialist, beds_required,
+    emergency_type, severity, patient_condition: patient_condition || null, patient_age, lat, lng, requirements, required_specialist, beds_required,
     additional_needs: [...new Set(additional_needs.map(x => x.trim()))],
     field_report: report,
   };
@@ -131,6 +137,7 @@ const insertRequest = db.transaction((data) => {
     request_status: 'CREATED',
     additional_needs: data.additional_needs.length ? JSON.stringify(data.additional_needs) : null,
     field_report: data.field_report ? JSON.stringify(data.field_report) : null,
+    patient_condition: data.patient_condition,
   };
   for (const key of REQUIREMENT_KEYS) row[REQUIREMENTS[key]] = data.requirements[key] ? 1 : 0;
 

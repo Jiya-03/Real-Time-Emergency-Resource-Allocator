@@ -81,7 +81,8 @@ CREATE TABLE IF NOT EXISTS emergency_requests (
   request_status              TEXT NOT NULL CHECK (request_status IN ('CREATED','MATCHING','NO_MATCH','ASSIGNED','IN_TRANSIT','COMPLETED')),
   additional_needs            TEXT,         -- OUR addition: JSON array of extra items (e.g. ["CT Scanner"]) not tracked in capacity data
   field_report                TEXT,         -- OUR addition: JSON { bp, hr, spo2, notes } from the paramedic crew (optional)
-  broadcast_round             INTEGER NOT NULL DEFAULT 0   -- OUR addition: how many "alert all suitable hospitals" waves were sent
+  broadcast_round             INTEGER NOT NULL DEFAULT 0,  -- OUR addition: how many "alert all suitable hospitals" waves were sent
+  patient_condition           TEXT CHECK (patient_condition IS NULL OR patient_condition IN ('Critical','Serious','Need Assistance','Stable','Minor'))  -- OUR addition: dispatcher's label (maps to severity)
 );
 
 -- ───────────────────────── History, reservations, handover ─────────────────────────

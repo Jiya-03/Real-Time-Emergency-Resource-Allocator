@@ -25,7 +25,13 @@
   const TYPE_NOUN = { 'Road Accident': 'Trauma', Cardiac: 'Cardiac', Stroke: 'Stroke', Burn: 'Burns', Respiratory: 'Respiratory Distress', Other: 'Emergency' };
   const SEV_PREFIX = { Critical: 'Critical', High: 'Acute', Moderate: 'Moderate', Low: 'Minor' };
   const PRIORITY = { Critical: ['Critical', 'Code Red', '#b51735', '#ffdada'], High: ['Severe', 'Code Orange', '#b45309', '#ffedd5'], Moderate: ['Urgent', 'Code Yellow', '#92400e', '#fef3c7'], Low: ['Routine', 'Code Green', '#065f46', '#d1fae5'] };
-  const condition = (r) => `${SEV_PREFIX[r.severity] || ''} ${TYPE_NOUN[r.emergency_type] || r.emergency_type}`.trim();
+  // Patient condition chosen by the dispatcher → [label, code, colour, background]
+  const COND = { 'Critical': ['Critical', 'Code Red', '#b51735', '#ffdada'], 'Serious': ['Serious', 'Code Orange', '#b45309', '#ffedd5'],
+                 'Need Assistance': ['Need Assistance', 'Code Yellow', '#92400e', '#fef3c7'], 'Stable': ['Stable', 'Code Green', '#065f46', '#d1fae5'],
+                 'Minor': ['Minor', 'Code Blue', '#1d4ed8', '#dbeafe'] };
+  const COND_FOR_SEV = { Critical: 'Critical', High: 'Serious', Moderate: 'Need Assistance', Low: 'Stable' };
+  const prio = (r) => COND[r?.condition] || COND[COND_FOR_SEV[r?.severity]] || COND['Need Assistance'];
+  const condition = (r) => `${TYPE_NOUN[r.emergency_type] || r.emergency_type} · ${prio(r)[0]}`;
   const unit = (id) => id ? `A-${String(parseInt(id.replace(/\D/g, ''), 10)).padStart(2, '0')}` : 'A-12';
   const urgent = (r) => r.severity === 'Critical' || r.severity === 'High';
   const mmss = (sec) => { const s = Math.max(0, Math.round(sec)); return `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`; };
@@ -99,9 +105,9 @@
   function showAlarm(item) {
     alarmItem = item;
     const r = item.request;
-    const [pl] = PRIORITY[r.severity] || PRIORITY.Moderate;
+    const [pl] = prio(r);
     const v = vitals(r);
-    $('alarm-title').textContent = `${condition(r)} (${(PRIORITY[r.severity] || [])[1] || ''})`;
+    $('alarm-title').textContent = `${condition(r)} (${prio(r)[1]})`;
     $('alarm-facts').innerHTML = [
       ['Ambulance', `${unit(r.ambulance_id)}`],
       ['ETA', `${item.eta_min ?? '—'} min`],
@@ -173,8 +179,8 @@
 
   // ───────────── Shared bits ─────────────
   function priorityChip(r) {
-    const [label, , color, bg] = PRIORITY[r.severity] || PRIORITY.Moderate;
-    return `<span class="inline-flex items-center gap-1 px-space-sm py-0.5 rounded font-telemetry-sm text-telemetry-sm" style="background:${bg};color:${color}"><span class="w-1.5 h-1.5 rounded-full" style="background:${color}"></span>Priority: ${label}</span>`;
+    const [label, code, color, bg] = prio(r);
+    return `<span class="inline-flex items-center gap-1 px-space-sm py-0.5 rounded font-telemetry-sm text-telemetry-sm" style="background:${bg};color:${color}"><span class="w-1.5 h-1.5 rounded-full" style="background:${color}"></span>${label} · ${code}</span>`;
   }
   function caseStatus(i) {
     const w = i.workflow || {};
@@ -350,7 +356,7 @@
     const el = $('view-detail');
     if (!i) { el.innerHTML = `<a class="inline-flex items-center gap-space-xs font-label-lg text-label-lg w-fit" href="#dashboard"><span class="material-symbols-outlined text-[18px]">arrow_back</span>Back to Dashboard</a>${empty('This request is no longer active (answered, cancelled or expired).', 'task_alt')}`; return; }
     const r = i.request, v = vitals(r), isPending = i.status === 'PENDING';
-    const [pl, code, pc, pbg] = PRIORITY[r.severity] || PRIORITY.Moderate;
+    const [pl, code, pc, pbg] = prio(r);
     const rows = resourceCheckRows(i);
     const conflicts = rows.filter(x => ['UNAVAILABLE', 'NOT OFFERED', 'NOT ON STAFF'].includes(x[2])).length;
     const statusTone = { AVAILABLE: 'bg-[#ECFDF5] text-[#065F46]', 'ON STAFF': 'bg-[#ECFDF5] text-[#065F46]', UNAVAILABLE: 'bg-tertiary-fixed text-tertiary', 'NOT OFFERED': 'bg-tertiary-fixed text-tertiary', 'NOT ON STAFF': 'bg-tertiary-fixed text-tertiary', 'NOT TRACKED': 'bg-surface-container text-on-surface-variant' };
@@ -371,7 +377,7 @@
     <div class="flex items-center gap-space-md flex-wrap">
       <div class="w-12 h-12 rounded-lg flex items-center justify-center" style="background:${pbg}"><span class="material-symbols-outlined" style="color:${pc}">e911_emergency</span></div>
       <h2 class="font-headline-lg text-headline-lg text-on-surface">${esc(condition(r))} (${code})</h2>
-      <span class="px-space-sm py-0.5 rounded font-telemetry-sm text-telemetry-sm font-semibold text-white" style="background:${pc}">PRIORITY ${['Critical', 'High', 'Moderate', 'Low'].indexOf(r.severity) + 1}</span>
+      <span class="px-space-sm py-0.5 rounded font-telemetry-sm text-telemetry-sm font-semibold text-white" style="background:${pc}">PRIORITY ${Object.keys(COND).indexOf(pl) + 1}</span>
     </div>
     <span class="inline-flex w-fit items-center gap-space-xs px-space-sm py-0.5 rounded bg-surface-container-low font-telemetry-sm text-telemetry-sm"><span class="material-symbols-outlined text-[14px] text-tertiary">schedule</span>Triage request received: <b class="text-tertiary">${ago(i.reservations[0].requested_at)}</b></span>
     <div class="grid grid-cols-1 md:grid-cols-3 gap-space-md">
@@ -819,7 +825,7 @@ ${backupHTML}`;
   // Timeline from the stored timestamps + events seen live on this page
   function liveLogHTML(m) {
     const d = m.d, rows = [];
-    rows.push([d.created_at, `Emergency logged · ${d.severity} ${d.emergency_type} · Ambulance ${unit(d.ambulance_id)} dispatched`, '']);
+    rows.push([d.created_at, `Emergency logged · ${d.emergency_type} · ${prio(d)[0]} (${prio(d)[1]}) · Ambulance ${unit(d.ambulance_id)} dispatched`, '']);
     // one line per alert wave (a broadcast sends to many hospitals at the same instant), then each answer
     const groups = {};
     for (const x of d.reservations) (groups[`${x.hospital_id}|${x.requested_at}`] ||= []).push(x);

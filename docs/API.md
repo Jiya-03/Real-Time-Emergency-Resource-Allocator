@@ -83,7 +83,8 @@ PATCH /api/hospitals/HSP-011/resources
 POST /api/requests
 {
   "emergency_type": "Road Accident",          // Road Accident | Cardiac | Stroke | Burn | Respiratory | Other
-  "severity": "Critical",                    // Critical | High | Moderate | Low
+  "patient_condition": "Need Assistance",   // Critical | Serious | Need Assistance | Stable | Minor (dispatcher dropdown)
+  "severity": "Moderate",                    // Critical | High | Moderate | Low (optional if patient_condition is sent)
   "patient_age": 28,
   "location": { "lat": 18.5204, "lng": 73.8567 },
   "requirements": { "icu": true, "trauma_care": true, "blood_bank": true, "operation_theatre": true },
@@ -93,6 +94,8 @@ POST /api/requests
   "field_report": { "bp": "84/52", "hr": 128, "spo2": 91, "notes": "MVA, intubated on scene" }   // optional paramedic vitals/notes
 }
 ```
+Condition → severity used by the ranking engine: Critical→Critical (Code Red), Serious→High (Code Orange), Need Assistance→Moderate (Code Yellow), Stable→Low (Code Green), Minor→Low (Code Blue). Every request returns `condition` (dataset requests get the label for their severity).
+
 Requirement keys: `icu`, `ventilator`, `oxygen`, `trauma_care`, `cardiology`, `neurology`, `blood_bank`, `operation_theatre`, `dialysis` (any missing = false).
 
 Response `201`: `{ "request": { request_id, patient_id, status: "CREATED", ... }, "warnings": [] }`

@@ -76,7 +76,7 @@
   // "Severe Trauma", "Acute Cardiac", "Respiratory Distress"… (clinical wording from the design)
   const TYPE_NOUN = { 'Road Accident': 'Trauma', Cardiac: 'Cardiac', Stroke: 'Stroke', Burn: 'Burns', Respiratory: 'Respiratory Distress', Other: 'Emergency' };
   const SEV_PREFIX = { Critical: 'Severe', High: 'Acute', Moderate: 'Moderate', Low: 'Minor' };
-  const clinicalLabel = (r) => `${SEV_PREFIX[r.severity] || ''} ${TYPE_NOUN[r.emergency_type] || r.emergency_type}`.trim();
+  const clinicalLabel = (r) => `${TYPE_NOUN[r.emergency_type] || r.emergency_type} · ${condOf(r).key}`;
 
   function statusChip(r) {
     const st = STATUS[r.status] || { label: r.status, tone: 'standby' };
@@ -170,6 +170,7 @@
     };
   }
   let draft = (() => { try { return JSON.parse(sessionStorage.getItem(DRAFT_KEY)) || newDraft(); } catch { return newDraft(); } })();
+  if (!CATALOG.conditions[draft.priority]) draft.priority = CATALOG.conditionForSeverity[draft.priority] || 'Critical';   // older saved drafts
   const saveDraft = () => { try { sessionStorage.setItem(DRAFT_KEY, JSON.stringify(draft)); } catch {} };
   const draftHasItems = () => draft.departments.length + draft.equipment.length > 0;
 
@@ -178,7 +179,8 @@
     const keys = new Set();
     draft.departments.forEach(id => (DEPTS[id].req || []).forEach(k => keys.add(k)));
     draft.equipment.forEach(id => (EQUIP[id].req || []).forEach(k => keys.add(k)));
-    if (['Critical', 'High'].includes(draft.priority)) (meta?.severity_defaults?.[draft.priority] || []).forEach(k => keys.add(k));
+    const sev = CATALOG.conditions[draft.priority].severity;
+    if (['Critical', 'High'].includes(sev)) (meta?.severity_defaults?.[sev] || []).forEach(k => keys.add(k));
     if (['Respiratory', 'Burn'].includes(draft.type)) keys.add('oxygen');
     return [...keys];
   }
@@ -233,7 +235,7 @@
   // ───────────── View: Create Emergency (d3) ─────────────
   function buildCreate() {
     $('f-type').innerHTML = meta.emergency_types.map(t => `<option>${esc(t)}</option>`).join('');
-    $('f-priority').innerHTML = meta.severities.map(s => `<option value="${s}">${CATALOG.priorities[s].label}</option>`).join('');
+    $('f-priority').innerHTML = Object.entries(CATALOG.conditions).map(([k, c]) => `<option value="${k}" title="${c.hint}">${k} · ${c.code}</option>`).join('');
     $('f-area').innerHTML = `<option>${AMBULANCE.name}</option>` + AREAS.map(([n]) => `<option>${n}</option>`).join('')
       + `<option value="__geo">My current location</option><option value="__custom">Custom coordinates…</option>`;
     $('presets').innerHTML = Object.keys(CATALOG.presets).map((p, i) => `
@@ -267,10 +269,12 @@
   }
 
   function priorityStyle() {
-    const p = CATALOG.priorities[draft.priority];
+    const p = CATALOG.conditions[draft.priority];
     $('priority-pill').style.background = p.bg;
+    $('priority-pill').title = `${draft.priority}: ${p.hint}. Click to change.`;
     $('priority-dot').style.background = p.color;
     $('f-priority').style.color = p.color;
+    $('priority-caret').style.color = p.color;
   }
 
   function syncCreate() {
@@ -428,7 +432,7 @@
 </div>`;
       return;
     }
-    const p = CATALOG.priorities[draft.priority];
+    const p = CATALOG.conditions[draft.priority];
     const depts = draft.departments.map(id => DEPTS[id]);
     const equip = draft.equipment.map(id => EQUIP[id]);
     const criteria = depts.length + equip.length;
@@ -452,7 +456,7 @@
         </div>
         <div class="flex items-center gap-space-xs shrink-0">
           <span class="inline-flex items-center gap-1 px-space-sm py-1 rounded bg-surface-container-low font-label-lg text-label-lg text-on-surface"><span class="material-symbols-outlined text-[16px] text-tertiary">warning</span>${esc(TYPE_NOUN[draft.type] || draft.type)}</span>
-          <span class="inline-flex items-center gap-1.5 px-space-sm py-1 rounded font-label-lg text-label-lg" style="background:${p.bg};color:${p.color}"><span class="w-2 h-2 rounded-full" style="background:${p.color}"></span>Priority: ${esc(draft.priority)}</span>
+          <span class="inline-flex items-center gap-1.5 px-space-sm py-1 rounded font-label-lg text-label-lg" style="background:${p.bg};color:${p.color}"><span class="w-2 h-2 rounded-full" style="background:${p.color}"></span>${esc(draft.priority)} · ${p.code}</span>
         </div>
       </div>
 
@@ -564,7 +568,8 @@
         method: 'POST',
         body: {
           emergency_type: draft.type,
-          severity: draft.priority,
+          severity: CATALOG.conditions[draft.priority].severity,
+          patient_condition: draft.priority,
           patient_age: Number(draft.age),
           location: { lat: Number(draft.lat), lng: Number(draft.lng) },
           requirements,
@@ -710,7 +715,7 @@
     const s = data.summary;
     const eligible = data.rankings.filter(r => r.eligible);
     const others = data.rankings.filter(r => !r.eligible);
-    const pr = CATALOG.priorities[req.severity];
+    const pr = condOf(req);
     if (!data.rankings.length) {
       $('match-sub').textContent = `#${req.request_id} · ${clinicalLabel(req)}`;
       $('match-content').innerHTML = emptyHTML('No ranking is stored for this request.');
@@ -1048,9 +1053,9 @@
   function renderLive() {
     const L_ = liveModel(); if (!L_) return;
     const { d, m } = L_;
-    const pr = CATALOG.priorities[d.severity];
+    const pr = condOf(d);
     $('dlive-title').innerHTML = `<span class="text-tertiary font-semibold">✱ EMERGENCY #${esc(d.request_id)}</span><span class="text-on-surface">· ${esc(clinicalLabel(d))}</span>`;
-    $('dlive-sub').innerHTML = `Logged ${fmt.timeIST(d.created_at)} · age ${d.patient_age} · <span style="color:${pr?.color || ''}">${esc(d.severity)}</span>`;
+    $('dlive-sub').innerHTML = `Logged ${fmt.timeIST(d.created_at)} · age ${d.patient_age} · <span style="color:${pr.color}">${esc(pr.key)} · ${pr.code}</span>`;
     const mine = [...myHolds].filter(x => x !== d.request_id).slice(-4);
     $('dlive-switch').innerHTML = mine.length ? `<span class="font-telemetry-sm text-telemetry-sm text-on-surface-variant self-center">Your other emergencies:</span>${mine.map(x => `<a class="px-space-md py-space-xs rounded-full bg-surface-container-low hover:bg-surface-container font-label-md text-label-md" href="#live/${encodeURIComponent(x)}">#${esc(x)}</a>`).join('')}` : '';
     $('dlive-panel').innerHTML = livePanelHTML(L_);
@@ -1110,7 +1115,7 @@ ${banner}
 
   function liveLogHTML(L_) {
     const { d, m, acc, w } = L_;
-    const rows = [[d.created_at, `Emergency logged · ${d.severity} ${d.emergency_type} · Ambulance ${unitName(d.ambulance_id)}`, '']];
+    const rows = [[d.created_at, `Emergency logged · ${d.emergency_type} · ${condOf(d).key} (${condOf(d).code}) · Ambulance ${unitName(d.ambulance_id)}`, '']];
     const waves = {};
     for (const o of m.list) (waves[o.w.assignment_time] ||= []).push(o);
     Object.entries(waves).forEach(([at, list]) => {

@@ -8,7 +8,7 @@ import { broadcast, withdrawAll } from '../services/reservationService.js';
 import { lastPosition } from '../services/tracking.js';
 import { requireRole } from '../services/authService.js';
 import {
-  EMERGENCY_TYPES, SEVERITIES, SPECIALISTS, REQUEST_STATUSES, REQUIREMENT_KEYS,
+  EMERGENCY_TYPES, SEVERITIES, PATIENT_CONDITIONS, SPECIALISTS, REQUEST_STATUSES, REQUIREMENT_KEYS,
   TYPE_DEFAULTS, SEVERITY_DEFAULTS,
 } from '../services/requestConfig.js';
 
@@ -19,6 +19,7 @@ router.get('/meta', (req, res) => {
   res.json({
     emergency_types: EMERGENCY_TYPES,
     severities: SEVERITIES,
+    conditions: PATIENT_CONDITIONS,
     specialists: SPECIALISTS,
     requirements: REQUIREMENT_KEYS,
     statuses: REQUEST_STATUSES,

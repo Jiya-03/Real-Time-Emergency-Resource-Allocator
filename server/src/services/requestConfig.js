@@ -1,6 +1,18 @@
 // Allowed values for emergency requests (match the ERRA dataset exactly)
 export const EMERGENCY_TYPES = ['Road Accident', 'Cardiac', 'Stroke', 'Burn', 'Respiratory', 'Other'];
 export const SEVERITIES = ['Critical', 'High', 'Moderate', 'Low'];
+
+// Patient condition picked by the dispatcher (what the crew sees). Each maps onto a dataset severity,
+// which the ranking engine and queue ordering use.
+export const PATIENT_CONDITIONS = {
+  'Critical':        { severity: 'Critical', code: 'Code Red',    hint: 'Life-threatening, immediate intervention' },
+  'Serious':         { severity: 'High',     code: 'Code Orange', hint: 'Unstable or worsening, urgent care' },
+  'Need Assistance': { severity: 'Moderate', code: 'Code Yellow', hint: 'Needs medical help soon, not deteriorating' },
+  'Stable':          { severity: 'Low',      code: 'Code Green',  hint: 'Vitals stable, monitored transfer' },
+  'Minor':           { severity: 'Low',      code: 'Code Blue',   hint: 'Minor injury, non-urgent' },
+};
+// Label shown for requests logged without a condition (e.g. the dataset)
+export const CONDITION_FOR_SEVERITY = { Critical: 'Critical', High: 'Serious', Moderate: 'Need Assistance', Low: 'Stable' };
 export const SPECIALISTS = ['Cardiologist', 'Neurologist', 'Trauma Surgeon', 'General Surgeon', 'Pulmonologist', 'Nephrologist'];
 export const REQUEST_STATUSES = ['CREATED', 'MATCHING', 'NO_MATCH', 'ASSIGNED', 'IN_TRANSIT', 'COMPLETED'];
 export const ACTIVE_STATUSES = ['CREATED', 'MATCHING', 'ASSIGNED', 'IN_TRANSIT'];

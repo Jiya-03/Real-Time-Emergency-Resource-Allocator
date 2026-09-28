@@ -1161,7 +1161,7 @@ ${backupHTML}`;
     if (rt) lm.setProgress(rt, pos.frac);
     if ($('live-eta-chip') && m.phase === 'enroute') $('live-eta-chip').textContent = `ETA: ${pos.eta} min`;
     if ($('live-caption')) $('live-caption').textContent = m.acc
-      ? (rt ? `Automated route active: ${m.destName} (${rt.distance_km} km${rt.source === 'osrm' ? ' by road' : ' est.'} · ${m.phase === 'enroute' ? (fix ? `live ${fix.source === 'gps' ? 'GPS' : 'tracking'} from the ambulance` : 'High-priority navigation active') : m.phase === 'preparing' ? 'crew preparing to depart' : 'route complete'})` : `Calculating road route to ${m.destName}…`)
+      ? (rt ? `Automated route active: ${m.destName} (${rt.distance_km} km ${LiveMap.describe(rt)} · ${m.phase === 'enroute' ? (fix ? `live ${fix.source === 'gps' ? 'GPS' : 'tracking'} from the ambulance` : 'High-priority navigation active') : m.phase === 'preparing' ? 'crew preparing to depart' : 'route complete'})` : `Calculating road route to ${m.destName}…`)
       : `Route preview to ${m.destName} · waiting for hospital confirmation`;
   }
 

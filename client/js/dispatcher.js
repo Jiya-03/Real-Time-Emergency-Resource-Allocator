@@ -1021,7 +1021,9 @@
     const phase = !acc ? (m.waiting.length ? 'waiting' : 'none') : w.handover_status === 'COMPLETED' ? 'done' : w.arrival_time ? 'arrived' : w.departure_time ? 'enroute' : 'preparing';
     const rank = acc && state.dl.rankings.find(x => x.hospital_id === acc.hid);
     const rt = state.dl.routeFor === acc?.hid ? state.dl.route : null;
-    const driveMin = rank ? Math.max(1, Math.round(rank.eta_min)) : rt?.duration_min || (rt ? Math.round(rt.distance_km / 28 * 60 + 2) : null);
+    // live-traffic ETA from Mapbox when available, else the ranking engine's estimate
+    const driveMin = rt?.source === 'mapbox' && rt.duration_min ? Math.max(1, rt.duration_min)
+      : rank ? Math.max(1, Math.round(rank.eta_min)) : rt?.duration_min || (rt ? Math.round(rt.distance_km / 28 * 60 + 2) : null);
     return { d, m, acc, w, phase, rank, rt, driveMin, pickup: [d.location.lat, d.location.lng], dest: acc ? hospLoc(acc.hid) : null };
   }
 
@@ -1130,7 +1132,7 @@ ${banner}
       rows.push([acc.confirmed?.confirmed_at || acc.at, `${acc.name} accepted & locked resources`, 'ok']);
       const stood = m.list.filter(o => o.state === 'withdrawn').length;
       if (stood) rows.push([acc.confirmed?.confirmed_at || acc.at, `${stood} other hospital${stood > 1 ? 's' : ''} stood down automatically`, '']);
-      if (L_.rt) rows.push([acc.confirmed?.confirmed_at || acc.at, `Route generated automatically · ${L_.rt.distance_km} km${L_.rt.source === 'osrm' ? ' by road' : ' (estimate)'} to ${shortHosp(acc.name)}`, 'ok']);
+      if (L_.rt) rows.push([acc.confirmed?.confirmed_at || acc.at, `Route generated automatically · ${L_.rt.distance_km} km ${LiveMap.describe(L_.rt)} to ${shortHosp(acc.name)}`, 'ok']);
     }
     if (w.departure_time) rows.push([w.departure_time, `Ambulance ${unitName(d.ambulance_id)} departed · navigation active`, 'ok']);
     if (w.arrival_time) rows.push([w.arrival_time, `Arrived at ${acc.name}`, 'ok']);
@@ -1188,7 +1190,7 @@ ${banner}
     }
     const acc = L_.acc;
     $('dlive-caption').textContent = acc
-      ? (L_.rt ? `Automated route active: ${acc.name} (${L_.rt.distance_km} km · ${L_.phase === 'enroute' ? 'High-priority navigation active' : L_.phase === 'preparing' ? 'depart to start navigation' : 'route complete'})` : `Calculating road route to ${acc.name}…`)
+      ? (L_.rt ? `Automated route active: ${acc.name} (${L_.rt.distance_km} km ${LiveMap.describe(L_.rt)} · ${L_.phase === 'enroute' ? 'High-priority navigation active' : L_.phase === 'preparing' ? 'depart to start navigation' : 'route complete'})` : `Calculating road route to ${acc.name}…`)
       : L_.m.waiting.length ? `Pickup point shown · ${L_.m.waiting.length} alerted hospital(s) on the map · route appears when one accepts` : 'Pickup point and suitable hospitals';
     const eta = $('dlive-eta'); if (eta && L_.phase === 'enroute') eta.textContent = `ETA: ${pos.left_min} min`;
 

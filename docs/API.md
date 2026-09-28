@@ -153,6 +153,13 @@ Departments: `trauma_care, cardiology, neurology, blood_bank, operation_theatre,
 Completing the handover now requires a ward, room and bed (409 `NO_BED_ALLOCATED` otherwise); it stamps `admitted_at`. `GET /api/requests/:id` includes `admission`. Socket event `admission:update` → `{ request_id, hospital_id, admission }`.
 Wards: ICU, Trauma Resus Bay, Cardiac Care Unit (CCU), Stroke Unit, Respiratory Ward (O₂), Burns Unit, Emergency Observation, General Ward.
 
+### Map configuration (Mapbox)
+`GET /api/config` → `{ "mapbox": { "token": "pk.…", "style": "mapbox/navigation-day-v1" } }` or `{ "mapbox": null }`.
+Set `MAPBOX_TOKEN=pk.…` in `server/.env` (copy `server/.env.example`; `.env` is git-ignored). Only public `pk.` tokens are served.
+With a token both Live Route maps use Mapbox styles (Live traffic / Streets / Satellite switcher) and **Mapbox Directions `driving-traffic`**:
+the route and ETA use live traffic, the line is coloured by congestion (teal = clear, orange = moderate, red = heavy) and the
+turn-by-turn text comes from Mapbox. Without a token the maps fall back to CARTO tiles + OSRM (no key).
+
 ### Live ambulance tracking (Live Route map)
 | Method / event | Who | What |
 |---|---|---|

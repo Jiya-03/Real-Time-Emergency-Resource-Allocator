@@ -1,4 +1,5 @@
 // Entry point for the Emergency Resource Allocator backend
+import './env.js';                                // must be first: loads server/.env
 import express from 'express';
 import cors from 'cors';
 import { createServer } from 'node:http';
@@ -10,6 +11,7 @@ import simulatorRouter from './routes/simulator.js';
 import requestsRouter from './routes/requests.js';
 import authRouter from './routes/auth.js';
 import reservationsRouter from './routes/reservations.js';
+import configRouter from './routes/config.js';
 import { startExpirySweeper } from './services/reservationService.js';
 import { initSockets } from './sockets/index.js';
 import { startSimulator } from './services/simulator.js';
@@ -29,6 +31,7 @@ app.use('/api/hospitals', hospitalsRouter);
 app.use('/api/simulator', simulatorRouter);
 app.use('/api/requests', requestsRouter);
 app.use('/api/reservations', reservationsRouter);
+app.use('/api/config', configRouter);
 
 // Unknown routes
 app.use((req, res) => res.status(404).json({ error: 'Not found' }));

@@ -6,6 +6,7 @@
 // Why time-shift? The dataset's "now" is 2026-09-28 12:00 IST. Freshness is measured
 // against the real clock, so without shifting every hospital would look hours stale.
 // Shifting moves ALL timestamps by the same amount, so fresh/aging/stale stay exactly as designed.
+import '../env.js';
 import { readFileSync, existsSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';

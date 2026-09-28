@@ -1,13 +1,22 @@
 // Real map for the Live Route pages (dispatcher + hospital).
-//  • Leaflet (vendored in /vendor/leaflet) + CARTO "Voyager" street tiles (free, no API key)
-//  • Road route from the public OSRM server (free, no key): the one path the ambulance should drive,
-//    with turn-by-turn steps. Falls back to a straight-line estimate if OSRM can't be reached.
+//  • With a Mapbox token (server/.env MAPBOX_TOKEN, served by /api/config):
+//      Mapbox map styles — Live traffic (navigation-day), Streets, Satellite — and Mapbox Directions
+//      "driving-traffic": the route + ETA use LIVE traffic, the line is coloured by congestion,
+//      and turn-by-turn instructions come from Mapbox.
+//  • Without a token: free CARTO tiles + public OSRM routing (no key), straight-line estimate if offline.
 //  • Helpers to place the ambulance on the route (simulated drive) or snap a real GPS fix to it.
 const LiveMap = (() => {
   const TILES = 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png';
   const ATTRIB = '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a> · Routing &copy; <a href="https://project-osrm.org">OSRM</a>';
   const OSRM = 'https://router.project-osrm.org/route/v1/driving/';
+  const MB_ATTRIB = '&copy; <a href="https://www.mapbox.com/about/maps/">Mapbox</a> &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> <a href="https://www.mapbox.com/map-feedback/" target="_blank"><b>Improve this map</b></a>';
+  const MB_STYLES = [['Live traffic', 'mapbox/navigation-day-v1'], ['Streets', 'mapbox/streets-v12'], ['Satellite', 'mapbox/satellite-streets-v12']];
+  const CONGESTION = { low: '#006765', unknown: '#006765', moderate: '#d97706', heavy: '#dc2626', severe: '#7f1d1d' };
   const available = () => typeof window.L !== 'undefined';
+
+  // /api/config → { mapbox: { token, style } | null }  (fetched once)
+  let cfgJob = null;
+  const config = () => cfgJob || (cfgJob = fetch('/api/config').then(r => r.json()).catch(() => ({ mapbox: null })));
 
   const toRad = (d) => (d * Math.PI) / 180;
   const km = (a, b) => {
@@ -46,10 +55,32 @@ const LiveMap = (() => {
     const d = km(from, to) * 1.35 + 0.3;
     return { coords, cum: withCumulative(coords), distance_km: Math.round(d * 10) / 10, duration_min: null, steps: [{ text: 'Head towards the hospital (road route unavailable offline)', at_km: 0, loc: from }, { text: 'Arrive at the hospital', at_km: km(from, to), loc: to }], source: 'estimate' };
   }
+  async function mapboxRoute(from, to, token) {
+    const ctrl = new AbortController(); const t = setTimeout(() => ctrl.abort(), 8000);
+    const url = `https://api.mapbox.com/directions/v5/mapbox/driving-traffic/${from[1]},${from[0]};${to[1]},${to[0]}`
+      + `?geometries=geojson&overview=full&steps=true&annotations=congestion,duration&language=en&access_token=${encodeURIComponent(token)}`;
+    const res = await fetch(url, { signal: ctrl.signal });
+    clearTimeout(t);
+    const j = await res.json();
+    if (j.code !== 'Ok' || !j.routes?.length) throw new Error(j.message || j.code || 'no route');
+    const r = j.routes[0];
+    const coords = r.geometry.coordinates.map(([lng, lat]) => [lat, lng]);
+    let acc = 0;
+    const steps = r.legs[0].steps.map(s => {
+      const st = { text: s.maneuver.instruction || instruction(s), at_km: acc / 1000, loc: [s.maneuver.location[1], s.maneuver.location[0]], dist_km: s.distance / 1000 };
+      acc += s.distance; return st;
+    });
+    const congestion = r.legs[0].annotation?.congestion || null;           // one level per segment
+    return { coords, cum: withCumulative(coords), distance_km: Math.round(r.distance / 100) / 10, duration_min: Math.round(r.duration / 60),
+             duration_typical_min: r.duration_typical ? Math.round(r.duration_typical / 60) : null, steps, congestion, source: 'mapbox' };
+  }
+
   async function route(from, to) {                   // from/to = [lat, lng]
     const key = `${from.map(n => n.toFixed(5))}|${to.map(n => n.toFixed(5))}`;
     if (cache.has(key)) return cache.get(key);
     const job = (async () => {
+      const cfg = await config();
+      if (cfg.mapbox?.token) { try { return await mapboxRoute(from, to, cfg.mapbox.token); } catch (e) { console.warn('[map] Mapbox directions failed, using OSRM:', e.message); } }
       try {
         const ctrl = new AbortController(); const t = setTimeout(() => ctrl.abort(), 7000);
         const res = await fetch(`${OSRM}${from[1]},${from[0]};${to[1]},${to[0]}?overview=full&geometries=geojson&steps=true`, { signal: ctrl.signal });
@@ -65,7 +96,7 @@ const LiveMap = (() => {
     })();
     cache.set(key, job);
     const out = await job;
-    if (out.source !== 'osrm') cache.delete(key);    // try the real road route again next time
+    if (out.source === 'estimate') cache.delete(key); // try the real road route again next time
     return out;
   }
 
@@ -99,8 +130,23 @@ const LiveMap = (() => {
   function create(el, { center = [18.53, 73.85], zoom = 13 } = {}) {
     if (!available()) return null;
     const map = L.map(el, { zoomControl: false, attributionControl: true }).setView(center, zoom);
-    L.tileLayer(TILES, { attribution: ATTRIB, subdomains: 'abcd', maxZoom: 19 }).addTo(map);
     L.control.zoom({ position: 'topleft' }).addTo(map);
+    config().then(cfg => {
+      if (cfg.mapbox?.token) {
+        const base = {};
+        for (const [name, style] of MB_STYLES) {
+          base[name] = L.tileLayer(`https://api.mapbox.com/styles/v1/${style}/tiles/512/{z}/{x}/{y}@2x?access_token=${encodeURIComponent(cfg.mapbox.token)}`,
+            { tileSize: 512, zoomOffset: -1, maxZoom: 20, attribution: MB_ATTRIB });
+        }
+        const first = MB_STYLES.find(([, st]) => st === cfg.mapbox.style)?.[0] || MB_STYLES[0][0];
+        base[first].addTo(map);
+        L.control.layers(base, null, { position: 'topleft', collapsed: true }).addTo(map);
+        el.dataset.provider = 'mapbox';
+      } else {
+        L.tileLayer(TILES, { attribution: ATTRIB, subdomains: 'abcd', maxZoom: 19 }).addTo(map);
+        el.dataset.provider = 'carto';
+      }
+    });
     const layers = { hospitals: L.layerGroup().addTo(map) };
     let pickup = null, amb = null, line = null, lineDone = null, halo = null;
 
@@ -124,8 +170,22 @@ const LiveMap = (() => {
         line = lineDone = halo = null;
         if (!rt) return;
         halo = L.polyline(rt.coords, { color: '#6fd7d3', weight: 12, opacity: active ? 0.35 : 0.2 }).addTo(map);
-        line = L.polyline(rt.coords, { color: active ? '#006765' : '#6d7978', weight: 5, opacity: 0.95, dashArray: rt.source === 'osrm' ? null : '8 10', className: active ? 'lm-route' : '' }).addTo(map);
-        lineDone = L.polyline([], { color: '#9aa8b8', weight: 5, opacity: 0.9 }).addTo(map);
+        if (rt.congestion && active) {
+          // live traffic: colour each stretch by congestion, with moving dashes on top to show direction
+          const group = L.layerGroup();
+          let start = 0;
+          for (let i = 1; i <= rt.congestion.length; i++) {
+            if (i === rt.congestion.length || rt.congestion[i] !== rt.congestion[start]) {
+              L.polyline(rt.coords.slice(start, i + 1), { color: CONGESTION[rt.congestion[start]] || CONGESTION.unknown, weight: 6, opacity: 0.95 }).addTo(group);
+              start = i;
+            }
+          }
+          L.polyline(rt.coords, { color: '#ffffff', weight: 2, opacity: 0.8, className: 'lm-route' }).addTo(group);
+          line = group.addTo(map);
+        } else {
+          line = L.polyline(rt.coords, { color: active ? '#006765' : '#6d7978', weight: 5, opacity: 0.95, dashArray: rt.source === 'estimate' ? '8 10' : null, className: active ? 'lm-route' : '' }).addTo(map);
+        }
+        lineDone = L.polyline([], { color: '#9aa8b8', weight: 6, opacity: 0.95 }).addTo(map);
       },
       setProgress(rt, frac) {                        // grey out the part already driven
         if (!lineDone || !rt) return;
@@ -150,5 +210,16 @@ const LiveMap = (() => {
     return api;
   }
 
-  return { available, create, route, pointAt, snap, nextStep, km };
+  // Short text for captions: "by road · live traffic (+4 min delay)"
+  function describe(rt) {
+    if (!rt) return '';
+    if (rt.source === 'mapbox') {
+      const delay = rt.duration_typical_min != null ? rt.duration_min - rt.duration_typical_min : null;
+      const heavy = (rt.congestion || []).filter(c => c === 'heavy' || c === 'severe').length;
+      return `by road · live traffic${delay > 0 ? ` (+${delay} min delay)` : heavy ? ' (some heavy traffic)' : ' (clear)'}`;
+    }
+    return rt.source === 'osrm' ? 'by road' : 'estimate';
+  }
+
+  return { available, create, route, pointAt, snap, nextStep, km, config, describe };
 })();

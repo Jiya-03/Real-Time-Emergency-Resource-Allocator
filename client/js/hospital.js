@@ -57,7 +57,6 @@
   $('logout-btn-2').addEventListener('click', logout);
   $('user-btn').addEventListener('click', (e) => { e.stopPropagation(); $('user-menu').classList.toggle('hidden'); });
   document.addEventListener('click', () => $('user-menu').classList.add('hidden'));
-  $('bell-btn').addEventListener('click', () => { location.hash = '#requests'; });
 
   function tickClock() {
     const now = new Date();
@@ -80,8 +79,6 @@
     const armed = Siren.armed();
     $('arm-btn').className = `inline-flex items-center gap-space-xs px-space-md py-space-xs rounded-full font-label-md text-label-md border ${armed ? 'border-[#6EE7B7] text-[#065F46] bg-[#ECFDF5]' : 'border-[#FCD34D] text-[#92400E] bg-[#FFFBEB] animate-pulse'}`;
     $('arm-btn').innerHTML = `<span class="material-symbols-outlined text-[16px]">${armed ? 'volume_up' : 'volume_off'}</span>${armed ? 'Siren armed' : 'Arm siren'}`;
-    $('arm-banner').classList.toggle('hidden', armed);
-    $('arm-banner').classList.toggle('flex', !armed);
   }
   function armOnce() {
     Siren.arm();
@@ -281,14 +278,14 @@
       const r = i.request; const [st, stCls] = caseStatus(i); const w = i.workflow || {};
       const action = w.arrival_time
         ? `<a class="px-space-md py-space-xs rounded bg-primary text-on-primary font-label-md text-label-md" href="#handover/${encodeURIComponent(r.request_id)}">Handover</a>`
-        : `<button class="px-space-md py-space-xs rounded bg-surface-container-low hover:bg-surface-container font-label-md text-label-md" data-arrive="${esc(r.request_id)}" type="button">Mark arrived</button>`;
+        : `<a class="px-space-md py-space-xs rounded bg-surface-container-low hover:bg-surface-container font-label-md text-label-md inline-flex items-center gap-1" href="#live/${encodeURIComponent(r.request_id)}"><span class="material-symbols-outlined text-[16px] text-primary">near_me</span>Track</a>`;
       return `<div class="grid grid-cols-2 md:grid-cols-12 gap-space-sm md:gap-space-md px-space-lg py-space-md items-center border-b border-surface-container-low last:border-b-0 hover:bg-surface-container-low">
         <span class="md:col-span-2 flex items-center gap-space-xs font-telemetry-md text-telemetry-md"><span class="material-symbols-outlined text-[18px] text-primary">personal_injury</span>#${esc(r.request_id)}</span>
         <span class="md:col-span-3 font-label-lg text-label-lg">${esc(condition(r))}<span class="block font-telemetry-sm text-telemetry-sm text-on-surface-variant">Age ${r.patient_age}</span></span>
         <span class="md:col-span-2"><span class="px-space-sm py-0.5 rounded bg-surface-container-low font-telemetry-sm text-telemetry-sm">Amb ${unit(r.ambulance_id)}</span></span>
         <span class="md:col-span-2">${etaCell(i)}</span>
         <span class="md:col-span-2"><span class="px-space-sm py-1 rounded-full ${stCls} font-telemetry-sm text-telemetry-sm">● ${st}</span></span>
-        <span class="md:col-span-1 flex justify-end gap-space-xs"><a class="w-8 h-8 rounded bg-surface-container-low hover:bg-surface-container flex items-center justify-center" href="#live/${encodeURIComponent(r.request_id)}" title="Track live route" aria-label="Track live route"><span class="material-symbols-outlined text-[18px] text-primary">near_me</span></a>${action}</span>
+        <span class="md:col-span-1 flex justify-end">${action}</span>
       </div>`;
     }).join('');
     return `<div class="hidden md:grid grid-cols-12 gap-space-md px-space-lg py-space-sm bg-surface-container-low font-label-md text-label-md text-on-surface-variant uppercase">
@@ -351,7 +348,7 @@
     const id = state.param;
     const i = state.items.find(x => x.request.request_id === id);
     const el = $('view-detail');
-    if (!i) { el.innerHTML = `<a class="inline-flex items-center gap-space-xs font-label-lg text-label-lg w-fit" href="#requests"><span class="material-symbols-outlined text-[18px]">arrow_back</span>Back to Emergency Requests</a>${empty('This request is no longer active (answered, cancelled or expired).', 'task_alt')}`; return; }
+    if (!i) { el.innerHTML = `<a class="inline-flex items-center gap-space-xs font-label-lg text-label-lg w-fit" href="#dashboard"><span class="material-symbols-outlined text-[18px]">arrow_back</span>Back to Dashboard</a>${empty('This request is no longer active (answered, cancelled or expired).', 'task_alt')}`; return; }
     const r = i.request, v = vitals(r), isPending = i.status === 'PENDING';
     const [pl, code, pc, pbg] = PRIORITY[r.severity] || PRIORITY.Moderate;
     const rows = resourceCheckRows(i);
@@ -362,7 +359,7 @@
     el.innerHTML = `
 <div class="flex flex-col md:flex-row md:items-center justify-between gap-space-md">
   <div class="flex flex-col gap-space-sm">
-    <a class="inline-flex items-center gap-space-xs px-space-md py-space-xs rounded-lg bg-surface-container-low font-label-md text-label-md w-fit" href="#requests"><span class="material-symbols-outlined text-[16px]">arrow_back</span>Back to Emergency Requests</a>
+    <a class="inline-flex items-center gap-space-xs px-space-md py-space-xs rounded-lg bg-surface-container-low font-label-md text-label-md w-fit" href="#dashboard"><span class="material-symbols-outlined text-[16px]">arrow_back</span>Back to Dashboard</a>
     <div class="flex items-center gap-space-sm flex-wrap"><h1 class="font-headline-lg text-headline-lg text-on-surface">Emergency Request Details</h1><span class="px-space-sm py-0.5 rounded bg-surface-container font-telemetry-md text-telemetry-md">#${esc(r.request_id)}</span></div>
     <span class="inline-flex w-fit items-center gap-space-xs px-space-sm py-0.5 rounded-full ${isPending ? 'bg-tertiary-fixed text-tertiary' : stCls} font-telemetry-sm text-telemetry-sm font-semibold uppercase"><span class="w-2 h-2 rounded-full ${isPending ? 'bg-tertiary animate-pulse' : 'bg-current'}"></span>${isPending ? 'Awaiting hospital response' : esc(st)}</span>
   </div>
@@ -445,7 +442,6 @@
         <div class="flex justify-between font-telemetry-sm text-telemetry-sm"><span class="text-on-surface-variant">of ${res.total} total</span><span>Reserved: <b class="${heldBy[label] ? 'text-tertiary' : ''}">${heldBy[label] || 0}</b></span></div>
       </div>`;
     }).join('');
-    $('res-publish').disabled = !state.draftCaps || !CAP.some(([k]) => state.draftCaps[k] !== undefined && state.draftCaps[k] !== h.resources[k].available);
 
     const DEPTS = [['trauma_care', 'Trauma & Emergency', 'LVL-1 adult resus', 'emergency'], ['cardiology', 'Cardiology', 'STEMI code ready', 'cardiology'],
                    ['operation_theatre', 'Operation Theatre', 'Emergency suites', 'medical_services'], ['neurology', 'Neurology', 'Acute stroke / TBI', 'neurology'],
@@ -473,14 +469,17 @@
     const cur = state.draftCaps[k] ?? state.hospital.resources[k].available;
     state.draftCaps[k] = Math.max(0, Math.min(state.hospital.resources[k].total, cur + Number(b.dataset.d)));
     $('res-error').classList.add('hidden'); renderResources();
+    clearTimeout(publishTimer); publishTimer = setTimeout(publishCaps, 700);   // auto-save after a short pause
   });
-  $('res-publish').addEventListener('click', async () => {
+  let publishTimer = null;
+  async function publishCaps() {
     const h = state.hospital; const changes = {};
     CAP.forEach(([k]) => { if (state.draftCaps?.[k] !== undefined && state.draftCaps[k] !== h.resources[k].available) changes[k] = state.draftCaps[k]; });
     try {
       const res = await api(`/api/hospitals/${encodeURIComponent(HID)}/resources`, { method: 'PATCH', body: { ...changes, version: h.version, source: 'Hospital Staff' } });
       state.hospital = res.hospital; state.draftCaps = null;
-      toast('Capacity published', 'Every ambulance now sees the new numbers.', 'success');
+      if (!Object.keys(changes).length) { state.draftCaps = null; return renderResources(); }
+      toast('Saved', 'Every ambulance now sees the new numbers.', 'success');
     } catch (err) {
       if (err.status === 409) {
         state.hospital = err.body.current || h; state.draftCaps = null;
@@ -489,12 +488,12 @@
       } else toast('Could not publish', esc(err.message), 'critical');
     }
     renderResources();
-  });
+  }
   async function quickSync() {
     try {
       const res = await api(`/api/hospitals/${encodeURIComponent(HID)}/confirm`, { method: 'POST', body: { source: 'Hospital Staff' } });
       state.hospital = res.hospital; renderResources();
-      toast('All numbers re-confirmed', 'Your data is marked fresh for the ranking engine.', 'success');
+      toast('All numbers confirmed', 'Your data is marked fresh for the ranking engine.', 'success');
     } catch (err) { toast('Could not sync', esc(err.message), 'critical'); }
   }
   $('res-sync').addEventListener('click', quickSync);
@@ -562,7 +561,7 @@
     </div>
   </div>
   <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-space-md pt-space-sm border-t border-surface-container-low">
-    <button class="px-space-lg py-space-sm rounded-lg bg-surface-container-low hover:bg-surface-container font-label-lg text-label-lg flex items-center gap-space-xs w-fit" onclick="window.print()" type="button"><span class="material-symbols-outlined text-[18px]">print</span>Print Triage Packet</button>
+    <span></span>
     <button class="px-space-xl py-space-md rounded-lg bg-tertiary hover:bg-tertiary-container text-on-tertiary font-headline-sm text-headline-sm flex items-center justify-center gap-space-sm disabled:opacity-40 disabled:cursor-not-allowed" data-complete="${esc(r.request_id)}" type="button" ${allChecked ? '' : 'disabled'} title="${allChecked ? '' : 'Tick all 4 checklist items first'}">Complete Handover &amp; Admit<span class="material-symbols-outlined">arrow_forward</span></button>
   </div>
 </div>`;
@@ -697,7 +696,6 @@ ${bay.length > 1 ? `<div class="flex gap-space-xs flex-wrap">${bay.map(i => `<a 
 
     el.innerHTML = `
 <div class="bg-surface-container-lowest rounded-xl shadow-sm px-space-lg py-space-md flex items-center gap-space-md flex-wrap">
-  <button class="inline-flex items-center gap-space-xs px-space-md py-space-xs rounded-lg bg-surface-container-low hover:bg-surface-container font-label-md text-label-md" id="live-back" type="button"><span class="material-symbols-outlined text-[16px]">arrow_back</span>Back</button>
   <span class="inline-flex items-center gap-space-xs px-space-md py-space-xs rounded-lg bg-tertiary-fixed border border-[#F87171]/40 font-label-lg text-label-lg"><span class="text-tertiary font-semibold">✱ EMERGENCY #${esc(r.request_id)}</span><span class="text-on-surface">· ${esc(condition(r))}</span></span>
   ${priorityChip(r)}
   <span class="ml-auto font-telemetry-sm text-telemetry-sm text-on-surface-variant">Logged ${fmt.timeIST(r.created_at)} · Age ${r.patient_age}</span>
@@ -730,7 +728,6 @@ ${switcher}
   </div>
   <div class="bg-surface-container-lowest rounded-xl shadow-sm p-space-lg flex flex-col gap-space-md" id="live-panel">${livePanelHTML(m)}</div>
 </div>`;
-    $('live-back').addEventListener('click', () => { history.length > 1 ? history.back() : (location.hash = '#active'); });
     drawMap();
   }
 
@@ -1038,10 +1035,10 @@ ${backupHTML}`;
     try {
       await api(`/api/reservations/${encodeURIComponent(resId)}`, { method: 'PATCH', body: { action: 'accept' } });
       toast('Patient accepted', 'Resources reserved. The ambulance has been notified.', 'success');
-      location.hash = '#active';
+      location.hash = `#live/${encodeURIComponent(state.items.find(x => x.reservation_id === resId)?.request.request_id || '')}`;
     } catch (err) {
       toast(err.body?.code === 'ALREADY_FILLED' ? 'Too late: another hospital accepted first' : 'Could not accept', esc(err.message), err.body?.code === 'ALREADY_FILLED' ? 'warn' : 'critical');
-      if (err.status === 409) location.hash = '#requests';
+      if (err.status === 409) location.hash = '#dashboard';
     }
     loadItems();
   }
@@ -1061,7 +1058,7 @@ ${backupHTML}`;
     try {
       await api(`/api/reservations/${encodeURIComponent(rejectId)}`, { method: 'PATCH', body: { action: 'reject', reason: rejectReason } });
       toast('Request rejected', 'The bed was released back to availability.', 'info');
-      location.hash = '#requests';
+      location.hash = '#dashboard';
     } catch (err) { toast('Could not reject', esc(err.message), 'critical'); }
     closeReject(); loadItems();
   });
@@ -1088,7 +1085,7 @@ ${backupHTML}`;
       if (e.key === 'Escape') $('alarm-silence').click();
       return;
     }
-    if (e.key === 'Escape') { if (!$('reject-dialog').classList.contains('hidden')) closeReject(); else if (state.view === 'detail') location.hash = '#requests'; }
+    if (e.key === 'Escape') { if (!$('reject-dialog').classList.contains('hidden')) closeReject(); else if (state.view === 'detail') location.hash = '#dashboard'; }
     if (typing) return;
     if (e.key === 'Enter' && state.view === 'detail') { const b = document.querySelector('#view-detail [data-accept]'); if (b) { e.preventDefault(); b.click(); } }
     if (e.key === 'Enter' && state.view === 'dashboard') { const first = pending()[0]; if (first) location.hash = `#requests/${encodeURIComponent(first.request.request_id)}`; }
@@ -1099,10 +1096,11 @@ ${backupHTML}`;
   const VIEWS = ['dashboard', 'requests', 'detail', 'resources', 'active', 'live', 'handover', 'history'];
   function route() {
     const [v, p] = (location.hash.replace('#', '') || 'dashboard').split('/');
+    if ((v === 'requests' && !p) || v === 'active') { location.replace('#dashboard'); return; }
     state.view = v === 'requests' && p ? 'detail' : VIEWS.includes(v) ? v : 'dashboard';
     state.param = p ? decodeURIComponent(p) : null;
     VIEWS.forEach(x => { $(`view-${x}`).classList.toggle('hidden', x !== state.view); $(`view-${x}`).classList.toggle('flex', x === state.view); });
-    const navKey = state.view === 'detail' ? 'requests' : state.view;
+    const navKey = state.view === 'detail' ? 'dashboard' : state.view;
     document.querySelectorAll('.side-link').forEach(a => {
       const on = a.getAttribute('href') === `#${navKey}`;
       on ? a.setAttribute('aria-current', 'page') : a.removeAttribute('aria-current');
@@ -1122,7 +1120,6 @@ ${backupHTML}`;
   function render() {
     const p = pending();
     $('nav-live').classList.toggle('hidden', !p.length);
-    $('bell-dot').classList.toggle('hidden', !p.length);
     $('nav-handover-dot').classList.toggle('hidden', !atBay().length);
     $('nav-live-dot').classList.toggle('hidden', !enRoute().some(i => i.workflow?.departure_time));
     ({ live: renderLive, dashboard: renderDashboard, requests: renderRequests, detail: renderDetail, resources: renderResources, active: renderActive, handover: renderHandover, history: renderHistory }[state.view] || renderDashboard)();

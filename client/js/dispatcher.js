@@ -101,7 +101,7 @@
       : `<span class="font-telemetry-md text-telemetry-md text-on-surface font-semibold">—</span>
          <span class="font-telemetry-sm text-telemetry-sm text-on-surface-variant">Waiting ${waitText(r.waiting_minutes)}</span>`;
     return `
-<div class="req-row grid grid-cols-1 md:grid-cols-12 gap-space-sm md:gap-space-md px-space-lg py-space-md hover:bg-surface-container-low transition-colors duration-100 items-center border-b border-surface-container-low last:border-b-0" data-id="${esc(r.request_id)}">
+<div class="req-row grid grid-cols-1 md:grid-cols-12 gap-space-sm md:gap-space-md px-space-lg py-space-md hover:bg-surface-container-low transition-colors duration-100 items-center border-b border-surface-container-low last:border-b-0 cursor-pointer" data-id="${esc(r.request_id)}" data-summary="${esc(r.request_id)}" role="button" tabindex="0" title="Open summary">
   <div class="md:col-span-3 flex flex-col">
     <div class="flex items-center gap-space-xs flex-wrap">
       <span class="font-telemetry-md text-telemetry-md text-on-surface font-semibold tracking-tight">#${esc(r.request_id)}</span>
@@ -113,11 +113,7 @@
   <div class="md:col-span-3 flex items-center gap-space-xs text-on-surface">${facility}</div>
   <div class="md:col-span-2 flex flex-col">${transit}</div>
   <div class="md:col-span-2 flex items-center">${statusChip(r)}</div>
-  <div class="md:col-span-2 flex items-center justify-start md:justify-end gap-space-xs">
-    <button class="px-space-md py-space-xs rounded bg-surface-container-low hover:bg-surface-container text-on-surface font-label-md text-label-md transition-colors flex items-center gap-space-xs" data-summary="${esc(r.request_id)}" type="button">
-      <span>View Summary</span><span class="material-symbols-outlined text-[16px]">chevron_right</span>
-    </button>
-  </div>
+  <div class="hidden md:flex md:col-span-2 items-center justify-end"><span class="material-symbols-outlined text-outline">chevron_right</span></div>
 </div>`;
   }
 
@@ -611,7 +607,7 @@
   async function openMatch(id, { rerun = false, keepHold = false } = {}) {
     state.match = { id, data: null, changed: new Set() };
     if (!keepHold) { state.bc = null; renderBroadcast(); }
-    $('match-stale-banner').classList.add('hidden');
+    $('match-back').href = `#live/${encodeURIComponent(id)}`;
     $('match-content').innerHTML = emptyHTML('Ranking hospitals…');
     try {
       const request = await api(`/api/requests/${encodeURIComponent(id)}`);
@@ -743,18 +739,8 @@
 </div>`;
   }
 
-  $('rerank-btn').addEventListener('click', () => state.match.id && openMatch(state.match.id, { rerun: true }));
-  $('match-stale-refresh').addEventListener('click', () => state.match.id && openMatch(state.match.id, { rerun: true }));
 
-  // Live: if a ranked hospital's availability changes, offer a refresh
-  function onHospitalChangeForMatch({ hospital }) {
-    if (state.view !== 'match' || !state.match.data) return;
-    if (!state.match.data.rankings.some(r => r.hospital_id === hospital.hospital_id)) return;
-    state.match.changed.add(hospital.name);
-    const names = [...state.match.changed];
-    $('match-stale-text').textContent = `Availability changed at ${names.slice(0, 2).join(', ')}${names.length > 2 ? ` +${names.length - 2} more` : ''} since this match ran.`;
-    $('match-stale-banner').classList.remove('hidden');
-  }
+  function onHospitalChangeForMatch() { /* broadcast re-ranks by itself; no manual refresh needed */ }
 
   // ───────────── Broadcast: every suitable hospital is alerted at once ─────────────
   // state.bc = GET /api/requests/:id (request + reservations + workflow). First hospital to accept wins;
@@ -894,17 +880,11 @@
       </div>`).join('');
 
     panel.innerHTML = `
-<div class="bg-surface-container-lowest rounded-xl shadow-sm p-space-lg flex flex-col gap-space-md">
-  <div class="flex items-center justify-between gap-space-md flex-wrap">
-    <h2 class="font-headline-md text-headline-md text-on-surface flex items-center gap-space-sm"><span class="material-symbols-outlined text-primary">campaign</span>Hospital Requests
-      <a class="ml-space-sm inline-flex items-center gap-space-xs px-space-md py-space-xs rounded-lg bg-primary text-on-primary font-label-md text-label-md" href="#live/${encodeURIComponent(d.request_id)}"><span class="material-symbols-outlined text-[16px]">map</span>Open live map</a></h2>
-    <div class="flex items-center gap-space-md rounded-lg bg-surface-container-low px-space-md py-space-xs font-telemetry-sm text-telemetry-sm">
-      <span><b>${n.contacted}</b> Contacted</span><span class="text-outline-variant">·</span><span class="text-tertiary"><b>${n.waiting}</b> Waiting</span>
-      ${n.declined ? `<span class="text-outline-variant">·</span><span><b>${n.declined}</b> Declined</span>` : ''}<span class="text-outline-variant">·</span><span class="text-[#047857]"><b>${n.accepted}</b> Accepted</span></div>
-  </div>
-  ${banner}
-  <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-space-sm">${rows}</div>
-</div>`;
+<a class="bg-surface-container-lowest rounded-xl shadow-sm px-space-lg py-space-md flex items-center justify-between gap-space-md flex-wrap hover:bg-surface-container-low" href="#live/${encodeURIComponent(d.request_id)}">
+  <span class="font-label-lg text-label-lg flex items-center gap-space-sm">${m.acc ? `<span class="material-symbols-outlined text-[#047857]">check_circle</span>${esc(m.acc.name)} accepted` : m.waiting.length ? `<span class="material-symbols-outlined text-tertiary">campaign</span>Waiting for ${m.waiting.length} hospital${m.waiting.length > 1 ? 's' : ''} · <b data-bc-cd="${esc(m.waiting.map(o => o.expires).filter(Boolean).sort()[0] || '')}">--:--</b>` : '<span class="material-symbols-outlined text-on-surface-variant">info</span>No hospital is deciding right now'}</span>
+  <span class="font-telemetry-sm text-telemetry-sm text-on-surface-variant">${n.contacted} contacted · ${n.waiting} waiting · ${n.accepted} accepted</span>
+  <span class="inline-flex items-center gap-space-xs font-label-lg text-label-lg text-primary">Open live map<span class="material-symbols-outlined text-[18px]">arrow_forward</span></span>
+</a>`;
 
     const tick = () => document.querySelectorAll('[data-bc-cd]').forEach(el => { if (el.dataset.bcCd) el.textContent = mmss((new Date(el.dataset.bcCd) - Date.now()) / 1000); });
     tick(); bcTimer = setInterval(tick, 1000);
@@ -1355,8 +1335,7 @@ ${banner}
       ${r.additional_needs?.length ? section('Also requested (notes for hospital)', `<div class="flex flex-wrap gap-space-xs">${r.additional_needs.map(x =>
         `<span class="px-space-sm py-0.5 rounded bg-surface-container-low border border-outline-variant font-label-md text-label-md text-on-surface-variant">${esc(x)}</span>`).join('')}</div>`) : ''}
       ${section('Assigned facility', facility)}
-      ${['CREATED', 'MATCHING', 'NO_MATCH'].includes(r.status) ? `<a class="inline-flex items-center justify-center gap-space-sm px-space-lg py-space-sm rounded-lg bg-primary text-on-primary font-label-lg text-label-lg" href="#match/${encodeURIComponent(r.request_id)}"><span class="material-symbols-outlined text-[18px]">travel_explore</span>${r.status === 'CREATED' ? 'Find hospitals' : 'Open hospital match'}</a>`
-        : `<a class="font-label-lg text-label-lg text-primary inline-flex items-center gap-space-xs" href="#match/${encodeURIComponent(r.request_id)}"><span class="material-symbols-outlined text-[16px]">leaderboard</span>View ranking used</a>`}
+      <a class="inline-flex items-center justify-center gap-space-sm px-space-lg py-space-sm rounded-lg bg-primary text-on-primary font-label-lg text-label-lg" href="#live/${encodeURIComponent(r.request_id)}"><span class="material-symbols-outlined text-[18px]">map</span>Open live map</a>
       ${section('Handover timeline', `<div class="flex flex-col gap-space-sm">${timeline}</div>`)}
       ${section('Bed reservations', reservations)}`;
   }
@@ -1374,7 +1353,7 @@ ${banner}
       $(id).classList.toggle('flex', k === state.view);
     });
     document.querySelectorAll('#main-nav .nav-link').forEach(a => {
-      const on = a.getAttribute('href') === `#${state.view === 'match' ? 'dispatch' : state.view}`;
+      const on = a.getAttribute('href') === `#${({ match: 'live', create: 'dispatch', cart: 'dispatch' })[state.view] || state.view}`;
       a.className = on ? ACTIVE_NAV : IDLE_NAV;
       on ? a.setAttribute('aria-current', 'page') : a.removeAttribute('aria-current');
     });
@@ -1408,6 +1387,7 @@ ${banner}
   document.addEventListener('keydown', (e) => {
     const typing = ['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement.tagName);
     if (e.key === 'Escape') closeSummary();
+    if (e.key === 'Enter' && document.activeElement?.dataset?.summary) { openSummary(document.activeElement.dataset.summary); return; }
     if (typing || e.ctrlKey || e.metaKey || e.altKey) return;
     const k = e.key.toLowerCase();
     if (k === 'n') location.hash = '#create';

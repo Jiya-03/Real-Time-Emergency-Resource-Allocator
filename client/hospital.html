@@ -39,10 +39,8 @@
     <div class="flex flex-col"><span class="font-headline-sm text-headline-sm text-on-surface leading-none">JeevanRoute</span><span class="font-telemetry-sm text-telemetry-sm text-primary tracking-wider font-semibold uppercase mt-space-xs">Hospital Portal</span></div>
   </div>
   <nav class="flex-1 px-space-sm py-space-lg flex flex-col gap-1" id="side-nav">
-    <a class="side-link flex items-center gap-space-md px-space-md py-space-sm rounded-lg font-label-lg text-label-lg text-on-surface hover:bg-surface-container-low" href="#dashboard"><span class="material-symbols-outlined text-[20px] text-on-surface-variant">dashboard</span>Dashboard</a>
-    <a class="side-link flex items-center gap-space-md px-space-md py-space-sm rounded-lg font-label-lg text-label-lg text-on-surface hover:bg-surface-container-low" href="#requests"><span class="material-symbols-outlined text-[20px] text-on-surface-variant">emergency</span><span class="flex-1">Emergency Requests</span><span class="hidden px-1.5 py-0.5 rounded bg-tertiary text-on-tertiary font-telemetry-sm text-telemetry-sm font-semibold" id="nav-live">LIVE</span></a>
+    <a class="side-link flex items-center gap-space-md px-space-md py-space-sm rounded-lg font-label-lg text-label-lg text-on-surface hover:bg-surface-container-low" href="#dashboard"><span class="material-symbols-outlined text-[20px] text-on-surface-variant">dashboard</span><span class="flex-1">Dashboard</span><span class="hidden px-1.5 py-0.5 rounded bg-tertiary text-on-tertiary font-telemetry-sm text-telemetry-sm font-semibold" id="nav-live">LIVE</span></a>
     <a class="side-link flex items-center gap-space-md px-space-md py-space-sm rounded-lg font-label-lg text-label-lg text-on-surface hover:bg-surface-container-low" href="#resources"><span class="material-symbols-outlined text-[20px] text-on-surface-variant">inventory_2</span>Resources</a>
-    <a class="side-link flex items-center gap-space-md px-space-md py-space-sm rounded-lg font-label-lg text-label-lg text-on-surface hover:bg-surface-container-low" href="#active"><span class="material-symbols-outlined text-[20px] text-on-surface-variant">personal_injury</span>Active Cases</a>
     <a class="side-link flex items-center gap-space-md px-space-md py-space-sm rounded-lg font-label-lg text-label-lg text-on-surface hover:bg-surface-container-low" href="#live"><span class="material-symbols-outlined text-[20px] text-on-surface-variant">near_me</span><span class="flex-1">Live Route</span><span class="hidden w-2 h-2 rounded-full bg-primary animate-pulse" id="nav-live-dot"></span></a>
     <a class="side-link flex items-center gap-space-md px-space-md py-space-sm rounded-lg font-label-lg text-label-lg text-on-surface hover:bg-surface-container-low" href="#handover"><span class="material-symbols-outlined text-[20px] text-on-surface-variant">sync_alt</span><span class="flex-1">Handover</span><span class="hidden w-2 h-2 rounded-full bg-tertiary animate-pulse" id="nav-handover-dot"></span></a>
     <a class="side-link flex items-center gap-space-md px-space-md py-space-sm rounded-lg font-label-lg text-label-lg text-on-surface hover:bg-surface-container-low" href="#history"><span class="material-symbols-outlined text-[20px] text-on-surface-variant">history</span>History</a>
@@ -64,7 +62,6 @@
   <div class="flex items-center gap-space-sm">
     <button class="inline-flex items-center gap-space-xs px-space-md py-space-xs rounded-full font-label-md text-label-md border" id="arm-btn" type="button"></button>
     <span class="hidden md:inline-flex items-center gap-space-xs px-space-md py-space-xs rounded bg-surface-container-low font-telemetry-sm text-telemetry-sm"><span class="material-symbols-outlined text-[16px]">schedule</span><span id="clock">--:--</span></span>
-    <button class="relative w-9 h-9 rounded-lg bg-surface-container-low hover:bg-surface-container flex items-center justify-center" id="bell-btn" type="button" aria-label="Pending requests"><span class="material-symbols-outlined text-[20px]">notifications</span><span class="hidden absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-tertiary" id="bell-dot"></span></button>
     <div class="relative">
       <button class="w-9 h-9 rounded-full bg-primary flex items-center justify-center" id="user-btn" type="button" aria-haspopup="true"><span class="material-symbols-outlined text-on-primary text-[18px]">person</span></button>
       <div class="hidden absolute right-0 mt-2 w-52 bg-surface-container-lowest border border-outline-variant rounded-lg shadow-[0_4px_16px_-4px_rgba(11,31,58,0.08)] py-1 z-50" id="user-menu">
@@ -78,18 +75,11 @@
 <!-- mobile nav -->
 <nav class="lg:hidden flex gap-space-xs overflow-x-auto px-margin py-space-sm bg-surface-container-lowest border-b border-surface-container-low" id="mobile-nav">
   <a class="side-link shrink-0 px-space-md py-space-xs rounded font-label-md text-label-md" href="#dashboard">Dashboard</a>
-  <a class="side-link shrink-0 px-space-md py-space-xs rounded font-label-md text-label-md" href="#requests">Requests</a>
   <a class="side-link shrink-0 px-space-md py-space-xs rounded font-label-md text-label-md" href="#resources">Resources</a>
-  <a class="side-link shrink-0 px-space-md py-space-xs rounded font-label-md text-label-md" href="#active">Active</a>
   <a class="side-link shrink-0 px-space-md py-space-xs rounded font-label-md text-label-md" href="#live">Live Route</a>
   <a class="side-link shrink-0 px-space-md py-space-xs rounded font-label-md text-label-md" href="#handover">Handover</a>
   <a class="side-link shrink-0 px-space-md py-space-xs rounded font-label-md text-label-md" href="#history">History</a>
 </nav>
-
-<!-- Arm banner (browsers need one click before sound can play) -->
-<button class="hidden w-full bg-[#FFFBEB] border-b border-[#FCD34D] text-[#92400E] px-margin py-space-sm font-label-lg text-label-lg flex items-center justify-center gap-space-sm" id="arm-banner" type="button">
-  <span class="material-symbols-outlined">volume_off</span>Click anywhere to arm the emergency siren. Browsers block sound until you interact with the page.
-</button>
 
 <main class="flex-1 px-margin py-space-xl" id="views">
 
@@ -133,8 +123,7 @@
       <h1 class="font-display-lg text-display-lg text-on-surface tracking-tight">Hospital Resources &amp; Capacity</h1>
     </div>
     <div class="flex items-center gap-space-sm">
-      <button class="inline-flex items-center gap-space-xs px-space-lg py-space-sm rounded-lg border border-outline-variant bg-surface-container-lowest font-label-lg text-label-lg disabled:opacity-40" id="res-publish" type="button" disabled><span class="material-symbols-outlined text-[18px]">publish</span>Publish Changes</button>
-      <button class="inline-flex items-center gap-space-xs px-space-lg py-space-sm rounded-lg bg-primary text-on-primary font-label-lg text-label-lg" id="res-sync" type="button"><span class="material-symbols-outlined text-[18px]">sync</span>Quick Sync All <span class="font-telemetry-sm opacity-75">[S]</span></button>
+      <button class="inline-flex items-center gap-space-xs px-space-lg py-space-sm rounded-lg bg-primary text-on-primary font-label-lg text-label-lg" id="res-sync" type="button"><span class="material-symbols-outlined text-[18px]">verified</span>Confirm all numbers <span class="font-telemetry-sm opacity-75">[S]</span></button>
     </div>
   </div>
   <div class="hidden rounded-lg border border-[#F87171] bg-[#FEF2F2] px-space-lg py-space-md font-body-md text-body-md text-[#991B1B]" id="res-error"></div>

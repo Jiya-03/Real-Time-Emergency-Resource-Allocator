@@ -10,16 +10,21 @@
     "seed": "node src/db/seed.js",
     "test:ranking": "node tests/ranking-replay.test.mjs",
     "test:booking": "node tests/double-booking.test.mjs",
-    "test": "npm run test:ranking && npm run test:booking && npm run test:broadcast && npm run test:admission",
+    "test": "npm run test:ranking && npm run test:booking && npm run test:broadcast && npm run test:admission && npm run test:sync",
     "test:broadcast": "node tests/broadcast.test.mjs",
-    "test:admission": "node tests/admission.test.mjs"
+    "test:admission": "node tests/admission.test.mjs",
+    "supabase:push": "node src/sync-cli.js push",
+    "supabase:status": "node src/sync-cli.js status",
+    "test:sync": "node tests/supabase-sync.test.mjs"
   },
   "dependencies": {
     "better-sqlite3": "^12.11.1",
     "cors": "^2.8.5",
     "csv-parse": "^7.0.3",
     "express": "^5.2.1",
-    "socket.io": "^4.8.4"
+    "socket.io": "^4.8.4",
+    "@supabase/supabase-js": "^2.117.2",
+    "ws": "^8.22.0"
   },
   "devDependencies": {
     "nodemon": "^3.1.10"

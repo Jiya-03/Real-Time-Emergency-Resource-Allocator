@@ -1,6 +1,7 @@
 // Live ambulance position (from the crew's device GPS, or the simulated drive on the dispatcher screen).
 // Kept in memory only: it is a stream, not a record. The hospital's Live Route map listens for it.
 import { getRequest } from './requestService.js';
+import { pushPosition } from './supabaseSync.js';
 
 const positions = new Map();          // request_id → last fix
 const MAX_AGE_MS = 10 * 60 * 1000;
@@ -23,6 +24,7 @@ export function recordPosition(p = {}) {
     at: new Date().toISOString(),
   };
   positions.set(fix.request_id, fix);
+  pushPosition(fix);                    // live tracking table in Supabase (if connected)
   return fix;
 }
 

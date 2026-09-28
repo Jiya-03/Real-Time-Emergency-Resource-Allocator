@@ -55,6 +55,7 @@ console.log(SHIFT
   ? `⏱️  Time-shifted: dataset snapshot (${SNAPSHOT_IST} IST) → now`
   : `⏱️  Original timestamps kept (--no-shift)`);
 
+db.prepare('UPDATE sync_state SET enabled = 0 WHERE id = 1').run();   // bulk load: don't queue 30k rows for Supabase
 db.pragma('foreign_keys = OFF');   // ambulances ↔ requests reference each other
 
 const load = db.transaction(() => {
@@ -83,6 +84,9 @@ try {
   const counts = load();
   const broken = db.pragma('foreign_key_check');
   db.pragma('foreign_keys = ON');
+  // Supabase (if configured) gets a full fresh copy the next time the server starts
+  db.prepare('DELETE FROM sync_outbox').run();
+  db.prepare('UPDATE sync_state SET initialized = 0 WHERE id = 1').run();
   if (broken.length) {
     console.error(`❌ ${broken.length} broken foreign-key references`, broken.slice(0, 5));
     process.exit(1);

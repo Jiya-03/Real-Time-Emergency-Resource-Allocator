@@ -15,6 +15,7 @@ import configRouter from './routes/config.js';
 import { startExpirySweeper } from './services/reservationService.js';
 import { initSockets } from './sockets/index.js';
 import { startSimulator } from './services/simulator.js';
+import { startSync } from './services/supabaseSync.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
@@ -52,4 +53,5 @@ server.listen(PORT, () => {
   console.log(`📡 Live test page: http://localhost:${PORT}/live.html`);
   if (process.env.SIMULATOR !== 'off') startSimulator();
   startExpirySweeper();
+  startSync();                                   // Supabase live sync (only if configured in .env)
 });

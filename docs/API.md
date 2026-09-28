@@ -153,6 +153,13 @@ Departments: `trauma_care, cardiology, neurology, blood_bank, operation_theatre,
 Completing the handover now requires a ward, room and bed (409 `NO_BED_ALLOCATED` otherwise); it stamps `admitted_at`. `GET /api/requests/:id` includes `admission`. Socket event `admission:update` → `{ request_id, hospital_id, admission }`.
 Wards: ICU, Trauma Resus Bay, Cardiac Care Unit (CCU), Stroke Unit, Respiratory Ward (O₂), Burns Unit, Emergency Observation, General Ward.
 
+### Supabase live sync
+Two-way live mirror of the database to Supabase (setup: `SUPABASE.md`). `GET /api/config/sync` →
+`{ enabled, realtime: "SUBSCRIBED", initialized, last_push, pushed, pulled, pending, errors }`.
+App → Supabase: SQLite triggers queue every change in `sync_outbox`, pushed ~every second.
+Supabase → App: Realtime on `hospitals`, `hospital_resources`, `hospital_services` (validated; invalid edits are reverted).
+Extra Supabase objects: `ambulance_positions` (live), views `live_emergencies`, `live_hospital_capacity`.
+
 ### Map configuration (Mapbox)
 `GET /api/config` → `{ "mapbox": { "token": "pk.…", "style": "mapbox/navigation-day-v1" } }` or `{ "mapbox": null }`.
 Set `MAPBOX_TOKEN=pk.…` in `server/.env` (copy `server/.env.example`; `.env` is git-ignored). Only public `pk.` tokens are served.

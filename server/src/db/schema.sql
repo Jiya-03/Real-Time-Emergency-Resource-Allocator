@@ -80,7 +80,8 @@ CREATE TABLE IF NOT EXISTS emergency_requests (
   request_timestamp           TEXT NOT NULL,
   request_status              TEXT NOT NULL CHECK (request_status IN ('CREATED','MATCHING','NO_MATCH','ASSIGNED','IN_TRANSIT','COMPLETED')),
   additional_needs            TEXT,         -- OUR addition: JSON array of extra items (e.g. ["CT Scanner"]) not tracked in capacity data
-  field_report                TEXT          -- OUR addition: JSON { bp, hr, spo2, notes } from the paramedic crew (optional)
+  field_report                TEXT,         -- OUR addition: JSON { bp, hr, spo2, notes } from the paramedic crew (optional)
+  broadcast_round             INTEGER NOT NULL DEFAULT 0   -- OUR addition: how many "alert all suitable hospitals" waves were sent
 );
 
 -- ───────────────────────── History, reservations, handover ─────────────────────────
@@ -112,7 +113,7 @@ CREATE TABLE IF NOT EXISTS emergency_workflow_handover (
   request_id         TEXT NOT NULL REFERENCES emergency_requests(request_id),
   hospital_id        TEXT NOT NULL REFERENCES hospitals(hospital_id),
   ambulance_id       TEXT NOT NULL REFERENCES ambulances(ambulance_id),
-  hospital_response  TEXT NOT NULL CHECK (hospital_response IN ('PENDING','ACCEPTED','REJECTED')),
+  hospital_response  TEXT NOT NULL CHECK (hospital_response IN ('PENDING','ACCEPTED','REJECTED','WITHDRAWN')),  -- OUR addition: WITHDRAWN = filled by another hospital / cancelled by dispatcher
   rejection_reason   TEXT CHECK (rejection_reason IS NULL OR rejection_reason IN ('No Bed','No Equipment','Specialist Unavailable','Stale Data','Other')),
   assignment_time    TEXT NOT NULL,
   departure_time     TEXT,

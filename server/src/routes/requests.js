@@ -4,6 +4,8 @@ import { createRequest, getRequestDetail, listRequests, getRequestSummary } from
 import { ApiError } from '../utils/errors.js';
 import { matchRequest, getSavedRankings } from '../services/rankingService.js';
 import { handoff } from '../services/handoffService.js';
+import { broadcast, withdrawAll } from '../services/reservationService.js';
+import { lastPosition } from '../services/tracking.js';
 import { requireRole } from '../services/authService.js';
 import {
   EMERGENCY_TYPES, SEVERITIES, SPECIALISTS, REQUEST_STATUSES, REQUIREMENT_KEYS,
@@ -46,6 +48,18 @@ router.post('/:id/match', (req, res) => res.json(matchRequest(req.params.id)));
 
 // GET /api/requests/:id/rankings → last saved ranking (dataset requests have one too)
 router.get('/:id/rankings', (req, res) => res.json(getSavedRankings(req.params.id)));
+
+// POST /api/requests/:id/broadcast { max? } → alert ALL suitable hospitals at once; first to accept wins.
+// Calling it again alerts the next wave (hospitals not contacted yet).
+router.post('/:id/broadcast', requireRole('dispatcher'), (req, res) => {
+  res.status(201).json(broadcast(req.params.id, { max: req.body?.max }));
+});
+
+// POST /api/requests/:id/withdraw → dispatcher cancels the request at every hospital still deciding
+router.post('/:id/withdraw', requireRole('dispatcher'), (req, res) => res.json(withdrawAll(req.params.id)));
+
+// GET /api/requests/:id/position → last live ambulance position (GPS or simulated), or null
+router.get('/:id/position', (req, res) => res.json({ position: lastPosition(req.params.id) }));
 
 // POST /api/requests/:id/handoff { step: "depart" | "arrive" | "complete" } → ambulance / hospital progress
 router.post('/:id/handoff', requireRole('dispatcher', 'hospital'), (req, res) => {

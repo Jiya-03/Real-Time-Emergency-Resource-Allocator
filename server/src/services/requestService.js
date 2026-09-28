@@ -53,6 +53,7 @@ export function formatRequest(row) {
     ambulance_id: row.ambulance_id,
     additional_needs: row.additional_needs ? JSON.parse(row.additional_needs) : [],
     field_report: row.field_report ? JSON.parse(row.field_report) : null,
+    broadcast_round: row.broadcast_round || 0,
     status: row.request_status,
     created_at: row.request_timestamp,
     waiting_minutes: Math.round((Date.now() - new Date(row.request_timestamp)) / 6000) / 10,

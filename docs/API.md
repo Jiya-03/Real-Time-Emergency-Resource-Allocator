@@ -124,7 +124,29 @@ Each ranking row: `{ rank, hospital_id, hospital_name, eligible, scores: { resou
 
 **Verified:** `npm run test:ranking` replays all 1,920 reference rankings: 99.97% of hospital scores match exactly, and in the 273 cases where our #1 differs, ours is an eligible hospital with a strictly higher score (found beyond the 5 nearest).
 
-### Bed reservations (hold → accept / reject / expire)
+### Broadcast dispatch (default): alert ALL suitable hospitals, first to accept wins
+| Method | Path | Who | What |
+|---|---|---|---|
+| POST | /api/requests/:id/broadcast `{ max? }` | Dispatcher | Re-ranks, then alerts every eligible hospital (not yet contacted) that has the beds free. Returns `{ wave, sent_to[], hold_minutes, expires_at }`. Calling again = next wave |
+| POST | /api/requests/:id/withdraw | Dispatcher | Cancel the request at every hospital still deciding |
+
+- **No bed is locked while hospitals decide.** Broadcast rows are `PENDING` with `holds_capacity = 0`.
+- **First accept wins:** accept runs one transaction: claim the request (`UPDATE … SET request_status='ASSIGNED' WHERE request_status='MATCHING'`), take the beds with the conditional UPDATE, then withdraw everyone else (reservations `CANCELLED`, workflow `WITHDRAWN`, socket action `filled`). A second hospital accepting at the same instant gets **409 `ALREADY_FILLED`**.
+- **Bed gone:** if the hospital's last bed disappeared before it accepted → **409 `BED_TAKEN`**; it is recorded as a `No Bed` decline.
+- **Auto next wave:** when every alerted hospital declines / times out, the next suitable hospitals are alerted automatically (`broadcast_round` + 1). None left → request `NO_MATCH` + socket action `exhausted`.
+- Optional env `BROADCAST_MAX` caps hospitals per wave (default: all suitable).
+- Proven by `npm run test:broadcast` (simultaneous accepts → exactly one winner, no bed locked elsewhere).
+
+### Live ambulance tracking (Live Route map)
+| Method / event | Who | What |
+|---|---|---|
+| socket emit `ambulance:position` `{ request_id, lat, lng, source: "gps"\|"simulated", accuracy_m?, left_km?, eta_min?, hospital_id? }` | Dispatcher screen (every 3 s while en route) | Validated (request must be ASSIGNED / IN_TRANSIT), stored in memory, relayed to every screen |
+| socket `ambulance:position` | Hospital screen | Moves the ambulance on the hospital's Live Route map in real time |
+| GET /api/requests/:id/position | Any | Last position (≤ 10 min old) or `null` |
+
+Maps: Leaflet (vendored in `client/vendor/leaflet`) + CARTO Voyager street tiles; road route + turn-by-turn from the public OSRM server. Both are free and need no API key; if OSRM can't be reached the map falls back to a straight-line estimate.
+
+### Bed reservations (single hospital: hold → accept / reject / expire)
 | Method | Endpoint | Who | Purpose |
 |--------|----------|-----|---------|
 | POST | /api/reservations `{ request_id, hospital_id }` | Dispatcher | Hold the bed(s) at a hospital. Beds leave availability immediately |
@@ -173,7 +195,7 @@ Connect with the socket.io client to the same URL (`http://localhost:5000`).
 | `simulator:status` | `{ running, interval_ms, live_feed_hospitals, ticks }` | On connect + start/stop |
 | `request:new` | request object | Dispatcher logs a new emergency |
 | `request:update` | request object | Request status changes (e.g. CREATED → MATCHING after ranking) |
-| `reservation:update` | `{ action, request, hospital_id, hospital_name, reservations, reason? }` | action = held · failed · accepted · rejected · cancelled · expired |
+| `reservation:update` | `{ action, request, hospital_id, hospital_name, reservations, reason? }` | action = held · failed · accepted · rejected · cancelled · expired · filled (another hospital won) · exhausted (no hospital left). Broadcast holds carry `broadcast: true, wave` |
 
 ```js
 import { io } from 'socket.io-client';

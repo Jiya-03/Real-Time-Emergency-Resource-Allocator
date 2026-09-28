@@ -10,7 +10,8 @@
     "seed": "node src/db/seed.js",
     "test:ranking": "node tests/ranking-replay.test.mjs",
     "test:booking": "node tests/double-booking.test.mjs",
-    "test": "npm run test:ranking && npm run test:booking"
+    "test": "npm run test:ranking && npm run test:booking && npm run test:broadcast",
+    "test:broadcast": "node tests/broadcast.test.mjs"
   },
   "dependencies": {
     "better-sqlite3": "^12.11.1",

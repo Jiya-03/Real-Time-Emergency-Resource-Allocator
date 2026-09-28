@@ -8,11 +8,16 @@
 //   request:update       → request object                      when its status changes
 //   reservation:update   → { action, request, hospital_id, reservations }  held / accepted / rejected / cancelled / expired / failed
 //   handoff:update       → { step, request, hospital_id, workflow }  depart / arrive / complete
+//   ambulance:position   → { request_id, lat, lng, source, left_km, eta_min, at }  live GPS / simulated drive
+//
+// Events received from clients:
+//   ambulance:position   ← the ambulance crew's screen sends its position every few seconds (relayed to everyone)
 import { Server } from 'socket.io';
 import db from '../db/index.js';
 import bus, { EVENTS } from '../events.js';
 import { getFreshness } from '../services/freshness.js';
 import { getSimulatorStatus } from '../services/simulator.js';
+import { recordPosition } from '../services/tracking.js';
 
 const FRESHNESS_EVERY_MS = 30_000;
 
@@ -33,6 +38,10 @@ export function initSockets(httpServer) {
     // Give the new screen the current picture straight away
     socket.emit(EVENTS.FRESHNESS_TICK, freshnessSnapshot());
     socket.emit(EVENTS.SIMULATOR_STATUS, getSimulatorStatus());
+    socket.on('ambulance:position', (p) => {
+      const fix = recordPosition(p);
+      if (fix) io.emit('ambulance:position', fix);
+    });
     socket.on('disconnect', () => console.log('🔌 Client left'));
   });
 

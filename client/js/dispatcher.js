@@ -514,6 +514,7 @@
       <span class="font-telemetry-lg text-[28px] text-primary">${criteria} Locked</span>
     </div>
     <button class="w-full py-space-lg rounded-lg bg-tertiary hover:bg-tertiary-container text-on-tertiary font-headline-sm text-headline-sm shadow-sm disabled:opacity-60" id="start-search" type="button">Start Searching....</button>
+    <p class="-mt-space-sm text-center font-body-sm text-body-sm text-on-surface-variant flex items-center justify-center gap-space-xs"><span class="material-symbols-outlined text-[16px] text-primary">campaign</span>Alerts every suitable hospital at once. The first to accept gets the patient.</p>
     <div class="flex items-center justify-center gap-space-md font-label-md text-label-md">
       <a class="text-on-surface underline underline-offset-4" href="#dispatch">Cancel &amp; Return to Dashboard</a><span class="text-outline">•</span>
       <button class="font-telemetry-sm text-telemetry-sm text-on-surface-variant hover:text-tertiary" id="clear-cart" type="button">Clear Cart</button>
@@ -587,7 +588,16 @@
       });
       if (warnings.length) toast(`#${request.request_id} logged`, warnings.map(esc).join(' '), 'warn');
       draft = newDraft(); saveDraft(); syncCreate();
-      location.hash = `#match/${encodeURIComponent(request.request_id)}`;   // runs the ranking engine
+      btn.textContent = 'Alerting suitable hospitals…';
+      rememberHold(request.request_id);
+      try {
+        const bc = await api(`/api/requests/${encodeURIComponent(request.request_id)}/broadcast`, { method: 'POST' });
+        waveToasted[request.request_id] = bc.wave;
+        toast(`🚨 Alert sent to ${bc.sent_to.length} hospital${bc.sent_to.length > 1 ? 's' : ''}`, `First to accept gets #${esc(request.request_id)}. They have ${bc.hold_minutes} min.`, 'success');
+      } catch (err) {
+        toast('No hospital could be alerted', esc(err.message), 'critical');
+      }
+      location.hash = `#live/${encodeURIComponent(request.request_id)}`;    // real map + live hospital responses
     } catch (err) {
       toast('Could not log emergency', esc((err.details?.length ? err.details : [err.message]).join(' ')), 'critical');
       btn.disabled = false;
@@ -600,12 +610,12 @@
 
   async function openMatch(id, { rerun = false, keepHold = false } = {}) {
     state.match = { id, data: null, changed: new Set() };
-    if (!keepHold) { state.hold = null; renderHold(); }
+    if (!keepHold) { state.bc = null; renderBroadcast(); }
     $('match-stale-banner').classList.add('hidden');
     $('match-content').innerHTML = emptyHTML('Ranking hospitals…');
     try {
       const request = await api(`/api/requests/${encodeURIComponent(id)}`);
-      if (!keepHold) state.hold = holdFromDetail(request);
+      state.bc = request;
       let result;
       if (request.status === 'ASSIGNED' || request.status === 'IN_TRANSIT' || request.status === 'COMPLETED') rerun = false;
       if (rerun || request.status === 'CREATED') {
@@ -620,7 +630,7 @@
       }
       state.match.data = result;
       renderMatch();
-      renderHold();
+      renderBroadcast();
     } catch (err) {
       $('match-content').innerHTML = emptyHTML(`Could not rank hospitals: ${esc(err.message)}`);
     }
@@ -693,7 +703,7 @@
   ${r.eligible && f.status === 'stale' ? '<div class="font-body-sm text-body-sm text-tertiary flex items-center gap-space-xs"><span class="material-symbols-outlined text-[16px]">warning</span>Availability data is stale. Confirm with the hospital before dispatch.</div>' : ''}
   <details class="group"><summary class="cursor-pointer font-label-md text-label-md text-primary list-none flex items-center gap-1"><span class="material-symbols-outlined text-[16px] group-open:rotate-90 transition-transform">chevron_right</span>Why this rank?</summary>
     <p class="mt-space-xs font-telemetry-sm text-telemetry-sm text-on-surface-variant leading-5">${esc(r.explanation)}</p></details>
-  ${r.eligible ? `<div class="flex justify-end"><button class="inline-flex items-center gap-space-sm px-space-lg py-space-sm rounded-lg ${isBest ? 'bg-tertiary hover:bg-tertiary-container text-on-tertiary' : 'bg-surface-container-high hover:bg-surface-container-highest text-on-surface'} font-label-lg text-label-lg" data-request-confirm="${r.hospital_id}" type="button"><span class="material-symbols-outlined text-[18px]">send</span><span>Request Confirmation</span></button></div>` : ''}
+  ${r.eligible ? `<div class="flex justify-end" data-bc-status="${r.hospital_id}"></div>` : ''}
 </div>`;
   }
 
@@ -735,10 +745,6 @@
 
   $('rerank-btn').addEventListener('click', () => state.match.id && openMatch(state.match.id, { rerun: true }));
   $('match-stale-refresh').addEventListener('click', () => state.match.id && openMatch(state.match.id, { rerun: true }));
-  document.addEventListener('click', (e) => {
-    const b = e.target.closest('[data-request-confirm]');
-    if (b && !b.disabled) requestConfirmation(b.dataset.requestConfirm);
-  });
 
   // Live: if a ranked hospital's availability changes, offer a refresh
   function onHospitalChangeForMatch({ hospital }) {
@@ -750,158 +756,526 @@
     $('match-stale-banner').classList.remove('hidden');
   }
 
-  // ───────────── Bed hold (reservation) on the match screen ─────────────
-  state.hold = null;            // { hospital_id, hospital_name, status, reservation_id, expires_at, reason }
-  // Emergencies whose beds THIS dispatcher held (only these raise accept/reject/expiry alerts)
+  // ───────────── Broadcast: every suitable hospital is alerted at once ─────────────
+  // state.bc = GET /api/requests/:id (request + reservations + workflow). First hospital to accept wins;
+  // the server withdraws the rest and alerts the next wave automatically if everyone declines.
+  state.bc = null;
+  // Emergencies THIS dispatcher sent (only these raise accept/decline toasts)
   const MINE_KEY = 'jeevanroute.myHolds';
   const myHolds = new Set((() => { try { return JSON.parse(sessionStorage.getItem(MINE_KEY)) || []; } catch { return []; } })());
   const rememberHold = (id) => { myHolds.add(id); try { sessionStorage.setItem(MINE_KEY, JSON.stringify([...myHolds])); } catch {} };
-  let holdTimer = null;
-
-  function holdFromDetail(detail) {
-    const active = (detail.reservations || []).filter(r => ['PENDING', 'CONFIRMED'].includes(r.reservation_status));
-    if (!active.length) return null;
-    const r = active[0];
-    const wf = (detail.workflow || []).find(w => w.hospital_id === r.hospital_id && w.hospital_response === 'ACCEPTED');
-    const stage = wf?.handover_status === 'COMPLETED' ? 'done' : wf?.arrival_time ? 'arrived' : wf?.departure_time ? 'enroute' : undefined;
-    return { hospital_id: r.hospital_id, hospital_name: r.hospital_name, status: r.reservation_status, reservation_id: r.reservation_id, expires_at: r.expires_at, stage };
-  }
+  const waveToasted = {};
+  let bcTimer = null;
 
   function mmss(sec) { const s = Math.max(0, Math.round(sec)); return `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`; }
 
-  function renderHold() {
-    clearInterval(holdTimer);
-    const h = state.hold;
-    const panel = $('hold-panel');
-    document.querySelectorAll('[data-request-confirm]').forEach(b => {
-      const busy = h && ['PENDING', 'CONFIRMED'].includes(h.status);
-      b.disabled = !!busy;
-      b.classList.toggle('opacity-50', !!busy);
-      b.classList.toggle('cursor-not-allowed', !!busy);
+  async function loadBroadcast(id) {
+    try { state.bc = await api(`/api/requests/${encodeURIComponent(id)}`); } catch { return; }
+    if (state.match.data) state.match.data.request = { ...state.match.data.request, status: state.bc.status };
+    renderBroadcast();
+  }
+
+  // One entry per contacted hospital with its current answer
+  function bcModel(d, rankings = state.match.data?.rankings || []) {
+    const byH = new Map();
+    for (const w of d.workflow || []) byH.set(w.hospital_id, { w });          // ordered by assignment_time → latest contact wins
+    const rank = Object.fromEntries(rankings.map(r => [r.hospital_id, r]));
+    const list = [...byH.entries()].map(([hid, o]) => {
+      let res = (d.reservations || []).filter(x => x.hospital_id === hid && x.requested_at >= o.w.assignment_time);
+      if (!res.length) res = (d.reservations || []).filter(x => x.hospital_id === hid);
+      const st = res.map(x => x.reservation_status);
+      const resp = o.w.hospital_response;
+      const state_ = resp === 'ACCEPTED' ? 'accepted' : resp === 'PENDING' ? (st.includes('PENDING') ? 'waiting' : 'closed')
+        : resp === 'WITHDRAWN' ? 'withdrawn' : st.includes('EXPIRED') ? 'expired' : st.includes('FAILED') ? 'nobed' : 'declined';
+      return { hid, name: o.w.hospital_name, w: o.w, res, state: state_, rank: rank[hid],
+               expires: res.find(x => x.reservation_status === 'PENDING')?.expires_at,
+               confirmed: res.find(x => x.reservation_status === 'CONFIRMED'),
+               at: res.map(x => x.confirmed_at || x.requested_at).filter(Boolean).sort().pop() || o.w.assignment_time };
     });
-    if (!h) { panel.innerHTML = ''; return; }
+    const order = { accepted: 0, waiting: 1, declined: 2, nobed: 2, expired: 3, withdrawn: 4, closed: 5 };
+    list.sort((a, b) => order[a.state] - order[b.state] || (a.rank?.rank ?? 99) - (b.rank?.rank ?? 99));
+    return { list, acc: list.find(o => o.state === 'accepted'), waiting: list.filter(o => o.state === 'waiting'), wave: d.broadcast_round || 0 };
+  }
 
-    const box = (tone, icon, title, body, actions = '') => `
-<div class="rounded-xl border-2 ${tone} bg-surface-container-lowest px-space-xl py-space-lg flex flex-col md:flex-row md:items-center justify-between gap-space-md">
-  <div class="flex items-center gap-space-md">
-    <span class="material-symbols-outlined text-[28px]">${icon}</span>
-    <div class="flex flex-col"><span class="font-headline-sm text-headline-sm text-on-surface">${title}</span><span class="font-body-md text-body-md text-on-surface-variant">${body}</span></div>
-  </div>
-  <div class="flex items-center gap-space-md">${actions}</div>
-</div>`;
+  const BC_CHIP = {
+    accepted: ['bg-[#10B981] text-white', '✓ ACCEPTED'],
+    waiting: ['bg-tertiary-fixed text-tertiary', '● Waiting for response'],
+    declined: ['bg-surface-container text-on-surface-variant', '✕ Declined'],
+    nobed: ['bg-surface-container text-on-surface-variant', '✕ Bed gone'],
+    expired: ['bg-[#FFFBEB] text-[#92400E]', '⏱ No answer'],
+    withdrawn: ['bg-surface-container-low text-on-surface-variant', 'Withdrawn'],
+    closed: ['bg-surface-container-low text-on-surface-variant', 'Closed'],
+  };
+  const bcChip = (o) => { const [c, t] = BC_CHIP[o.state]; return `<span class="px-space-sm py-0.5 rounded font-telemetry-sm text-telemetry-sm font-semibold ${c}">${t}</span>`; };
+  function bcLine(o, m) {
+    if (o.state === 'waiting') return `<span class="text-tertiary">Deciding · <b data-bc-cd="${esc(o.expires)}">--:--</b> left</span>`;
+    if (o.state === 'accepted') return `<span class="text-[#047857]">Accepted ${fmt.timeIST(o.at)} · resources locked</span>`;
+    if (o.state === 'declined') return `Declined${o.w.rejection_reason ? ` · ${esc(o.w.rejection_reason)}` : ''}`;
+    if (o.state === 'nobed') return 'Last bed was taken before they could accept';
+    if (o.state === 'expired') return 'Did not answer in time';
+    if (o.state === 'withdrawn') return m.acc ? `Filled by ${esc(m.acc.name)}` : 'Cancelled by dispatcher';
+    return '—';
+  }
 
-    if (h.status === 'PENDING') {
-      panel.innerHTML = box('border-[#D97706] text-[#92400E]', 'hourglass_top',
-        `Bed held at ${esc(h.hospital_name)}. Waiting for hospital confirmation`,
-        'The bed is reserved for this patient and removed from availability. The hospital must accept before it expires.',
-        `<span class="font-telemetry-lg text-telemetry-lg text-[#92400E]" id="hold-countdown">--:--</span>
-         <button class="px-space-lg py-space-sm rounded-lg border border-outline-variant font-label-lg text-label-lg text-on-surface hover:bg-surface-container-low" data-cancel-hold="${h.reservation_id}" type="button">Cancel hold</button>`);
-      const tick = () => {
-        const left = (new Date(h.expires_at) - Date.now()) / 1000;
-        const el = $('hold-countdown'); if (el) el.textContent = mmss(left);
-      };
-      tick(); holdTimer = setInterval(tick, 1000);
-    } else if (h.status === 'CONFIRMED') {
-      const st = state.match.data?.request?.status;
-      const stage = h.stage || (st === 'IN_TRANSIT' ? 'enroute' : st === 'COMPLETED' ? 'done' : 'assigned');
-      const titles = {
-        assigned: [`${esc(h.hospital_name)} accepted. Bed confirmed`, 'The emergency is ASSIGNED. Start transport when the patient is loaded.'],
-        enroute: [`En route to ${esc(h.hospital_name)}`, 'The hospital sees your live ETA and is preparing the bay.'],
-        arrived: [`Arrived at ${esc(h.hospital_name)}`, 'Waiting for the hospital team to complete the clinical handover.'],
-        done: [`Handed over at ${esc(h.hospital_name)}`, 'Patient admitted. This emergency is COMPLETED.'],
+  function renderBroadcast() {
+    clearInterval(bcTimer);
+    const panel = $('hold-panel');
+    const d = state.bc;
+    document.querySelectorAll('[data-bc-status]').forEach(el => { el.innerHTML = ''; });
+    if (!d) { panel.innerHTML = ''; return; }
+    const m = bcModel(d);
+    const st = d.status;
+    const open = ['CREATED', 'MATCHING', 'NO_MATCH'].includes(st);
+
+    // status chip on each ranking card
+    const byId = Object.fromEntries(m.list.map(o => [o.hid, o]));
+    document.querySelectorAll('[data-bc-status]').forEach(el => {
+      const o = byId[el.dataset.bcStatus];
+      el.innerHTML = o ? `<span class="inline-flex items-center gap-space-sm">${bcChip(o)}${o.state === 'waiting' ? `<span class="font-telemetry-sm text-telemetry-sm text-tertiary" data-bc-cd="${esc(o.expires)}">--:--</span>` : ''}</span>`
+        : m.list.length ? '<span class="px-space-sm py-0.5 rounded bg-surface-container-low text-on-surface-variant font-telemetry-sm text-telemetry-sm">Not alerted</span>' : '';
+    });
+
+    if (!m.list.length) {
+      panel.innerHTML = open ? `
+<div class="rounded-xl border-2 border-tertiary bg-surface-container-lowest px-space-xl py-space-lg flex flex-col md:flex-row md:items-center justify-between gap-space-md">
+  <div class="flex items-center gap-space-md"><span class="material-symbols-outlined text-[28px] text-tertiary">campaign</span>
+    <div class="flex flex-col"><span class="font-headline-sm text-headline-sm text-on-surface">No hospital has been alerted yet</span>
+    <span class="font-body-md text-body-md text-on-surface-variant">Sends this emergency to every eligible hospital below at once. The first to accept gets the patient; the rest are withdrawn automatically.</span></div></div>
+  <button class="inline-flex items-center gap-space-sm px-space-lg py-space-md rounded-lg bg-tertiary hover:bg-tertiary-container text-on-tertiary font-label-lg text-label-lg shrink-0" data-broadcast type="button"><span class="material-symbols-outlined text-[18px]">campaign</span>Alert all suitable hospitals</button>
+</div>` : '';
+      return;
+    }
+
+    const n = { contacted: m.list.length, waiting: m.waiting.length, accepted: m.acc ? 1 : 0, declined: m.list.filter(o => ['declined', 'nobed', 'expired'].includes(o.state)).length };
+    let banner;
+    if (m.acc) {
+      const w = m.acc.w;
+      const stage = w.handover_status === 'COMPLETED' ? 'done' : w.arrival_time ? 'arrived' : w.departure_time ? 'enroute' : 'assigned';
+      const [title, sub] = {
+        assigned: [`Hospital confirmed: ${esc(m.acc.name)}`, `Bed locked. ${m.list.filter(o => o.state === 'withdrawn').length} other hospital(s) withdrawn automatically. Start transport when the patient is loaded.`],
+        enroute: [`Ambulance en route to ${esc(m.acc.name)}`, 'The hospital sees your live ETA and is preparing the bay.'],
+        arrived: [`Arrived at ${esc(m.acc.name)}`, 'Waiting for the hospital team to complete the clinical handover.'],
+        done: [`Handed over at ${esc(m.acc.name)}`, 'Patient admitted. This emergency is COMPLETED.'],
       }[stage];
       const actions = {
-        assigned: `<button class="px-space-lg py-space-sm rounded-lg border border-outline-variant font-label-lg text-label-lg text-on-surface hover:bg-surface-container-low" data-cancel-hold="${h.reservation_id}" type="button">Release bed</button>
+        assigned: `${m.acc.confirmed ? `<button class="px-space-lg py-space-sm rounded-lg border border-outline-variant font-label-lg text-label-lg text-on-surface hover:bg-surface-container-low" data-cancel-hold="${esc(m.acc.confirmed.reservation_id)}" type="button">Release bed</button>` : ''}
           <button class="inline-flex items-center gap-space-sm px-space-lg py-space-sm rounded-lg bg-primary text-on-primary font-label-lg text-label-lg" data-handoff="depart" type="button"><span class="material-symbols-outlined text-[18px]">local_shipping</span>Depart · En route</button>`,
         enroute: `<button class="inline-flex items-center gap-space-sm px-space-lg py-space-sm rounded-lg bg-primary text-on-primary font-label-lg text-label-lg" data-handoff="arrive" type="button"><span class="material-symbols-outlined text-[18px]">where_to_vote</span>Arrived at hospital</button>`,
-        arrived: `<span class="font-telemetry-sm text-telemetry-sm text-on-surface-variant">Handover in progress…</span>`,
-        done: `<a class="inline-flex items-center gap-space-sm px-space-lg py-space-sm rounded-lg bg-primary text-on-primary font-label-lg text-label-lg" href="#dispatch">Back to dashboard</a>`,
+        arrived: '<span class="font-telemetry-sm text-telemetry-sm text-on-surface-variant">Handover in progress…</span>',
+        done: '<a class="inline-flex items-center gap-space-sm px-space-lg py-space-sm rounded-lg bg-primary text-on-primary font-label-lg text-label-lg" href="#dispatch">Back to dashboard</a>',
       }[stage];
-      panel.innerHTML = box('border-[#36B37E] text-[#065F46]', stage === 'done' ? 'task_alt' : stage === 'assigned' ? 'verified' : 'local_shipping', titles[0], titles[1], actions);
-    } else if (h.status === 'REJECTED' || h.status === 'EXPIRED' || h.status === 'CANCELLED') {
-      const title = h.status === 'REJECTED' ? `${esc(h.hospital_name)} declined${h.reason ? `: ${esc(h.reason)}` : ''}`
-        : h.status === 'EXPIRED' ? `${esc(h.hospital_name)} did not answer in time. Hold expired` : `Hold at ${esc(h.hospital_name)} cancelled`;
-      panel.innerHTML = box('border-tertiary text-tertiary', h.status === 'EXPIRED' ? 'timer_off' : 'block', title,
-        'The bed was released. The ranking below has been refreshed. Request confirmation from the next hospital.');
+      banner = `<div class="rounded-lg border border-[#6EE7B7] bg-[#ECFDF5] px-space-lg py-space-md flex flex-col md:flex-row md:items-center justify-between gap-space-md">
+        <div class="flex items-center gap-space-md"><span class="material-symbols-outlined text-[28px] text-[#047857]">${stage === 'done' ? 'task_alt' : stage === 'assigned' ? 'verified' : 'local_shipping'}</span>
+          <div class="flex flex-col"><span class="font-headline-sm text-headline-sm text-[#065F46] uppercase">${title}</span><span class="font-body-md text-body-md text-on-surface-variant">${sub}</span></div></div>
+        <div class="flex items-center gap-space-md shrink-0">${actions}</div></div>`;
+    } else if (m.waiting.length) {
+      const soonest = m.waiting.map(o => o.expires).filter(Boolean).sort()[0];
+      banner = `<div class="rounded-lg border border-[#FCD34D] bg-[#FFFBEB] px-space-lg py-space-md flex flex-col md:flex-row md:items-center justify-between gap-space-md">
+        <div class="flex items-center gap-space-md"><span class="w-10 h-10 rounded-full bg-tertiary text-on-tertiary flex items-center justify-center shrink-0 animate-pulse"><span class="material-symbols-outlined">campaign</span></span>
+          <div class="flex flex-col"><span class="font-headline-sm text-headline-sm text-[#92400E]">Alert sent to ${m.waiting.length} hospital${m.waiting.length > 1 ? 's' : ''}${m.wave > 1 ? ` · wave ${m.wave}` : ''}. Waiting for the first to accept</span>
+          <span class="font-body-md text-body-md text-on-surface-variant">No bed is locked until a hospital accepts, so nothing is blocked for other patients. If everyone declines, the next suitable hospitals are alerted automatically.</span></div></div>
+        <div class="flex items-center gap-space-md shrink-0"><span class="font-telemetry-lg text-telemetry-lg text-[#92400E]" data-bc-cd="${esc(soonest || '')}">--:--</span>
+          <button class="px-space-lg py-space-sm rounded-lg border border-outline-variant font-label-lg text-label-lg text-on-surface hover:bg-surface-container-low" data-withdraw type="button">Cancel all</button></div></div>`;
+    } else {
+      const noMore = st === 'NO_MATCH';
+      banner = `<div class="rounded-lg border border-[#F87171] bg-[#FEF2F2] px-space-lg py-space-md flex flex-col md:flex-row md:items-center justify-between gap-space-md">
+        <div class="flex items-center gap-space-md"><span class="material-symbols-outlined text-[28px] text-tertiary">${noMore ? 'error' : 'block'}</span>
+          <div class="flex flex-col"><span class="font-headline-sm text-headline-sm text-[#991B1B]">${noMore ? 'No suitable hospital accepted and none are left to alert' : 'No hospital is currently deciding'}</span>
+          <span class="font-body-md text-body-md text-on-surface-variant">${noMore ? 'Relax a non-critical requirement in the cart, or alert again when availability changes.' : 'Alert the remaining suitable hospitals.'}</span></div></div>
+        ${open ? '<button class="inline-flex items-center gap-space-sm px-space-lg py-space-sm rounded-lg bg-tertiary text-on-tertiary font-label-lg text-label-lg shrink-0" data-broadcast type="button"><span class="material-symbols-outlined text-[18px]">campaign</span>Re-rank &amp; alert again</button>' : ''}</div>`;
+    }
+
+    const rows = m.list.map(o => `
+      <div class="rounded-lg border ${o.state === 'accepted' ? 'border-[#6EE7B7] bg-[#F0FDF9]' : o.state === 'waiting' ? 'border-[#F87171]/40' : 'border-surface-container-high opacity-80'} px-space-md py-space-sm flex flex-col gap-space-xs">
+        <div class="flex items-start justify-between gap-space-sm"><span class="font-label-lg text-label-lg text-on-surface">${o.rank ? `<span class="text-on-surface-variant font-telemetry-sm">#${o.rank.rank}</span> ` : ''}${esc(o.name)}</span>${bcChip(o)}</div>
+        <div class="flex flex-wrap gap-space-xs">${[...new Set(o.res.map(x => `${x.quantity}× ${x.resource_type}`))].map(t => `<span class="px-space-sm py-0.5 rounded font-telemetry-sm text-telemetry-sm ${o.state === 'accepted' ? 'bg-secondary-container/40 text-primary' : 'bg-surface-container-low text-on-surface-variant'}">${esc(t)}${o.state === 'accepted' ? ' reserved ✓' : ''}</span>`).join('')}
+          ${o.rank ? `<span class="px-space-sm py-0.5 rounded bg-surface-container-low font-telemetry-sm text-telemetry-sm text-on-surface-variant">${o.rank.distance_km} km · ~${Math.round(o.rank.eta_min)} min</span>` : ''}</div>
+        <div class="flex items-center justify-between font-telemetry-sm text-telemetry-sm text-on-surface-variant"><span>${bcLine(o, m)}</span><span>Updated ${fmt.timeIST(o.at)}</span></div>
+      </div>`).join('');
+
+    panel.innerHTML = `
+<div class="bg-surface-container-lowest rounded-xl shadow-sm p-space-lg flex flex-col gap-space-md">
+  <div class="flex items-center justify-between gap-space-md flex-wrap">
+    <h2 class="font-headline-md text-headline-md text-on-surface flex items-center gap-space-sm"><span class="material-symbols-outlined text-primary">campaign</span>Hospital Requests
+      <a class="ml-space-sm inline-flex items-center gap-space-xs px-space-md py-space-xs rounded-lg bg-primary text-on-primary font-label-md text-label-md" href="#live/${encodeURIComponent(d.request_id)}"><span class="material-symbols-outlined text-[16px]">map</span>Open live map</a></h2>
+    <div class="flex items-center gap-space-md rounded-lg bg-surface-container-low px-space-md py-space-xs font-telemetry-sm text-telemetry-sm">
+      <span><b>${n.contacted}</b> Contacted</span><span class="text-outline-variant">·</span><span class="text-tertiary"><b>${n.waiting}</b> Waiting</span>
+      ${n.declined ? `<span class="text-outline-variant">·</span><span><b>${n.declined}</b> Declined</span>` : ''}<span class="text-outline-variant">·</span><span class="text-[#047857]"><b>${n.accepted}</b> Accepted</span></div>
+  </div>
+  ${banner}
+  <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-space-sm">${rows}</div>
+</div>`;
+
+    const tick = () => document.querySelectorAll('[data-bc-cd]').forEach(el => { if (el.dataset.bcCd) el.textContent = mmss((new Date(el.dataset.bcCd) - Date.now()) / 1000); });
+    tick(); bcTimer = setInterval(tick, 1000);
+  }
+
+  async function sendBroadcast(btn) {
+    const id = state.match.id; if (!id) return;
+    if (btn) { btn.disabled = true; btn.lastChild.textContent = 'Alerting…'; }
+    rememberHold(id);
+    try {
+      const bc = await api(`/api/requests/${encodeURIComponent(id)}/broadcast`, { method: 'POST' });
+      waveToasted[id] = bc.wave;
+      toast(`🚨 Alert sent to ${bc.sent_to.length} hospital${bc.sent_to.length > 1 ? 's' : ''}`, `First to accept gets #${esc(id)}.`, 'success');
+      await openMatch(id);
+    } catch (err) {
+      toast('Could not alert hospitals', esc(err.message), 'critical');
+      await openMatch(id);
     }
   }
 
-  async function requestConfirmation(hospitalId) {
-    const id = state.match.id;
-    const btn = document.querySelector(`[data-request-confirm="${hospitalId}"]`);
-    if (btn) { btn.disabled = true; btn.lastElementChild.textContent = 'Holding bed…'; }
+  async function withdrawAll() {
     try {
-      const res = await api('/api/reservations', { method: 'POST', body: { request_id: id, hospital_id: hospitalId } });
-      const r = res.reservations.find(x => x.status === 'PENDING');
-      state.hold = { hospital_id: hospitalId, hospital_name: res.hospital_name, status: 'PENDING', reservation_id: r.reservation_id, expires_at: r.expires_at };
-      rememberHold(id);
-      toast('Bed held', `${esc(res.hospital_name)} has ${res.hold_minutes} min to confirm.`, 'success');
-      renderHold();
-    } catch (err) {
-      if (err.status === 409 && err.body?.code === 'BED_TAKEN') {
-        const alts = err.body.alternatives || [];
-        toast('Bed just taken', `${esc(err.message)} ${alts.length ? `Next best: ${esc(alts[0].hospital_name)}.` : ''}`, 'critical');
-        await openMatch(id, { rerun: true });
-      } else {
-        toast('Could not hold bed', esc(err.message), 'critical');
-        if (btn) { btn.disabled = false; btn.lastElementChild.textContent = 'Request Confirmation'; }
-      }
-    }
+      await api(`/api/requests/${encodeURIComponent(state.match.id)}/withdraw`, { method: 'POST' });
+      toast('Request withdrawn', 'Every hospital that was deciding has been told to stand down.', 'info');
+    } catch (err) { toast('Could not cancel', esc(err.message), 'critical'); }
+    loadBroadcast(state.match.id);
   }
 
   async function cancelHold(reservationId) {
     try {
       await api(`/api/reservations/${encodeURIComponent(reservationId)}/cancel`, { method: 'POST' });
-      toast('Hold released', 'The bed is available to other patients again.', 'info');
-    } catch (err) { toast('Could not cancel', esc(err.message), 'critical'); }
+      toast('Bed released', 'The bed is available to other patients again.', 'info');
+    } catch (err) { toast('Could not release', esc(err.message), 'critical'); }
+    loadBroadcast(state.match.id);
   }
 
   document.addEventListener('click', (e) => {
-    const c = e.target.closest('[data-cancel-hold]');
-    if (c) cancelHold(c.dataset.cancelHold);
-    const hf = e.target.closest('[data-handoff]');
-    if (hf) doHandoff(hf.dataset.handoff, hf);
+    const c = e.target.closest('[data-cancel-hold]'); if (c) cancelHold(c.dataset.cancelHold);
+    const hf = e.target.closest('[data-handoff]'); if (hf) doHandoff(hf.dataset.handoff, hf);
+    const bb = e.target.closest('[data-broadcast]'); if (bb && !bb.disabled) sendBroadcast(bb);
+    if (e.target.closest('[data-withdraw]')) withdrawAll();
   });
 
   async function doHandoff(step, btn) {
     btn.disabled = true;
     try {
       const res = await api(`/api/requests/${encodeURIComponent(state.match.id)}/handoff`, { method: 'POST', body: { step } });
-      if (state.match.data) state.match.data.request = res.request;
-      state.hold.stage = step === 'depart' ? 'enroute' : 'arrived';
       toast(step === 'depart' ? 'En route' : 'Arrived', step === 'depart' ? `${esc(res.hospital_name)} is tracking your ETA.` : 'The hospital team has been notified to take over.', 'success');
-      renderHold();
     } catch (err) { toast('Could not update', esc(err.message), 'critical'); btn.disabled = false; }
+    loadBroadcast(state.match.id);
   }
 
   function onHandoffUpdate(p) {
+    if (state.view === 'live' && state.dl.id === p.request.request_id) loadLive();
+    if (state.view === 'match' && state.match.id === p.request.request_id) loadBroadcast(p.request.request_id);
     if (!myHolds.has(p.request.request_id)) return;
-    if (state.view === 'match' && state.match.id === p.request.request_id && state.hold) {
-      if (state.match.data) state.match.data.request = p.request;
-      state.hold.stage = p.step === 'complete' ? 'done' : p.step === 'arrive' ? 'arrived' : 'enroute';
-      renderHold();
-    }
-    if (p.step === 'complete') toast(`✅ Handover complete`, `${esc(p.hospital_name)} admitted #${esc(p.request.request_id)}.`, 'success');
+    if (p.step === 'complete') toast('✅ Handover complete', `${esc(p.hospital_name)} admitted #${esc(p.request.request_id)}.`, 'success');
     if (p.step === 'arrive' && p.workflow) toast('Arrival logged by hospital', `#${esc(p.request.request_id)} at ${esc(p.hospital_name)}.`, 'info');
   }
 
-  // Live: hospital answered / hold expired / cancelled
+  // Live: a hospital answered / timed out / was withdrawn / next wave sent
   function onReservationUpdate(p) {
-    if (p.action === 'held' || p.action === 'failed') return;
-    const mine = state.view === 'match' && state.match.id === p.request.request_id;
-    const status = { accepted: 'CONFIRMED', rejected: 'REJECTED', expired: 'EXPIRED', cancelled: 'CANCELLED' }[p.action];
-    if (mine) {
-      const active = p.reservations.find(r => ['PENDING', 'CONFIRMED'].includes(r.status));
-      state.hold = { hospital_id: p.hospital_id, hospital_name: p.hospital_name, status, reason: p.reason,
-                     reservation_id: active?.reservation_id || p.reservations[0]?.reservation_id, expires_at: active?.expires_at };
-      renderHold();
-      if (['rejected', 'expired', 'cancelled'].includes(p.action)) openMatch(p.request.request_id, { rerun: true, keepHold: true });
+    const id = p.request?.request_id; if (!id) return;
+    if (state.view === 'live' && state.dl.id === id) {
+      loadLive();
     }
-    if (!myHolds.has(p.request.request_id)) return;
-    if (p.action === 'accepted') toast(`✅ ${p.hospital_name} accepted`, `#${esc(p.request.request_id)} is now ASSIGNED.`, 'success');
-    if (p.action === 'rejected') toast(`${p.hospital_name} declined`, `#${esc(p.request.request_id)}${p.reason ? ` · ${esc(p.reason)}` : ''}. Pick the next hospital.`, 'critical');
-    if (p.action === 'expired') toast('Hold expired', `${esc(p.hospital_name)} did not answer #${esc(p.request.request_id)} in time.`, 'warn');
+    if (state.view === 'match' && state.match.id === id) {
+      if (p.action === 'held' && p.auto && waveToasted[id] !== p.wave) openMatch(id);    // new wave → fresh ranking + panel
+      else loadBroadcast(id);
+    }
+    if (!myHolds.has(id)) return;
+    if (p.action === 'accepted') toast(`✅ ${p.hospital_name} accepted`, `#${esc(id)} is ASSIGNED.${p.withdrawn?.length ? ` ${p.withdrawn.length} other hospital(s) withdrawn.` : ''}`, 'success');
+    if (p.action === 'rejected') toast(`${p.hospital_name} declined`, `#${esc(id)}${p.reason ? ` · ${esc(p.reason)}` : ''}${p.still_waiting ? `. ${p.still_waiting > 1 ? 'Others are' : 'One other is'} still deciding.` : '.'}`, p.still_waiting ? 'warn' : 'critical');
+    if (p.action === 'expired') toast('No answer', `${esc(p.hospital_name)} did not answer #${esc(id)} in time.`, 'warn');
+    if (p.action === 'held' && p.auto && waveToasted[id] !== p.wave) { waveToasted[id] = p.wave; toast(`🚨 Wave ${p.wave}: alerting more hospitals`, `Everyone contacted for #${esc(id)} declined, so the next suitable hospitals were alerted automatically.`, 'warn'); }
+    if (p.action === 'exhausted') toast('No hospital left to alert', `#${esc(id)}: relax a requirement or alert again later.`, 'critical');
   }
+
+  // ───────────── View: Live Route (real map + hospital requests + live updates) ─────────────
+  // Before a hospital accepts: the pickup point and every alerted hospital on a real street map.
+  // As soon as one accepts: the ONE road route to that hospital (OSRM), turn-by-turn guidance and the
+  // ambulance position: from the device GPS when enabled, otherwise a simulated drive after "Depart".
+  // The position is streamed to the server so the hospital's Live Route map moves in real time.
+  state.dl = { id: null, detail: null, rankings: [], map: null, route: null, routeFor: null, routing: false,
+               gps: false, watchId: null, fix: null, lastEmit: 0, events: {}, fitted: false };
+
+  const MAP_TONE = { accepted: 'accepted', waiting: 'waiting', declined: 'declined', nobed: 'declined', expired: 'declined', withdrawn: 'declined', closed: 'declined' };
+  const hospLoc = (hid) => {
+    const r = state.dl.rankings.find(x => x.hospital_id === hid)?.location || hospitals.find(h => h.hospital_id === hid)?.location;
+    return r ? [r.lat, r.lng] : null;
+  };
+  const shortHosp = (n = '') => n.replace(/\s+(Multispeciality|Multi-speciality)?\s*(Hospital|Medical Centre|Centre|Center)$/i, '');
+  const unitName = (id) => id ? `A-${String(parseInt(id.replace(/\D/g, ''), 10)).padStart(2, '0')}` : 'A-12';
+  const liveEvent = (id, text, tone = '') => { (state.dl.events[id] ||= []).push([new Date().toISOString(), text, tone]); };
+
+  function resetLive() {
+    stopGps(false);
+    if (state.dl.map) { state.dl.map.destroy(); }
+    Object.assign(state.dl, { id: null, detail: null, rankings: [], map: null, route: null, routeFor: null, routing: false, fix: null, fitted: false });
+  }
+
+  async function openLive(id) {
+    if (state.dl.id !== id) { resetLive(); state.dl.id = id; }
+    $('dlive-rank-link').href = `#match/${encodeURIComponent(id)}`;
+    await loadLive();
+  }
+
+  async function loadLive() {
+    const id = state.dl.id; if (!id) return;
+    try {
+      const [detail, rk] = await Promise.all([
+        api(`/api/requests/${encodeURIComponent(id)}`),
+        api(`/api/requests/${encodeURIComponent(id)}/rankings`).catch(() => ({ rankings: [] })),
+      ]);
+      if (state.dl.id !== id) return;
+      state.dl.detail = detail; state.dl.rankings = rk.rankings || [];
+    } catch (err) {
+      $('dlive-panel').innerHTML = emptyHTML(`Could not load #${esc(id)}: ${esc(err.message)}`); return;
+    }
+    renderLive();
+  }
+
+  // Where things stand for this emergency
+  function liveModel() {
+    const d = state.dl.detail; if (!d) return null;
+    const m = bcModel(d, state.dl.rankings);
+    const acc = m.acc;
+    const w = acc?.w || {};
+    const phase = !acc ? (m.waiting.length ? 'waiting' : 'none') : w.handover_status === 'COMPLETED' ? 'done' : w.arrival_time ? 'arrived' : w.departure_time ? 'enroute' : 'preparing';
+    const rank = acc && state.dl.rankings.find(x => x.hospital_id === acc.hid);
+    const rt = state.dl.routeFor === acc?.hid ? state.dl.route : null;
+    const driveMin = rank ? Math.max(1, Math.round(rank.eta_min)) : rt?.duration_min || (rt ? Math.round(rt.distance_km / 28 * 60 + 2) : null);
+    return { d, m, acc, w, phase, rank, rt, driveMin, pickup: [d.location.lat, d.location.lng], dest: acc ? hospLoc(acc.hid) : null };
+  }
+
+  // Ambulance position right now + remaining distance/time
+  function ambulanceNow(L_) {
+    const { phase, rt, w, driveMin, pickup, dest } = L_;
+    if (!rt || phase === 'waiting' || phase === 'none' || phase === 'preparing') {
+      const at = state.dl.gps && state.dl.fix ? state.dl.fix.latlng : pickup;
+      return { latlng: at, frac: 0, left_km: rt?.distance_km ?? null, left_min: driveMin, source: state.dl.gps && state.dl.fix ? 'gps' : 'standby' };
+    }
+    if (phase === 'arrived' || phase === 'done') return { latlng: dest || rt.coords[rt.coords.length - 1], frac: 1, left_km: 0, left_min: 0, source: 'arrived' };
+    if (state.dl.gps && state.dl.fix) {
+      const s = LiveMap.snap(rt, state.dl.fix.latlng);
+      const left_min = Math.max(0, Math.round(driveMin * (1 - s.frac)));
+      return { latlng: state.dl.fix.latlng, frac: s.frac, left_km: Math.round(rt.distance_km * (1 - s.frac) * 10) / 10, left_min, off_km: s.off_route_km, done_km: rt.distance_km * s.frac, source: 'gps' };
+    }
+    const frac = Math.min(0.98, Math.max(0, (Date.now() - new Date(w.departure_time)) / (driveMin * 60000)));
+    const p = LiveMap.pointAt(rt, frac);
+    return { latlng: p.latlng, frac, left_km: Math.round(rt.distance_km * (1 - frac) * 10) / 10, left_min: Math.max(1, Math.ceil(driveMin * (1 - frac))), done_km: rt.distance_km * frac, source: 'simulated' };
+  }
+
+  function ambLabel(L_, pos) {
+    const to = esc(shortHosp(L_.acc?.name || '').toUpperCase());
+    const st = { none: 'AWAITING HOSPITAL', waiting: `AWAITING CONFIRMATION (${L_.m.waiting.length} ALERTED)`, preparing: `READY · ROUTE TO ${to}`,
+                 enroute: `EN ROUTE TO ${to} (ETA ${pos.left_min} MIN)`, arrived: `ARRIVED AT ${to}`, done: `HANDED OVER AT ${to}` }[L_.phase];
+    return `Ambulance ${esc(unitName(L_.d.ambulance_id))} · <span class="lm-state">● ${st}</span>`;
+  }
+
+  function renderLive() {
+    const L_ = liveModel(); if (!L_) return;
+    const { d, m } = L_;
+    const pr = CATALOG.priorities[d.severity];
+    $('dlive-title').innerHTML = `<span class="text-tertiary font-semibold">✱ EMERGENCY #${esc(d.request_id)}</span><span class="text-on-surface">· ${esc(clinicalLabel(d))}</span>`;
+    $('dlive-sub').innerHTML = `Logged ${fmt.timeIST(d.created_at)} · age ${d.patient_age} · <span style="color:${pr?.color || ''}">${esc(d.severity)}</span>`;
+    const mine = [...myHolds].filter(x => x !== d.request_id).slice(-4);
+    $('dlive-switch').innerHTML = mine.length ? `<span class="font-telemetry-sm text-telemetry-sm text-on-surface-variant self-center">Your other emergencies:</span>${mine.map(x => `<a class="px-space-md py-space-xs rounded-full bg-surface-container-low hover:bg-surface-container font-label-md text-label-md" href="#live/${encodeURIComponent(x)}">#${esc(x)}</a>`).join('')}` : '';
+    $('dlive-panel').innerHTML = livePanelHTML(L_);
+    $('dlive-log').innerHTML = liveLogHTML(L_);
+    $('dlive-log').scrollTop = $('dlive-log').scrollHeight;
+    drawLiveMap(L_);
+  }
+
+  function livePanelHTML(L_) {
+    const { d, m, acc, phase } = L_;
+    const n = { contacted: m.list.length, waiting: m.waiting.length, accepted: acc ? 1 : 0, declined: m.list.filter(o => ['declined', 'nobed', 'expired'].includes(o.state)).length };
+    const pos = ambulanceNow(L_);
+    let banner = '';
+    if (acc) {
+      const actions = {
+        preparing: `<button class="py-space-sm rounded-lg bg-primary text-on-primary font-label-lg text-label-lg flex items-center justify-center gap-space-xs" data-live-handoff="depart" type="button"><span class="material-symbols-outlined text-[18px]">local_shipping</span>Depart · Start navigation</button>`,
+        enroute: `<button class="py-space-sm rounded-lg bg-primary text-on-primary font-label-lg text-label-lg flex items-center justify-center gap-space-xs" data-live-handoff="arrive" type="button"><span class="material-symbols-outlined text-[18px]">where_to_vote</span>Arrived at hospital</button>`,
+        arrived: '<span class="font-telemetry-sm text-telemetry-sm text-on-surface-variant text-center">Hospital team is completing the handover…</span>',
+        done: '<a class="py-space-sm rounded-lg bg-surface-container-low font-label-lg text-label-lg text-center" href="#dispatch">Back to dashboard</a>',
+      }[phase];
+      banner = `
+<div class="rounded-lg border border-[#6EE7B7] bg-[#ECFDF5] p-space-md flex flex-col gap-space-sm">
+  <span class="font-label-lg text-label-lg text-[#065F46] flex items-center gap-space-xs uppercase"><span class="material-symbols-outlined text-[20px]">check_circle</span>Hospital confirmed: ${esc(acc.name)}</span>
+  <span class="font-label-lg text-label-lg text-on-surface flex items-center gap-space-xs uppercase"><span class="w-2 h-2 rounded-full ${phase === 'enroute' ? 'bg-primary animate-pulse' : 'bg-[#10B981]'}"></span>${{ preparing: 'Route ready · depart when loaded', enroute: 'Ambulance en route', arrived: 'Ambulance arrived', done: 'Patient handed over' }[phase]}</span>
+  <div class="rounded bg-surface-container-lowest px-space-md py-space-sm flex items-center justify-between gap-space-sm">
+    <span class="font-body-md text-body-md">Destination: <b>${esc(acc.name)}</b></span>
+    <span class="px-space-sm py-0.5 rounded bg-secondary-container/40 text-primary font-telemetry-sm text-telemetry-sm shrink-0" id="dlive-eta">${phase === 'enroute' ? `ETA: ${pos.left_min} min` : phase === 'preparing' ? `${L_.rt ? `${L_.rt.distance_km} km · ` : ''}~${L_.driveMin} min` : phase === 'done' ? 'Closed' : 'Docked'}</span>
+  </div>
+  ${actions}
+</div>`;
+    } else if (m.waiting.length) {
+      const soonest = m.waiting.map(o => o.expires).filter(Boolean).sort()[0];
+      banner = `<div class="rounded-lg border border-[#FCD34D] bg-[#FFFBEB] p-space-md flex flex-col gap-space-xs">
+        <span class="font-label-lg text-label-lg text-[#92400E] flex items-center gap-space-xs uppercase"><span class="material-symbols-outlined text-[20px]">campaign</span>Alert sent to ${m.waiting.length} hospital${m.waiting.length > 1 ? 's' : ''}</span>
+        <span class="font-body-sm text-body-sm text-on-surface-variant">Waiting for the first to accept · <b data-bc-cd="${esc(soonest || '')}">--:--</b>. The route appears on the map the moment one accepts.</span>
+        <button class="self-start mt-space-xs px-space-md py-space-xs rounded-lg border border-outline-variant font-label-md text-label-md bg-surface-container-lowest" data-live-withdraw type="button">Cancel all</button></div>`;
+    } else if (['CREATED', 'MATCHING', 'NO_MATCH'].includes(d.status)) {
+      banner = `<div class="rounded-lg border border-[#F87171] bg-[#FEF2F2] p-space-md flex flex-col gap-space-sm">
+        <span class="font-label-lg text-label-lg text-[#991B1B]">${m.list.length ? 'No hospital is deciding right now' : 'No hospital alerted yet'}</span>
+        <button class="py-space-sm rounded-lg bg-tertiary text-on-tertiary font-label-lg text-label-lg flex items-center justify-center gap-space-xs" data-live-broadcast type="button"><span class="material-symbols-outlined text-[18px]">campaign</span>${m.list.length ? 'Re-rank & alert again' : 'Alert all suitable hospitals'}</button></div>`;
+    }
+    const cards = m.list.map(o => `
+      <div class="rounded-lg border ${o.state === 'accepted' ? 'border-[#6EE7B7] bg-[#F0FDF9]' : 'border-surface-container-high'} p-space-md flex flex-col gap-space-sm ${['withdrawn', 'closed'].includes(o.state) ? 'opacity-75' : ''}">
+        <div class="flex items-start justify-between gap-space-sm"><span class="font-label-lg text-label-lg">${esc(o.name)}</span>${bcChip(o)}</div>
+        <div class="flex flex-wrap gap-space-xs">${[...new Set(o.res.map(x => x.resource_type))].map(t => `<span class="px-space-sm py-0.5 rounded font-telemetry-sm text-telemetry-sm ${o.state === 'accepted' ? 'bg-secondary-container/40 text-primary' : 'bg-surface-container-low text-on-surface-variant'}">${esc(t)} ${o.state === 'accepted' ? 'Reserved ✓' : '✓'}</span>`).join('')}
+          ${o.rank ? `<span class="px-space-sm py-0.5 rounded bg-surface-container-low font-telemetry-sm text-telemetry-sm text-on-surface-variant">${o.rank.distance_km} km</span>` : ''}</div>
+        <div class="flex items-center justify-between font-telemetry-sm text-telemetry-sm text-on-surface-variant gap-space-sm"><span>${bcLine(o, m)}</span><span class="shrink-0">Updated ${fmt.timeIST(o.at).replace(' IST', '')}</span></div>
+      </div>`).join('');
+    return `
+<h2 class="font-headline-md text-headline-md">Hospital Requests</h2>
+<div class="rounded-lg bg-surface-container-low px-space-md py-space-sm flex items-center justify-between gap-space-sm font-telemetry-sm text-telemetry-sm">
+  <span><b>${n.contacted}</b> Contacted</span><span class="text-tertiary"><b>${n.waiting}</b> Waiting</span>${n.declined ? `<span><b>${n.declined}</b> Declined</span>` : ''}<span class="text-[#047857]"><b>${n.accepted}</b> Accepted</span>
+</div>
+${banner}
+<div class="flex flex-col gap-space-sm">${cards || '<span class="font-body-sm text-body-sm text-on-surface-variant">No hospital contacted yet.</span>'}</div>`;
+  }
+
+  function liveLogHTML(L_) {
+    const { d, m, acc, w } = L_;
+    const rows = [[d.created_at, `Emergency logged · ${d.severity} ${d.emergency_type} · Ambulance ${unitName(d.ambulance_id)}`, '']];
+    const waves = {};
+    for (const o of m.list) (waves[o.w.assignment_time] ||= []).push(o);
+    Object.entries(waves).forEach(([at, list]) => {
+      rows.push([at, list.length > 1 ? `Request sent to ${list.length} hospitals: ${list.map(o => shortHosp(o.name)).join(', ')}` : `Request sent to ${list[0].name}`, '']);
+      for (const o of list) {
+        if (o.state === 'declined' || o.state === 'nobed') rows.push([null, `${o.name} declined${o.w.rejection_reason ? ` (${o.w.rejection_reason})` : ''}`, 'bad', at]);
+        if (o.state === 'expired') rows.push([null, `${o.name} did not answer in time`, 'bad', o.expires || at]);
+      }
+    });
+    if (acc) {
+      rows.push([acc.confirmed?.confirmed_at || acc.at, `${acc.name} accepted & locked resources`, 'ok']);
+      const stood = m.list.filter(o => o.state === 'withdrawn').length;
+      if (stood) rows.push([acc.confirmed?.confirmed_at || acc.at, `${stood} other hospital${stood > 1 ? 's' : ''} stood down automatically`, '']);
+      if (L_.rt) rows.push([acc.confirmed?.confirmed_at || acc.at, `Route generated automatically · ${L_.rt.distance_km} km${L_.rt.source === 'osrm' ? ' by road' : ' (estimate)'} to ${shortHosp(acc.name)}`, 'ok']);
+    }
+    if (w.departure_time) rows.push([w.departure_time, `Ambulance ${unitName(d.ambulance_id)} departed · navigation active`, 'ok']);
+    if (w.arrival_time) rows.push([w.arrival_time, `Arrived at ${acc.name}`, 'ok']);
+    if (w.handover_time) rows.push([w.handover_time, 'Handover completed · patient admitted', 'ok']);
+    for (const e of state.dl.events[d.request_id] || []) rows.push(e);
+    rows.sort((a, b) => new Date(a[0] || a[3]) - new Date(b[0] || b[3]));
+    const tone = { ok: 'text-[#047857]', bad: 'text-tertiary', '': 'text-on-surface' };
+    return rows.map(([t, text, k]) => `<div class="flex gap-space-md"><span class="text-on-surface-variant shrink-0 w-10">${t ? fmt.timeIST(t).replace(' IST', '') : '··:··'}</span><span class="${tone[k] || ''}">${esc(text)}</span></div>`).join('');
+  }
+
+  function drawLiveMap(L_) {
+    if (!LiveMap.available()) { $('dlive-nomap').classList.remove('hidden'); $('dlive-nomap').classList.add('flex'); $('dlive-caption').textContent = 'Map unavailable'; return; }
+    if (!state.dl.map) {
+      state.dl.map = LiveMap.create($('dlive-map'), { center: L_.pickup, zoom: 13 });
+      setTimeout(() => state.dl.map?.invalidate(), 50);
+    }
+    const map = state.dl.map;
+    const near = AREAS.map(a => [a[0], LiveMap.km(L_.pickup, [a[1], a[2]])]).sort((a, b) => a[1] - b[1])[0];
+    map.setPickup(L_.pickup, `Pickup${near && near[1] < 3 ? ` · ${near[0]}` : ''}`);
+    const shown = L_.m.list.length ? L_.m.list.map(o => ({ id: o.hid, name: shortHosp(o.name), latlng: hospLoc(o.hid), tone: MAP_TONE[o.state] }))
+      : state.dl.rankings.filter(r => r.eligible).slice(0, 6).map(r => ({ id: r.hospital_id, name: shortHosp(r.hospital_name), latlng: hospLoc(r.hospital_id), tone: 'standby' }));
+    // once accepted, only the chosen hospital stays prominent
+    map.setHospitals(L_.acc ? shown.filter(h => h.id === L_.acc.hid) : shown);
+
+    if (L_.acc && L_.dest && state.dl.routeFor !== L_.acc.hid && !state.dl.routing) {
+      state.dl.routing = true;
+      const hid = L_.acc.hid;
+      LiveMap.route(L_.pickup, L_.dest).then(rt => {
+        state.dl.routing = false;
+        if (state.dl.id !== L_.d.request_id) return;
+        state.dl.route = rt; state.dl.routeFor = hid; state.dl.fitted = false;
+        renderLive();
+      });
+    }
+    if (L_.rt) map.setRoute(L_.rt, { active: L_.phase !== 'done' }); else map.setRoute(null);
+    if (!state.dl.fitted) {
+      state.dl.fitted = true;
+      map.fit(L_.rt ? L_.rt.coords : [L_.pickup, ...shown.map(h => h.latlng)], 70);
+    }
+    liveTick(true);
+  }
+
+  // every second: move the ambulance, update ETA / next turn, stream the position to the hospital
+  function liveTick(force = false) {
+    if (state.view !== 'live' || !state.dl.detail) return;
+    const L_ = liveModel(); if (!L_) return;
+    const pos = ambulanceNow(L_);
+    const map = state.dl.map;
+    if (map) {
+      map.setAmbulance(pos.latlng, ambLabel(L_, pos));
+      if (L_.rt) map.setProgress(L_.rt, pos.frac);
+      if (L_.phase === 'enroute' && !force) map.follow(pos.latlng);
+    }
+    const acc = L_.acc;
+    $('dlive-caption').textContent = acc
+      ? (L_.rt ? `Automated route active: ${acc.name} (${L_.rt.distance_km} km · ${L_.phase === 'enroute' ? 'High-priority navigation active' : L_.phase === 'preparing' ? 'depart to start navigation' : 'route complete'})` : `Calculating road route to ${acc.name}…`)
+      : L_.m.waiting.length ? `Pickup point shown · ${L_.m.waiting.length} alerted hospital(s) on the map · route appears when one accepts` : 'Pickup point and suitable hospitals';
+    const eta = $('dlive-eta'); if (eta && L_.phase === 'enroute') eta.textContent = `ETA: ${pos.left_min} min`;
+
+    // turn-by-turn card
+    const nav = $('dlive-nav');
+    if (L_.rt && ['preparing', 'enroute'].includes(L_.phase)) {
+      const step = LiveMap.nextStep(L_.rt, pos.done_km || 0);
+      const src = pos.source === 'gps' ? `GPS live${state.dl.fix?.acc ? ` · ±${Math.round(state.dl.fix.acc)} m` : ''}` : pos.source === 'simulated' ? 'Simulated drive (turn on GPS for real position)' : 'Waiting to depart';
+      nav.innerHTML = `
+        <div class="flex items-center justify-between gap-space-sm"><span class="font-telemetry-sm text-telemetry-sm opacity-80 uppercase">Next</span><span class="font-telemetry-sm text-telemetry-sm text-[#6fd7d3]">${step && step.in_km > 0.05 ? (step.in_km < 1 ? `in ${Math.round(step.in_km * 1000 / 10) * 10} m` : `in ${step.in_km.toFixed(1)} km`) : 'now'}</span></div>
+        <div class="font-headline-sm text-headline-sm flex items-center gap-space-xs"><span class="material-symbols-outlined text-[22px] text-[#6fd7d3]">${/left/.test(step?.text) ? 'turn_left' : /right/.test(step?.text) ? 'turn_right' : /Arrive/.test(step?.text) ? 'flag' : /roundabout/.test(step?.text) ? 'roundabout_right' : 'straight'}</span><span>${esc(step?.text || 'Follow the route')}</span></div>
+        <div class="flex items-center justify-between font-telemetry-sm text-telemetry-sm"><span>${pos.left_km ?? '—'} km left · ~${pos.left_min ?? '—'} min</span><span class="opacity-80">${esc(src)}</span></div>
+        ${pos.off_km > 0.3 ? `<div class="font-telemetry-sm text-telemetry-sm text-[#ffb3b4]">You are ${pos.off_km.toFixed(1)} km off the route</div>` : ''}`;
+      nav.classList.remove('hidden'); nav.classList.add('flex');
+    } else { nav.classList.add('hidden'); nav.classList.remove('flex'); }
+
+    // stream to the hospital (every 3 s while driving)
+    if (L_.phase === 'enroute' && state.socket && Date.now() - state.dl.lastEmit > 3000) {
+      state.dl.lastEmit = Date.now();
+      state.socket.emit('ambulance:position', { request_id: L_.d.request_id, hospital_id: acc.hid, lat: pos.latlng[0], lng: pos.latlng[1],
+        source: pos.source === 'gps' ? 'gps' : 'simulated', accuracy_m: state.dl.fix?.acc, left_km: pos.left_km, eta_min: pos.left_min });
+    }
+  }
+  setInterval(() => liveTick(), 1000);
+
+  // Device GPS (navigator.geolocation). Needs https or localhost + the browser's permission.
+  function startGps() {
+    if (!('geolocation' in navigator)) { toast('GPS not available', 'This browser has no location support.', 'warn'); return; }
+    state.dl.gps = true; renderGpsBtn();
+    state.dl.watchId = navigator.geolocation.watchPosition(
+      (p) => {
+        const first = !state.dl.fix;
+        state.dl.fix = { latlng: [p.coords.latitude, p.coords.longitude], acc: p.coords.accuracy, at: Date.now() };
+        if (first && state.dl.id) { liveEvent(state.dl.id, `Device GPS locked (±${Math.round(p.coords.accuracy)} m)`, 'ok'); renderLive(); state.dl.map?.follow(state.dl.fix.latlng); }
+        renderGpsBtn();
+      },
+      (err) => { toast('GPS unavailable', esc(err.message || 'Permission denied'), 'warn'); stopGps(); },
+      { enableHighAccuracy: true, maximumAge: 2000, timeout: 15000 });
+  }
+  function stopGps(render = true) {
+    if (state.dl.watchId != null) navigator.geolocation.clearWatch(state.dl.watchId);
+    state.dl.watchId = null; state.dl.gps = false; state.dl.fix = null;
+    if (render) renderGpsBtn();
+  }
+  function renderGpsBtn() {
+    const b = $('gps-btn'); const on = state.dl.gps;
+    b.className = `inline-flex items-center gap-space-xs px-space-md py-space-xs rounded-lg border font-label-md text-label-md ${on ? 'border-[#6EE7B7] bg-[#ECFDF5] text-[#065F46]' : 'border-outline-variant bg-surface-container-lowest'}`;
+    b.innerHTML = `<span class="material-symbols-outlined text-[16px]">${on ? 'gps_fixed' : 'my_location'}</span><span>${on ? (state.dl.fix ? `GPS live ±${Math.round(state.dl.fix.acc)} m · Stop` : 'Finding GPS… · Stop') : 'Use device GPS'}</span>`;
+  }
+  $('gps-btn').addEventListener('click', () => state.dl.gps ? stopGps() : startGps());
+  $('dlive-fit').addEventListener('click', () => { state.dl.fitted = false; const L_ = liveModel(); if (L_) drawLiveMap(L_); });
+
+  document.addEventListener('click', async (e) => {
+    const hf = e.target.closest('[data-live-handoff]');
+    if (hf) {
+      hf.disabled = true;
+      try {
+        const res = await api(`/api/requests/${encodeURIComponent(state.dl.id)}/handoff`, { method: 'POST', body: { step: hf.dataset.liveHandoff } });
+        toast(hf.dataset.liveHandoff === 'depart' ? 'Navigation started' : 'Arrived', hf.dataset.liveHandoff === 'depart' ? `${esc(res.hospital_name)} is tracking you live.` : 'The hospital team has been notified.', 'success');
+      } catch (err) { toast('Could not update', esc(err.message), 'critical'); }
+      loadLive();
+    }
+    if (e.target.closest('[data-live-withdraw]')) {
+      try { await api(`/api/requests/${encodeURIComponent(state.dl.id)}/withdraw`, { method: 'POST' }); toast('Request withdrawn', 'Every hospital that was deciding has been told to stand down.', 'info'); }
+      catch (err) { toast('Could not cancel', esc(err.message), 'critical'); }
+      loadLive();
+    }
+    const lb = e.target.closest('[data-live-broadcast]');
+    if (lb) {
+      lb.disabled = true; rememberHold(state.dl.id);
+      try { const bc = await api(`/api/requests/${encodeURIComponent(state.dl.id)}/broadcast`, { method: 'POST' }); waveToasted[state.dl.id] = bc.wave; toast(`🚨 Alert sent to ${bc.sent_to.length} hospital(s)`, 'First to accept gets the patient.', 'success'); }
+      catch (err) { toast('Could not alert hospitals', esc(err.message), 'critical'); }
+      state.dl.fitted = false; loadLive();
+    }
+  });
 
   // ───────────── Summary drawer ─────────────
   document.addEventListener('click', (e) => {
@@ -988,7 +1362,7 @@
   }
 
   // ───────────── Routing between the three views ─────────────
-  const VIEWS = { dispatch: 'view-dispatch', create: 'view-create', cart: 'view-cart', match: 'view-match' };
+  const VIEWS = { dispatch: 'view-dispatch', create: 'view-create', cart: 'view-cart', match: 'view-match', live: 'view-live' };
   const ACTIVE_NAV = 'nav-link px-space-md py-space-xs transition-colors rounded bg-primary-container text-on-primary-container font-semibold';
   const IDLE_NAV = 'nav-link px-space-md py-space-xs transition-colors rounded text-on-surface-variant hover:text-on-surface hover:bg-surface-container-low font-label-md text-label-md';
 
@@ -1016,6 +1390,12 @@
     $('create-bar').classList.toggle('hidden', state.view !== 'create');
     if (state.view === 'cart') renderCart();
     if (state.view === 'match') param ? openMatch(decodeURIComponent(param)) : (location.hash = '#dispatch');
+    if (state.view === 'live') {
+      const last = [...myHolds].pop();
+      if (param) openLive(decodeURIComponent(param));
+      else if (last) location.replace(`#live/${encodeURIComponent(last)}`);
+      else { $('dlive-panel').innerHTML = emptyHTML('No emergency to track yet. Create one and click Start Searching.'); $('dlive-title').textContent = 'Live Route'; $('dlive-log').innerHTML = ''; }
+    }
     if (state.view === 'create') {
       syncCreate();
       const focus = state.focusAfterRoute; state.focusAfterRoute = null;
@@ -1049,6 +1429,7 @@
 
   if (window.io) {
     const socket = io();
+    state.socket = socket;
     socket.on('connect', () => setConnection(true));
     socket.on('disconnect', () => setConnection(false));
 

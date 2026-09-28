@@ -18,6 +18,7 @@
     checklists: {},     // request_id → Set of checked items (handover)
     alarmQueue: [],     // request_ids waiting to be acknowledged
     seenAlarms: new Set(),
+    broadcastIds: new Set(),   // requests that were sent to several hospitals at once
   };
 
   // ───────────── Labels ─────────────
@@ -112,8 +113,9 @@
     ].map(([k, val]) => `<div class="rounded-lg bg-surface-container-low px-space-md py-space-sm"><div class="font-label-md text-label-md text-on-surface-variant uppercase">${k}</div><div class="font-telemetry-lg text-telemetry-lg text-on-surface">${esc(val)}</div></div>`).join('');
     $('alarm-needs').innerHTML = [...depts(r).map(d => chip(d, 'bg-surface-container text-primary')), ...equips(r).map(e => chip(e, 'bg-tertiary-fixed text-tertiary'))].join('')
       + (r.required_specialist ? chip(r.required_specialist, 'bg-surface-container-high text-on-surface') : '');
-    $('alarm-notes').textContent = v.has ? `Vitals: ${[v.bp && `BP ${v.bp}`, v.hr && `HR ${v.hr}`, v.spo2 && `SpO₂ ${v.spo2}%`].filter(Boolean).join(' · ')}${v.unstable ? ' · UNSTABLE' : ''}${v.notes ? `. "${v.notes}"` : ''}`
-      : (item.test ? 'This is a test alert.' : 'No field vitals transmitted.');
+    const race = (r.broadcast_round > 0 || state.broadcastIds.has(r.request_id)) ? 'Also sent to other suitable hospitals. The FIRST to accept gets this patient. ' : '';
+    $('alarm-notes').textContent = race + (v.has ? `Vitals: ${[v.bp && `BP ${v.bp}`, v.hr && `HR ${v.hr}`, v.spo2 && `SpO₂ ${v.spo2}%`].filter(Boolean).join(' · ')}${v.unstable ? ' · UNSTABLE' : ''}${v.notes ? `. "${v.notes}"` : ''}`
+      : (item.test ? 'This is a test alert.' : 'No field vitals transmitted.'));
     $('alarm-countdown').dataset.countdown = item.reservations?.[0]?.expires_at || '';
     const more = state.alarmQueue.filter(id => id !== r.request_id).length;
     $('alarm-queue').textContent = more ? `+${more} more request${more > 1 ? 's' : ''} waiting` : '';
@@ -196,8 +198,8 @@
   function renderDashboard() {
     const p = pending(), c = confirmed();
     const urgentCount = p.filter(i => urgent(i.request)).length;
-    const heldUnits = state.items.reduce((a, i) => a + i.reservations.reduce((b, r) => b + r.quantity, 0), 0);
-    const heldTypes = [...new Set(state.items.flatMap(i => i.reservations.map(r => r.resource_type)))];
+    const heldUnits = c.reduce((a, i) => a + i.reservations.reduce((b, r) => b + r.quantity, 0), 0);
+    const heldTypes = [...new Set(c.flatMap(i => i.reservations.map(r => r.resource_type)))];
     const stat = (label, value, icon, iconCls, foot) => `
       <div class="bg-surface-container-lowest rounded-xl shadow-sm p-space-lg flex flex-col gap-space-sm">
         <div class="flex items-start justify-between"><span class="font-label-md text-label-md text-on-surface-variant uppercase">${label}</span>
@@ -315,13 +317,14 @@
 
   function resourceCheckRows(i) {
     const r = i.request, h = state.hospital;
-    const held = Object.fromEntries(i.reservations.map(x => [x.resource_type, x.quantity]));
+    const held = i.status === 'CONFIRMED' ? Object.fromEntries(i.reservations.map(x => [x.resource_type, x.quantity])) : {};
+    const lockWord = i.status === 'PENDING' ? 'LOCKS ON ACCEPT' : 'LOCK READY';
     const rows = [];
     const bed = (key, label, resKey, icon) => {
       if (!r.requirements[key] && !(key === 'general' && !r.requirements.icu && !r.requirements.oxygen)) return;
       const res = h?.resources[resKey]; const hl = held[label === 'ICU' ? 'ICU' : label] || 0;
       const ok = hl > 0 || (res && res.available >= r.beds_required);
-      rows.push([`${label === 'ICU' ? 'ICU (Intensive Care)' : label} (Bed)`, icon, ok ? 'AVAILABLE' : 'UNAVAILABLE', res ? `${hl ? `${hl} held for this patient · ` : ''}${res.available} free of ${res.total}` : '—', hl ? 'HELD' : ok ? 'LOCK READY' : 'NO CAPACITY']);
+      rows.push([`${label === 'ICU' ? 'ICU (Intensive Care)' : label} (Bed)`, icon, ok ? 'AVAILABLE' : 'UNAVAILABLE', res ? `${hl ? `${hl} held for this patient · ` : ''}${res.available} free of ${res.total}` : '—', hl ? 'HELD' : ok ? lockWord : 'NO CAPACITY']);
     };
     bed('icu', 'ICU', 'icu', 'monitor_heart');
     bed('oxygen', 'Oxygen Bed', 'oxygen_bed', 'pulmonology');
@@ -329,7 +332,7 @@
     if (r.requirements.ventilator) {
       const res = h?.resources.ventilator; const hl = held.Ventilator || 0;
       const ok = hl > 0 || (res && res.available >= 1);
-      rows.push(['Mechanical Ventilator (Equipment)', 'air', ok ? 'AVAILABLE' : 'UNAVAILABLE', res ? `${hl ? `${hl} held · ` : ''}${res.available} units free of ${res.total}` : '—', hl ? 'HELD' : ok ? 'LOCK READY' : 'NO CAPACITY']);
+      rows.push(['Mechanical Ventilator (Equipment)', 'air', ok ? 'AVAILABLE' : 'UNAVAILABLE', res ? `${hl ? `${hl} held · ` : ''}${res.available} units free of ${res.total}` : '—', hl ? 'HELD' : ok ? lockWord : 'NO CAPACITY']);
     }
     for (const k of ['trauma_care', 'cardiology', 'neurology', 'operation_theatre', 'blood_bank', 'dialysis']) {
       if (!r.requirements[k]) continue;
@@ -404,7 +407,7 @@
       <span class="md:col-span-4 flex items-center gap-space-sm font-label-lg text-label-lg"><span class="w-8 h-8 rounded bg-surface-container-low flex items-center justify-center"><span class="material-symbols-outlined text-[18px] text-primary">${icon}</span></span>${esc(name)}</span>
       <span class="md:col-span-2"><span class="px-space-sm py-0.5 rounded font-telemetry-sm text-telemetry-sm ${statusTone[stt] || ''}">${stt}</span></span>
       <span class="md:col-span-4 font-body-md text-body-md">${esc(detail)}</span>
-      <span class="md:col-span-2 md:text-right"><span class="px-space-sm py-0.5 rounded font-telemetry-sm text-telemetry-sm ${lock === 'HELD' ? 'bg-primary text-on-primary' : lock === 'LOCK READY' ? 'bg-secondary-container/40 text-primary' : 'bg-surface-container text-on-surface-variant'}">${lock}</span></span></div>`).join('')}
+      <span class="md:col-span-2 md:text-right"><span class="px-space-sm py-0.5 rounded font-telemetry-sm text-telemetry-sm ${lock === 'HELD' ? 'bg-primary text-on-primary' : lock === 'LOCK READY' || lock === 'LOCKS ON ACCEPT' ? 'bg-secondary-container/40 text-primary' : 'bg-surface-container text-on-surface-variant'}">${lock}</span></span></div>`).join('')}
   </div>
 </div>
 
@@ -426,7 +429,7 @@
     const h = state.hospital; if (!h) return;
     $('res-updated').textContent = `Updated ${ago(h.freshness.last_updated)} · ${h.freshness.status.toUpperCase()}`;
     const heldBy = {};
-    state.items.forEach(i => i.reservations.forEach(x => { heldBy[x.resource_type] = (heldBy[x.resource_type] || 0) + x.quantity; }));
+    confirmed().forEach(i => i.reservations.forEach(x => { heldBy[x.resource_type] = (heldBy[x.resource_type] || 0) + x.quantity; }));
     $('res-capacity').innerHTML = CAP.map(([k, name, sub, icon, label]) => {
       const res = h.resources[k]; const val = state.draftCaps?.[k] ?? res.available;
       const changed = state.draftCaps?.[k] !== undefined && state.draftCaps[k] !== res.available;
@@ -643,7 +646,8 @@ ${bay.length > 1 ? `<div class="flex gap-space-xs flex-wrap">${bay.map(i => `<a 
         api(`/api/requests/${encodeURIComponent(id)}`),
         api(`/api/requests/${encodeURIComponent(id)}/rankings`).catch(() => ({ rankings: [] })),
       ]);
-      if (state.live.id !== id) state.live.view = null;           // new case → re-fit the map
+      if (state.live.id !== id) { state.live.view = null; state.live.fitted = false; state.live.fix = null; }   // new case → re-fit the map
+      api(`/api/requests/${encodeURIComponent(id)}/position`).then(r => { if (r.position && state.live.id === id) { state.live.fix = r.position; liveTick(); } }).catch(() => {});
       detail.reservations = (detail.reservations || []).map(x => ({ ...x, status: x.status || x.reservation_status }));
       Object.assign(state.live, { id, detail, rankings: rk.rankings || [], error: null });
     } catch (err) { Object.assign(state.live, { id, detail: null, error: err.message }); }
@@ -658,7 +662,7 @@ ${bay.length > 1 ? `<div class="flex gap-space-xs flex-wrap">${bay.map(i => `<a 
     const d = state.live.detail; if (!d) return null;
     const wfs = d.workflow || [];
     const acc = [...wfs].reverse().find(w => w.hospital_response === 'ACCEPTED');
-    const pend = d.reservations.find(x => x.status === 'PENDING');
+    const pend = d.reservations.find(x => x.status === 'PENDING' && x.hospital_id === HID) || d.reservations.find(x => x.status === 'PENDING');
     const destId = acc?.hospital_id || pend?.hospital_id || wfs[wfs.length - 1]?.hospital_id || HID;
     const item = state.items.find(i => i.request.request_id === d.request_id && destId === HID);
     const rank = state.live.rankings.find(x => x.hospital_id === destId);
@@ -701,20 +705,20 @@ ${bay.length > 1 ? `<div class="flex gap-space-xs flex-wrap">${bay.map(i => `<a 
 ${switcher}
 <div class="grid grid-cols-1 lg:grid-cols-3 gap-space-lg items-start">
   <div class="lg:col-span-2 flex flex-col gap-space-lg">
-    <div class="relative rounded-xl border border-surface-container-high overflow-hidden map-dots map-grab select-none h-[440px] md:h-[500px]" id="live-map" aria-label="Live ambulance route map">
+    <div class="relative z-0 rounded-xl border border-surface-container-high overflow-hidden map-dots map-grab select-none h-[440px] md:h-[500px]" id="live-map" aria-label="Live ambulance route map">
       <svg class="absolute inset-0 w-full h-full" id="live-svg"></svg>
       <div class="absolute inset-0 pointer-events-none" id="live-pins"></div>
-      <div class="absolute top-space-lg left-space-lg flex flex-col bg-surface-container-lowest rounded-lg shadow-sm border border-surface-container-high overflow-hidden">
+      <div class="absolute top-space-lg left-space-lg flex flex-col bg-surface-container-lowest rounded-lg shadow-sm border border-surface-container-high overflow-hidden" id="live-ctrls">
         <button class="w-10 h-10 flex items-center justify-center hover:bg-surface-container-low font-headline-sm" data-map="in" type="button" aria-label="Zoom in">+</button>
         <button class="w-10 h-10 flex items-center justify-center hover:bg-surface-container-low border-t border-surface-container-low font-headline-sm" data-map="out" type="button" aria-label="Zoom out">−</button>
         <button class="w-10 h-10 flex items-center justify-center hover:bg-surface-container-low border-t border-surface-container-low text-primary" data-map="fit" type="button" aria-label="Re-center on route"><span class="material-symbols-outlined text-[20px]">my_location</span></button>
       </div>
-      <div class="absolute top-space-lg right-space-lg hidden md:flex flex-col gap-1 bg-surface-container-lowest/90 rounded-lg border border-surface-container-high px-space-md py-space-sm font-telemetry-sm text-telemetry-sm">
+      <div class="absolute top-space-lg right-space-lg z-[1000] hidden md:flex flex-col gap-1 bg-surface-container-lowest/90 rounded-lg border border-surface-container-high px-space-md py-space-sm font-telemetry-sm text-telemetry-sm">
         <span class="flex items-center gap-space-xs"><span class="w-2.5 h-2.5 rounded-full bg-tertiary"></span>Pickup</span>
         <span class="flex items-center gap-space-xs"><span class="w-2.5 h-2.5 rounded bg-primary"></span>Destination</span>
         <span class="flex items-center gap-space-xs"><span class="w-2.5 h-2.5 rounded-full bg-outline"></span>Other hospitals</span>
       </div>
-      <div class="absolute bottom-space-lg left-space-lg right-space-lg flex">
+      <div class="absolute bottom-space-lg left-space-lg right-space-lg z-[1000] flex pointer-events-none">
         <span class="inline-flex items-center gap-space-xs px-space-md py-space-xs rounded-lg bg-surface-container-lowest/95 border border-surface-container-high font-body-sm text-body-sm text-on-surface-variant max-w-full truncate"><span class="material-symbols-outlined text-[16px] text-primary">map</span><span id="live-caption"></span></span>
       </div>
     </div>
@@ -777,6 +781,7 @@ ${switcher}
       ACCEPTED: '<span class="px-space-sm py-0.5 rounded bg-[#10B981] text-white font-telemetry-sm text-telemetry-sm font-semibold">✓ REQUEST ACCEPTED</span>',
       PENDING: '<span class="px-space-sm py-0.5 rounded bg-tertiary-fixed text-tertiary font-telemetry-sm text-telemetry-sm">● Waiting for response</span>',
       REJECTED: `<span class="px-space-sm py-0.5 rounded bg-surface-container text-on-surface-variant font-telemetry-sm text-telemetry-sm">✕ Declined${w.rejection_reason ? ` · ${esc(w.rejection_reason)}` : ''}</span>`,
+      WITHDRAWN: '<span class="px-space-sm py-0.5 rounded bg-surface-container-low text-on-surface-variant font-telemetry-sm text-telemetry-sm">Withdrawn</span>',
     }[w.hospital_response] || '');
     const cards = contacted.map(({ w, res }) => {
       const confirmedTypes = res.filter(x => x.status === 'CONFIRMED').map(x => x.resource_type);
@@ -786,7 +791,7 @@ ${switcher}
         <div class="flex items-start justify-between gap-space-sm"><span class="font-label-lg text-label-lg">${esc(w.hospital_name || hospName(w.hospital_id))}${w.hospital_id === HID ? ' <span class="font-telemetry-sm text-telemetry-sm text-primary">(you)</span>' : ''}</span>${statusChip(w)}</div>
         <div class="flex flex-wrap gap-space-xs">${reqChips(r, w.hospital_id, isAcc ? [...new Set(confirmedTypes)] : [])}</div>
         <div class="flex items-center justify-between font-telemetry-sm text-telemetry-sm">
-          <span class="${w.hospital_response === 'PENDING' ? 'text-tertiary' : 'text-on-surface-variant'}">${w.hospital_response === 'PENDING' ? '● Waiting for response' : isAcc ? 'Resources locked' : 'Beds released'}</span>
+          <span class="${w.hospital_response === 'PENDING' ? 'text-tertiary' : 'text-on-surface-variant'}">${w.hospital_response === 'PENDING' ? '● Waiting for response' : isAcc ? 'Resources locked' : w.hospital_response === 'WITHDRAWN' ? (m.acc ? `Filled by ${esc(shortName(m.destName))}` : 'Cancelled by dispatcher') : 'Declined'}</span>
           <span class="text-on-surface-variant">Updated ${ago(last || w.assignment_time)}</span></div>
       </div>`;
     }).join('');
@@ -818,18 +823,29 @@ ${backupHTML}`;
   function liveLogHTML(m) {
     const d = m.d, rows = [];
     rows.push([d.created_at, `Emergency logged · ${d.severity} ${d.emergency_type} · Ambulance ${unit(d.ambulance_id)} dispatched`, '']);
+    // one line per alert wave (a broadcast sends to many hospitals at the same instant), then each answer
     const groups = {};
     for (const x of d.reservations) (groups[`${x.hospital_id}|${x.requested_at}`] ||= []).push(x);
-    for (const g of Object.values(groups)) {
-      const x = g[0], name = x.hospital_name || hospName(x.hospital_id);
-      rows.push([x.requested_at, `Request sent to ${name} (${g.map(y => `${y.quantity}× ${y.resource_type}`).join(' + ')} held)`, '']);
-      if (x.confirmed_at) rows.push([x.confirmed_at, `${name} accepted & locked resources`, 'ok']);
-      else if (x.status === 'EXPIRED') rows.push([x.expires_at, `${name} did not respond · hold expired, beds released`, 'bad']);
-      else if (['RELEASED', 'CANCELLED'].includes(x.status) && !(state.live.log[d.request_id] || []).some(e => e[1].startsWith(name))) {
+    const waves = {};
+    for (const g of Object.values(groups)) (waves[g[0].requested_at] ||= []).push(g);
+    const filledAt = d.reservations.find(y => y.hospital_id === m.destId && y.confirmed_at)?.confirmed_at;
+    for (const [at, gs] of Object.entries(waves)) {
+      const names = gs.map(g => g[0].hospital_name || hospName(g[0].hospital_id));
+      const need = gs[0].map(y => `${y.quantity}× ${y.resource_type}`).join(' + ');
+      rows.push([at, gs.length > 1 ? `Alert broadcast to ${gs.length} hospitals (${need}): ${names.join(', ')}` : `Request sent to ${names[0]} (${need})`, '']);
+      for (const g of gs) {
+        const x = g[0], name = x.hospital_name || hospName(x.hospital_id);
         const w = m.wfs.find(y => y.hospital_id === x.hospital_id);
-        rows.push([null, x.status === 'CANCELLED' ? `Request to ${name} withdrawn by dispatcher` : `${name} declined${w?.rejection_reason ? ` (${w.rejection_reason})` : ''} · beds released`, 'bad', x.requested_at]);
+        if (x.confirmed_at) rows.push([x.confirmed_at, `${name} accepted first & locked resources`, 'ok']);
+        else if (x.status === 'EXPIRED') rows.push([x.expires_at, `${name} did not respond in time`, 'bad']);
+        else if (w?.hospital_response === 'WITHDRAWN') { if (!m.acc) rows.push([null, `Request to ${name} withdrawn by dispatcher`, '', at]); }
+        else if (['RELEASED', 'CANCELLED', 'FAILED'].includes(x.status) && !(state.live.log[d.request_id] || []).some(e => e[1].startsWith(name))) {
+          rows.push([null, x.status === 'FAILED' ? `${name} could not accept · last bed already gone` : `${name} declined${w?.rejection_reason ? ` (${w.rejection_reason})` : ''}`, 'bad', at]);
+        }
       }
     }
+    const stoodDown = m.wfs.filter(w => w.hospital_response === 'WITHDRAWN').length;
+    if (m.acc && stoodDown) rows.push([filledAt, `${stoodDown} other hospital${stoodDown > 1 ? 's' : ''} stood down automatically`, '']);
     for (const e of state.live.log[d.request_id] || []) rows.push(e);
     const w = m.w;
     if (w.departure_time) rows.push([w.departure_time, `Route generated automatically · Ambulance ${unit(d.ambulance_id)} en route to ${m.destName}`, 'ok']);
@@ -869,6 +885,7 @@ ${backupHTML}`;
   function drawMap() {
     const box = $('live-map'); const m = liveModel();
     if (!box || !m) return;
+    if (LiveMap.available()) { drawRealMap(m); return; }
     const W = box.clientWidth, H = box.clientHeight;
     const others = [...new Set([...state.live.rankings.slice(0, 6).map(x => x.hospital_id), ...m.wfs.map(w => w.hospital_id)])].filter(id => id !== m.destId);
     if (!state.live.view) state.live.view = fitView([m.pickup, m.dest], W, H);   // focus on the route; zoom out to see other hospitals
@@ -912,6 +929,7 @@ ${backupHTML}`;
 
   // Moves the ambulance every second without rebuilding the page
   function liveTick() {
+    if (state.view === 'live' && state.live.lm && LiveMap.available()) { realTick(); return; }
     if (state.view !== 'live' || !state.live.geom) return;
     const m = liveModel(); if (!m) return;
     const p = state.live.geom.pointAt(m.prog);
@@ -942,7 +960,57 @@ ${backupHTML}`;
     drawMap();
   });
   document.addEventListener('pointerup', () => { drag = null; });
-  window.addEventListener('resize', () => { if (state.view === 'live') { state.live.view = null; drawMap(); } });
+  window.addEventListener('resize', () => { if (state.view === 'live') { if (state.live.lm) state.live.lm.invalidate(); else { state.live.view = null; drawMap(); } } });
+
+  // ── Real street map (Leaflet + OSRM road route). The ambulance moves with the crew's live position
+  //    (GPS or their simulated drive) when it is streaming, otherwise along the route by elapsed time.
+  const LL = (p) => p ? [p.lat, p.lng] : null;
+  const routeKeyOf = (m) => `${state.live.id}|${m.destId}`;
+  function drawRealMap(m) {
+    const box = $('live-map'); if (!box) return;
+    if (!state.live.lmEl) { state.live.lmEl = document.createElement('div'); state.live.lmEl.className = 'lm-map absolute inset-0'; }
+    box.prepend(state.live.lmEl);
+    ['live-svg', 'live-pins', 'live-ctrls'].forEach(id => $(id)?.classList.add('hidden'));
+    box.classList.remove('map-grab', 'map-dots');
+    if (!state.live.lm) state.live.lm = LiveMap.create(state.live.lmEl, { center: LL(m.pickup), zoom: 13 });
+    const lm = state.live.lm;
+    setTimeout(() => lm.invalidate(), 30);
+    lm.setPickup(LL(m.pickup), 'Pickup');
+    const others = m.acc ? [] : m.wfs.filter(w => w.hospital_id !== m.destId && w.hospital_response !== 'WITHDRAWN')
+      .map(w => ({ id: w.hospital_id, name: shortName(hospName(w.hospital_id)), latlng: LL(hospLoc(w.hospital_id)), tone: w.hospital_response === 'PENDING' ? 'waiting' : 'declined' }));
+    lm.setHospitals([...others, { id: m.destId, name: `${shortName(m.destName)}${m.destId === HID ? ' (you)' : ''}`, latlng: LL(m.dest), tone: m.acc ? 'accepted' : 'waiting' }]);
+    const key = routeKeyOf(m);
+    if (m.dest && state.live.routeKey !== key && !state.live.routing) {
+      state.live.routing = true;
+      LiveMap.route(LL(m.pickup), LL(m.dest)).then(rt => {
+        state.live.routing = false; state.live.route = rt; state.live.routeKey = key; state.live.fitted = false;
+        if (state.view === 'live' && state.live.detail) drawRealMap(liveModel());
+      });
+    }
+    const rt = state.live.routeKey === key ? state.live.route : null;
+    lm.setRoute(rt, { active: !!m.acc && m.phase !== 'done' });
+    if (!state.live.fitted) { state.live.fitted = true; lm.fit(rt ? rt.coords : [LL(m.pickup), LL(m.dest)], 60); }
+    state.live.geom = null;
+    realTick();
+  }
+  function realTick() {
+    const m = liveModel(); const lm = state.live.lm; if (!m || !lm) return;
+    const rt = state.live.routeKey === routeKeyOf(m) ? state.live.route : null;
+    const fix = state.live.fix && state.live.fix.request_id === state.live.id && Date.now() - new Date(state.live.fix.at) < 30000 ? state.live.fix : null;
+    let pos;
+    if (m.phase === 'enroute' && fix) {
+      const ll = [fix.lat, fix.lng];
+      pos = { latlng: ll, frac: rt ? LiveMap.snap(rt, ll).frac : m.prog, eta: fix.eta_min ?? m.left, src: fix.source };
+    } else if (rt) pos = { latlng: LiveMap.pointAt(rt, m.prog).latlng, frac: m.prog, eta: m.left };
+    else pos = { latlng: LL(m.pickup), frac: 0, eta: m.left };
+    const label = phaseLabel({ ...m, left: pos.eta });
+    lm.setAmbulance(pos.latlng, `Ambulance ${esc(unit(m.d.ambulance_id))} · <span class="lm-state">● ${esc(label)}${pos.src === 'gps' ? ' · LIVE GPS' : ''}</span>`);
+    if (rt) lm.setProgress(rt, pos.frac);
+    if ($('live-eta-chip') && m.phase === 'enroute') $('live-eta-chip').textContent = `ETA: ${pos.eta} min`;
+    if ($('live-caption')) $('live-caption').textContent = m.acc
+      ? (rt ? `Automated route active: ${m.destName} (${rt.distance_km} km${rt.source === 'osrm' ? ' by road' : ' est.'} · ${m.phase === 'enroute' ? (fix ? `live ${fix.source === 'gps' ? 'GPS' : 'tracking'} from the ambulance` : 'High-priority navigation active') : m.phase === 'preparing' ? 'crew preparing to depart' : 'route complete'})` : `Calculating road route to ${m.destName}…`)
+      : `Route preview to ${m.destName} · waiting for hospital confirmation`;
+  }
 
   function liveEvent(requestId, text, tone) {
     (state.live.log[requestId] ||= []).push([new Date().toISOString(), text, tone]);
@@ -953,7 +1021,7 @@ ${backupHTML}`;
   function renderHistory() {
     const list = state.history;
     if (!list.length) { $('history-table').innerHTML = `<div class="px-space-lg py-space-xl font-telemetry-sm text-telemetry-sm text-on-surface-variant">No cases in the last 24 hours.</div>`; return; }
-    const tone = { ACCEPTED: 'bg-[#ECFDF5] text-[#065F46]', REJECTED: 'bg-tertiary-fixed text-tertiary', PENDING: 'bg-[#FFFBEB] text-[#92400E]' };
+    const tone = { ACCEPTED: 'bg-[#ECFDF5] text-[#065F46]', REJECTED: 'bg-tertiary-fixed text-tertiary', PENDING: 'bg-[#FFFBEB] text-[#92400E]', WITHDRAWN: 'bg-surface-container text-on-surface-variant' };
     $('history-table').innerHTML = `<div class="hidden md:grid grid-cols-12 gap-space-md px-space-lg py-space-sm bg-surface-container-low font-label-md text-label-md text-on-surface-variant uppercase">
       <span class="col-span-2">Contacted</span><span class="col-span-2">Case</span><span class="col-span-3">Condition</span><span class="col-span-2">Response</span><span class="col-span-3">Outcome</span></div>` +
       list.map(x => `<div class="grid grid-cols-2 md:grid-cols-12 gap-space-sm md:gap-space-md px-space-lg py-space-md items-center border-t border-surface-container-low">
@@ -961,7 +1029,7 @@ ${backupHTML}`;
         <span class="md:col-span-2 font-telemetry-md text-telemetry-md">#${esc(x.request?.request_id)}</span>
         <span class="md:col-span-3 font-label-lg text-label-lg">${x.request ? esc(condition(x.request)) : '—'}</span>
         <span class="md:col-span-2"><span class="px-space-sm py-0.5 rounded font-telemetry-sm text-telemetry-sm ${tone[x.response] || ''}">${x.response}${x.rejection_reason ? ` · ${esc(x.rejection_reason)}` : ''}</span></span>
-        <span class="md:col-span-3 font-body-sm text-body-sm text-on-surface-variant">${x.handover_status === 'COMPLETED' ? `Handed over ${fmt.timeIST(x.handover_time)}` : x.arrival_time ? `Arrived ${fmt.timeIST(x.arrival_time)}` : x.departure_time ? 'En route' : x.response === 'ACCEPTED' ? 'Accepted' : '—'}</span>
+        <span class="md:col-span-3 font-body-sm text-body-sm text-on-surface-variant">${x.handover_status === 'COMPLETED' ? `Handed over ${fmt.timeIST(x.handover_time)}` : x.arrival_time ? `Arrived ${fmt.timeIST(x.arrival_time)}` : x.departure_time ? 'En route' : x.response === 'ACCEPTED' ? 'Accepted' : x.response === 'WITHDRAWN' ? 'Filled by another hospital / withdrawn' : '—'}</span>
       </div>`).join('');
   }
 
@@ -971,7 +1039,10 @@ ${backupHTML}`;
       await api(`/api/reservations/${encodeURIComponent(resId)}`, { method: 'PATCH', body: { action: 'accept' } });
       toast('Patient accepted', 'Resources reserved. The ambulance has been notified.', 'success');
       location.hash = '#active';
-    } catch (err) { toast('Could not accept', esc(err.message), 'critical'); }
+    } catch (err) {
+      toast(err.body?.code === 'ALREADY_FILLED' ? 'Too late: another hospital accepted first' : 'Could not accept', esc(err.message), err.body?.code === 'ALREADY_FILLED' ? 'warn' : 'critical');
+      if (err.status === 409) location.hash = '#requests';
+    }
     loadItems();
   }
   let rejectId = null, rejectReason = null;
@@ -1040,7 +1111,7 @@ ${backupHTML}`;
     if (state.view === 'history' || state.view === 'handover') loadHistory();
     if (state.view === 'live') {
       if (!state.param) { state.param = defaultLiveId(); if (state.param) history.replaceState(null, '', `#live/${encodeURIComponent(state.param)}`); }
-      if (state.param !== state.live.id) { state.live.detail = null; state.live.view = null; state.live.id = state.param; }
+      if (state.param !== state.live.id) { state.live.detail = null; state.live.view = null; state.live.fitted = false; state.live.fix = null; state.live.id = state.param; }
       loadLive(state.param);
     }
     render();
@@ -1094,6 +1165,7 @@ ${backupHTML}`;
       }
       if (p.hospital_id !== HID) return;
       await loadItems();
+      if (p.action === 'held' && p.broadcast) state.broadcastIds.add(p.request.request_id);
       if (p.action === 'held') {
         const item = state.items.find(i => i.request.request_id === p.request.request_id && i.status === 'PENDING');
         if (item && !state.seenAlarms.has(item.reservation_id)) {
@@ -1102,10 +1174,18 @@ ${backupHTML}`;
           if (!alarmItem) showAlarm(item); else $('alarm-queue').textContent = `+${state.alarmQueue.length - 1} more waiting`;
         }
       }
-      if (['cancelled', 'expired'].includes(p.action)) {
+      if (['cancelled', 'expired', 'filled'].includes(p.action)) {
         if (alarmItem?.request.request_id === p.request.request_id) { closeAlarm(); nextAlarm(); }
-        toast(p.action === 'cancelled' ? 'Request withdrawn by ambulance' : 'Hold expired (no response)', `#${esc(p.request.request_id)} · bed released.`, p.action === 'expired' ? 'warn' : 'info');
+        state.alarmQueue = state.alarmQueue.filter(x => x !== p.request.request_id);
+        if (p.action === 'filled') toast('Filled by another hospital', `#${esc(p.request.request_id)} was accepted by ${esc(p.filled_by || 'another hospital')}. No action needed.`, 'info');
+        else toast(p.action === 'cancelled' ? 'Request withdrawn by ambulance' : 'Request expired (no response)', `#${esc(p.request.request_id)} · no longer waiting for you.`, p.action === 'expired' ? 'warn' : 'info');
+        if (state.view === 'detail' && state.param === p.request.request_id) render();
       }
+    });
+    socket.on('ambulance:position', (p) => {
+      if (p.request_id !== state.live.id) return;
+      state.live.fix = p;
+      if (state.view === 'live') liveTick();
     });
     socket.on('handoff:update', (p) => {
       if (p.request?.request_id && p.request.request_id === state.live.id) loadLive(state.live.id);

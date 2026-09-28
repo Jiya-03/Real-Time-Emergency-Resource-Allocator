@@ -179,7 +179,10 @@ export function getRequestDetail(id) {
   const workflow = db.prepare(`
     SELECT w.*, h.hospital_name FROM emergency_workflow_handover w JOIN hospitals h ON h.hospital_id = w.hospital_id
     WHERE w.request_id = ? ORDER BY w.assignment_time`).all(id);
-  return { ...request, reservations, workflow };
+  const adm = db.prepare('SELECT * FROM admissions WHERE request_id = ?').get(id);
+  const admission = adm ? { ward: adm.ward, block: adm.block, floor: adm.floor, room: adm.room, bed: adm.bed, attending: adm.attending, nurse: adm.nurse,
+    resources: JSON.parse(adm.resources || '{}'), services: JSON.parse(adm.services || '[]'), admitted_at: adm.admitted_at, updated_at: adm.updated_at } : null;
+  return { ...request, reservations, workflow, admission };
 }
 
 export function listRequests({ status, severity, emergency_type, active, since_minutes, sort = 'priority', limit = 50, offset = 0 } = {}) {

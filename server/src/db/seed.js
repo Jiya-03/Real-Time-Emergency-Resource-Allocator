@@ -58,6 +58,7 @@ db.pragma('foreign_keys = OFF');   // ambulances ↔ requests reference each oth
 
 const load = db.transaction(() => {
   // Clear old data (reverse order), then insert fresh
+  db.prepare('DELETE FROM admissions').run();          // our own table (not in the dataset)
   for (const t of [...TABLES].reverse()) db.prepare(`DELETE FROM ${t.name}`).run();
 
   const counts = {};

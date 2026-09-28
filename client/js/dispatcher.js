@@ -1080,6 +1080,7 @@
 <div class="rounded-lg border border-[#6EE7B7] bg-[#ECFDF5] p-space-md flex flex-col gap-space-sm">
   <span class="font-label-lg text-label-lg text-[#065F46] flex items-center gap-space-xs uppercase"><span class="material-symbols-outlined text-[20px]">check_circle</span>Hospital confirmed: ${esc(acc.name)}</span>
   <span class="font-label-lg text-label-lg text-on-surface flex items-center gap-space-xs uppercase"><span class="w-2 h-2 rounded-full ${phase === 'enroute' ? 'bg-primary animate-pulse' : 'bg-[#10B981]'}"></span>${{ preparing: 'Route ready · depart when loaded', enroute: 'Ambulance en route', arrived: 'Ambulance arrived', done: 'Patient handed over' }[phase]}</span>
+  ${d.admission?.room ? `<div class="rounded bg-surface-container-lowest px-space-md py-space-sm flex items-center gap-space-sm font-body-sm text-body-sm"><span class="material-symbols-outlined text-primary text-[18px]">bed</span><span><b>${esc(d.admission.ward)}</b> · Block ${esc(d.admission.block)} · ${esc(d.admission.floor)} · Room <b>${esc(d.admission.room)}</b> · Bed <b>${esc(d.admission.bed)}</b></span></div>` : ''}
   <div class="rounded bg-surface-container-lowest px-space-md py-space-sm flex items-center justify-between gap-space-sm">
     <span class="font-body-md text-body-md">Destination: <b>${esc(acc.name)}</b></span>
     <span class="px-space-sm py-0.5 rounded bg-secondary-container/40 text-primary font-telemetry-sm text-telemetry-sm shrink-0" id="dlive-eta">${phase === 'enroute' ? `ETA: ${pos.left_min} min` : phase === 'preparing' ? `${L_.rt ? `${L_.rt.distance_km} km · ` : ''}~${L_.driveMin} min` : phase === 'done' ? 'Closed' : 'Docked'}</span>
@@ -1133,6 +1134,8 @@ ${banner}
     }
     if (w.departure_time) rows.push([w.departure_time, `Ambulance ${unitName(d.ambulance_id)} departed · navigation active`, 'ok']);
     if (w.arrival_time) rows.push([w.arrival_time, `Arrived at ${acc.name}`, 'ok']);
+    const adm = d.admission;
+    if (adm?.room) rows.push([adm.admitted_at || adm.updated_at, `Bed allocated: ${adm.ward} · Block ${adm.block} · ${adm.floor} · Room ${adm.room} · Bed ${adm.bed}${adm.attending ? ` · ${adm.attending}` : ''}`, 'ok']);
     if (w.handover_time) rows.push([w.handover_time, 'Handover completed · patient admitted', 'ok']);
     for (const e of state.dl.events[d.request_id] || []) rows.push(e);
     rows.sort((a, b) => new Date(a[0] || a[3]) - new Date(b[0] || b[3]));
@@ -1438,6 +1441,7 @@ ${banner}
     socket.on('hospital:update', (p) => { onHospitalUpdate(p); if (p.source !== 'Reservation') onHospitalChangeForMatch(p); });
     socket.on('reservation:update', onReservationUpdate);
     socket.on('handoff:update', onHandoffUpdate);
+    socket.on('admission:update', (p) => { if (state.view === 'live' && state.dl.id === p.request_id) loadLive(); });
   } else {
     setConnection(false);
   }

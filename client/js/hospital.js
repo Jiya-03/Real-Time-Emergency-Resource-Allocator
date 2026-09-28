@@ -453,22 +453,50 @@
                    ['operation_theatre', 'Operation Theatre', 'Emergency suites', 'medical_services'], ['neurology', 'Neurology', 'Acute stroke / TBI', 'neurology'],
                    ['blood_bank', 'Blood Bank', 'O-neg / FFP reserve', 'bloodtype'], ['dialysis', 'Dialysis', 'Acute renal / CRRT', 'nephrology'], ['burn_unit', 'Burns Unit', 'Specialized isolation', 'local_fire_department']];
     const offered = DEPTS.filter(d => h.services[d[0]]).length;
-    $('dept-legend').innerHTML = `<span class="text-primary">● Available (${offered})</span> · <span>● Not offered (${DEPTS.length - offered})</span>`;
+    $('dept-legend').innerHTML = `<span class="text-primary">● Available (${offered})</span> · <span>● Unavailable (${DEPTS.length - offered})</span> · <span class="text-on-surface-variant">Tap a department to switch it</span>`;
     $('res-depts').innerHTML = DEPTS.map(([k, name, sub, icon]) => {
       const on = h.services[k];
-      return `<div class="bg-surface-container-lowest rounded-xl shadow-sm p-space-lg flex flex-col gap-space-sm ${on ? '' : 'opacity-70'}">
-        <div class="flex items-start justify-between gap-space-sm"><div class="flex items-center gap-space-sm"><span class="w-10 h-10 rounded-lg bg-surface-container-low flex items-center justify-center"><span class="material-symbols-outlined text-primary">${icon}</span></span>
+      return `<button class="text-left bg-surface-container-lowest rounded-xl shadow-sm p-space-lg flex flex-col gap-space-sm border-2 ${on ? 'border-transparent hover:border-[#6EE7B7]' : 'border-transparent hover:border-[#F87171] opacity-75'}" data-dept-toggle="${k}" type="button" aria-pressed="${on}" title="${on ? 'Mark unavailable' : 'Mark available'}">
+        <div class="flex items-start justify-between gap-space-sm w-full"><div class="flex items-center gap-space-sm"><span class="w-10 h-10 rounded-lg bg-surface-container-low flex items-center justify-center"><span class="material-symbols-outlined text-primary">${icon}</span></span>
           <div class="flex flex-col"><span class="font-headline-sm text-headline-sm">${name}</span><span class="font-telemetry-sm text-telemetry-sm text-on-surface-variant uppercase">${sub}</span></div></div>
-          <span class="px-space-sm py-0.5 rounded-full font-telemetry-sm text-telemetry-sm ${on ? 'bg-[#ECFDF5] text-[#065F46]' : 'bg-tertiary-fixed text-tertiary'}">● ${on ? 'Available' : 'Not offered'}</span></div>
-      </div>`;
+          <span class="relative inline-flex w-11 h-6 rounded-full shrink-0 transition-colors ${on ? 'bg-primary' : 'bg-outline-variant'}"><span class="absolute top-0.5 ${on ? 'left-[22px]' : 'left-0.5'} w-5 h-5 rounded-full bg-white shadow transition-all"></span></span></div>
+        <span class="w-fit px-space-sm py-0.5 rounded-full font-telemetry-sm text-telemetry-sm ${on ? 'bg-[#ECFDF5] text-[#065F46]' : 'bg-tertiary-fixed text-tertiary'}">● ${on ? 'Available' : 'Unavailable'}</span>
+      </button>`;
     }).join('') + `<div class="bg-surface-container-lowest rounded-xl shadow-sm p-space-lg flex flex-col gap-space-sm md:col-span-2">
-        <span class="font-headline-sm text-headline-sm flex items-center gap-space-xs"><span class="material-symbols-outlined text-primary">stethoscope</span>Specialists on call</span>
-        <div class="flex flex-wrap gap-space-xs">${h.specialists.map(s => chip(s, 'bg-surface-container text-primary')).join('') || '<span class="font-body-sm text-body-sm text-on-surface-variant">None listed</span>'}</div></div>`;
+        <span class="font-headline-sm text-headline-sm flex items-center gap-space-xs"><span class="material-symbols-outlined text-primary">stethoscope</span>Specialists on call <span class="font-telemetry-sm text-telemetry-sm text-on-surface-variant font-normal">· tap to switch</span></span>
+        <div class="flex flex-wrap gap-space-xs">${SPECIALISTS.map(sp => { const on = h.specialists.includes(sp);
+          return `<button class="px-space-md py-space-xs rounded-full border font-label-md text-label-md inline-flex items-center gap-space-xs ${on ? 'bg-primary text-on-primary border-primary' : 'bg-surface-container-lowest text-on-surface-variant border-outline-variant'}" data-spec-toggle="${esc(sp)}" type="button" aria-pressed="${on}"><span class="material-symbols-outlined text-[16px]">${on ? 'check' : 'add'}</span>${esc(sp)}</button>`; }).join('')}</div></div>`;
     $('res-footer').innerHTML = `Last update ${fmt.timeIST(h.freshness.last_updated)} by <b>${esc(h.update_source)}</b> · version v${h.version}`;
     const stale = h.freshness.status === 'stale';
     $('res-conflicts').textContent = stale ? 'Data is STALE: tap Quick Sync to re-confirm' : 'No protocol conflicts';
     $('res-conflicts').parentElement.className = `font-telemetry-sm text-telemetry-sm ${stale ? 'text-tertiary' : 'text-primary'} flex items-center gap-space-xs`;
   }
+  // Departments / specialists on/off → saved immediately; the ranking engine uses it for the next match
+  const SPECIALISTS = ['Trauma Surgeon', 'General Surgeon', 'Cardiologist', 'Neurologist', 'Pulmonologist', 'Nephrologist'];
+  const DEPT_NAME = { trauma_care: 'Trauma & Emergency', cardiology: 'Cardiology', operation_theatre: 'Operation Theatre', neurology: 'Neurology', blood_bank: 'Blood Bank', dialysis: 'Dialysis', burn_unit: 'Burns Unit' };
+  async function saveServices(body, msg) {
+    try {
+      const res = await api(`/api/hospitals/${encodeURIComponent(HID)}/services`, { method: 'PATCH', body });
+      state.hospital = res.hospital;
+      toast(msg, 'Ambulances see the change at once.', 'success');
+    } catch (err) { toast('Could not update', esc(err.message), 'critical'); }
+    renderResources();
+  }
+  $('res-depts').addEventListener('click', (e) => {
+    const d = e.target.closest('[data-dept-toggle]');
+    if (d && state.hospital) {
+      const k = d.dataset.deptToggle, next = !state.hospital.services[k];
+      state.hospital.services[k] = next; renderResources();                    // optimistic
+      saveServices({ services: { [k]: next } }, `${DEPT_NAME[k]} marked ${next ? 'available' : 'unavailable'}`);
+    }
+    const sp = e.target.closest('[data-spec-toggle]');
+    if (sp && state.hospital) {
+      const name = sp.dataset.specToggle, cur = new Set(state.hospital.specialists);
+      cur.has(name) ? cur.delete(name) : cur.add(name);
+      state.hospital.specialists = [...cur]; renderResources();
+      saveServices({ specialists: [...cur] }, `${name} ${cur.has(name) ? 'on call' : 'off call'}`);
+    }
+  });
   $('res-capacity').addEventListener('click', (e) => {
     const b = e.target.closest('[data-step]'); if (!b || !state.hospital) return;
     const k = b.dataset.step; state.draftCaps = state.draftCaps || {};
@@ -514,6 +542,131 @@
     ['airway', 'Airway & breathing verified', 'Airway patent, oxygenation adequate'],
     ['lines', 'IV lines & medications verified', 'Access, fluids and drugs given en route reviewed'],
   ];
+  // ── Admission at handover: ward / room / bed + resources used (live inventory) ──
+  state.adm = {};          // request_id → { data: GET /admission view, saving, error }
+  const RES_ROWS = [['icu', 'ICU Bed', 'monitor_heart'], ['oxygen_bed', 'Oxygen Bed', 'pulmonology'], ['general_bed', 'General Bed', 'bed'], ['ventilator', 'Mechanical Ventilator', 'air']];
+  function admFor(id) {
+    const a = state.adm[id];
+    if (!a) { state.adm[id] = { data: null, saving: false }; loadAdmission(id); return state.adm[id]; }
+    return a;
+  }
+  async function loadAdmission(id, ward) {
+    try {
+      const view = await api(`/api/requests/${encodeURIComponent(id)}/admission${ward ? `?ward=${encodeURIComponent(ward)}` : ''}`);
+      state.adm[id] = { ...(state.adm[id] || {}), data: view };
+      if (view.admission.draft) {                                     // first time: auto-allocate the suggestion
+        const a = view.admission;
+        await saveAdmission(id, { ward: a.ward, room: a.room, bed: a.bed, attending: a.attending, nurse: a.nurse, resources: a.resources, services: a.services }, 'Bed auto-allocated');
+        return;
+      }
+    } catch (err) { state.adm[id] = { ...(state.adm[id] || {}), error: err.message }; }
+    if (state.view === 'handover') renderHandover();
+  }
+  async function saveAdmission(id, patch, okMsg) {
+    const st = state.adm[id] || (state.adm[id] = {});
+    st.saving = true; if (state.view === 'handover') renderHandover();
+    try {
+      const res = await api(`/api/requests/${encodeURIComponent(id)}/admission`, { method: 'PUT', body: patch });
+      state.hospital = res.hospital;
+      st.data = { ...(st.data || {}), admission: res.admission, hospital: res.hospital };
+      if (res.changes?.length) {
+        const txt = res.changes.map(c => `${c.label} ${c.delta > 0 ? 'taken' : 'released'} · ${res.hospital.resources[c.resource].available} free`).join(' · ');
+        toast('Inventory updated', esc(txt), 'success');
+      } else if (okMsg) toast(okMsg, esc(res.admission.location || ''), 'success');
+    } catch (err) {
+      toast(err.body?.code === 'NO_CAPACITY' ? 'Not available' : 'Could not save', esc(err.message), 'critical');
+    }
+    st.saving = false;
+    if (state.view === 'handover') renderHandover();
+  }
+
+  function admissionCard(sel, st) {
+    const r = sel.request;
+    if (!st?.data) return `<div class="bg-surface-container-lowest rounded-xl shadow-sm p-space-lg font-body-sm text-body-sm text-on-surface-variant">${st?.error ? `Could not load the admission: ${esc(st.error)}` : 'Allocating a bed…'}</div>`;
+    const a = st.data.admission, wards = st.data.wards, w = wards[a.ward] || {};
+    const opt = (list, cur) => [...new Set([...(cur ? [cur] : []), ...list])].map(x => `<option ${x === cur ? 'selected' : ''}>${esc(x)}</option>`).join('');
+    const field = (label, html) => `<label class="flex flex-col gap-1"><span class="font-telemetry-sm text-telemetry-sm text-on-surface-variant uppercase">${label}</span>${html}</label>`;
+    const sel_ = 'w-full bg-surface-container-low rounded-lg px-space-md py-space-sm font-label-lg text-label-lg border-0 focus:outline-none focus:ring-2 focus:ring-[#18B9B5]';
+    const doctors = [...(state.hospital?.specialists || []).map(s => `${s} on call`), 'Emergency Physician on duty'];
+    return `
+<div class="bg-surface-container-lowest rounded-xl shadow-sm p-space-lg flex flex-col gap-space-md border-l-4 border-primary">
+  <div class="flex items-center justify-between gap-space-sm flex-wrap">
+    <span class="font-headline-sm text-headline-sm flex items-center gap-space-xs"><span class="material-symbols-outlined text-primary">bed</span>Admission &amp; Bed Allocation</span>
+    <span class="font-telemetry-sm text-telemetry-sm ${st.saving ? 'text-[#92400E]' : 'text-primary'}">${st.saving ? 'Saving…' : '✓ Saved · live'}</span>
+  </div>
+  <div class="rounded-lg bg-primary text-on-primary p-space-md grid grid-cols-2 md:grid-cols-5 gap-space-md">
+    ${[['Ward / Area', a.ward], ['Block', a.block ? `Block ${a.block}` : '—'], ['Floor', a.floor], ['Room', a.room], ['Bed', a.bed]].map(([k, v]) => `<div class="flex flex-col"><span class="font-telemetry-sm text-telemetry-sm opacity-80 uppercase">${k}</span><span class="font-headline-sm text-headline-sm">${esc(v || '—')}</span></div>`).join('')}
+  </div>
+  <div class="grid grid-cols-1 md:grid-cols-3 gap-space-md">
+    ${field('Ward / area', `<select class="${sel_}" data-adm="ward" data-req="${esc(r.request_id)}">${Object.keys(wards).map(x => `<option ${x === a.ward ? 'selected' : ''}>${esc(x)}</option>`).join('')}</select>`)}
+    ${field('Room', `<select class="${sel_}" data-adm="room" data-req="${esc(r.request_id)}">${opt(w.rooms || [], a.room)}</select>`)}
+    ${field('Bed', `<select class="${sel_}" data-adm="bed" data-req="${esc(r.request_id)}">${opt(w.beds || [], a.bed)}</select>`)}
+    ${field('Attending doctor', `<input class="${sel_}" data-adm="attending" data-req="${esc(r.request_id)}" list="doctor-list" value="${esc(a.attending || '')}" placeholder="e.g. Dr. Mehta (Trauma Surgeon)"><datalist id="doctor-list">${doctors.map(d => `<option value="${esc(d)}">`).join('')}</datalist>`)}
+    ${field('Nurse in charge', `<input class="${sel_}" data-adm="nurse" data-req="${esc(r.request_id)}" value="${esc(a.nurse || '')}" placeholder="e.g. Sr. Kulkarni">`)}
+    ${field('Reserved on dispatch', `<span class="px-space-md py-space-sm rounded-lg bg-surface-container-low font-label-md text-label-md">${esc(sel.reservations.map(x => `${x.quantity}× ${x.resource_type}`).join(' + ') || '—')}</span>`)}
+  </div>
+</div>`;
+  }
+
+  function resourcesCard(sel, st) {
+    const r = sel.request, h = state.hospital;
+    if (!st?.data || !h) return '';
+    const a = st.data.admission, used = a.resources || {}, svc = new Set(a.services || []);
+    const reserved = Object.fromEntries(sel.reservations.map(x => [({ 'ICU': 'icu', 'Oxygen Bed': 'oxygen_bed', 'General Bed': 'general_bed', 'Ventilator': 'ventilator' })[x.resource_type], x.quantity]));
+    const rows = RES_ROWS.map(([k, name, icon]) => {
+      const n = used[k] || 0, free = h.resources[k].available, total = h.resources[k].total;
+      return `<div class="flex items-center justify-between gap-space-sm rounded-lg ${n ? 'bg-secondary-container/30' : 'bg-surface-container-low'} px-space-md py-space-sm">
+        <span class="flex items-center gap-space-sm min-w-0"><span class="material-symbols-outlined text-primary">${icon}</span><span class="flex flex-col"><span class="font-label-lg text-label-lg">${name}${reserved[k] ? ' <span class="font-telemetry-sm text-telemetry-sm text-primary">(reserved)</span>' : ''}</span>
+          <span class="font-telemetry-sm text-telemetry-sm ${free ? 'text-on-surface-variant' : 'text-tertiary'}">${free} of ${total} free in hospital</span></span></span>
+        <span class="flex items-center gap-space-xs shrink-0">
+          <button class="w-8 h-8 rounded bg-surface-container-lowest border border-outline-variant font-headline-sm disabled:opacity-40" data-adm-res="${k}" data-d="-1" data-req="${esc(r.request_id)}" type="button" ${n <= 0 || st.saving ? 'disabled' : ''} aria-label="Use one fewer ${name}">−</button>
+          <span class="w-8 text-center font-telemetry-lg text-telemetry-lg">${n}</span>
+          <button class="w-8 h-8 rounded bg-surface-container-lowest border border-outline-variant font-headline-sm disabled:opacity-40" data-adm-res="${k}" data-d="1" data-req="${esc(r.request_id)}" type="button" ${free <= 0 || n >= 5 || st.saving ? 'disabled' : ''} aria-label="Use one more ${name}">+</button>
+        </span></div>`;
+    }).join('');
+    const offered = Object.entries(DEPT_NAME).filter(([k]) => h.services[k] || svc.has(k));
+    return `
+<div class="bg-surface-container-lowest rounded-xl shadow-sm p-space-lg flex flex-col gap-space-md">
+  <div class="flex items-center justify-between gap-space-sm flex-wrap">
+    <span class="font-headline-sm text-headline-sm flex items-center gap-space-xs"><span class="material-symbols-outlined text-primary">inventory_2</span>Services &amp; Resources Given</span>
+    <span class="font-telemetry-sm text-telemetry-sm text-on-surface-variant">Changes update the hospital inventory instantly</span>
+  </div>
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-space-sm">${rows}</div>
+  <div class="flex flex-col gap-space-xs">
+    <span class="font-telemetry-sm text-telemetry-sm text-on-surface-variant uppercase">Departments involved</span>
+    <div class="flex flex-wrap gap-space-xs">${offered.map(([k, name]) => `<button class="px-space-md py-space-xs rounded-full border font-label-md text-label-md inline-flex items-center gap-space-xs ${svc.has(k) ? 'bg-primary text-on-primary border-primary' : 'bg-surface-container-lowest text-on-surface-variant border-outline-variant'}" data-adm-svc="${k}" data-req="${esc(r.request_id)}" type="button" aria-pressed="${svc.has(k)}"><span class="material-symbols-outlined text-[16px]">${svc.has(k) ? 'check' : 'add'}</span>${esc(name)}</button>`).join('') || '<span class="font-body-sm text-body-sm text-on-surface-variant">No departments marked available.</span>'}</div>
+  </div>
+</div>`;
+  }
+
+  document.addEventListener('change', (e) => {
+    const f = e.target.closest('[data-adm]'); if (!f) return;
+    const id = f.dataset.req, key = f.dataset.adm, st = state.adm[id]; if (!st?.data) return;
+    if (key === 'ward') {                                   // new ward → take the first free room/bed there
+      api(`/api/requests/${encodeURIComponent(id)}/admission?ward=${encodeURIComponent(f.value)}`).then(v => {
+        saveAdmission(id, { ward: f.value, room: v.suggestion.room, bed: v.suggestion.bed }, `Moved to ${f.value}`);
+      }).catch(err => toast('Could not change ward', esc(err.message), 'critical'));
+      return;
+    }
+    saveAdmission(id, { [key]: f.value }, key === 'room' || key === 'bed' ? 'Bed updated' : 'Saved');
+  });
+  document.addEventListener('click', (e) => {
+    const b = e.target.closest('[data-adm-res]');
+    if (b && !b.disabled) {
+      const id = b.dataset.req, st = state.adm[id]; if (!st?.data) return;
+      const res = { ...(st.data.admission.resources || {}) };
+      res[b.dataset.admRes] = Math.max(0, (res[b.dataset.admRes] || 0) + Number(b.dataset.d));
+      saveAdmission(id, { resources: res });
+    }
+    const sv = e.target.closest('[data-adm-svc]');
+    if (sv) {
+      const id = sv.dataset.req, st = state.adm[id]; if (!st?.data) return;
+      const set = new Set(st.data.admission.services || []);
+      set.has(sv.dataset.admSvc) ? set.delete(sv.dataset.admSvc) : set.add(sv.dataset.admSvc);
+      saveAdmission(id, { services: [...set] }, `${DEPT_NAME[sv.dataset.admSvc]} ${set.has(sv.dataset.admSvc) ? 'added' : 'removed'}`);
+    }
+  });
+
   function renderHandover() {
     const bay = atBay(), inbound = enRoute();
     const completedToday = state.history.filter(x => x.handover_status === 'COMPLETED' && x.handover_time && (Date.now() - new Date(x.handover_time)) < 24 * 3600e3).length;
@@ -531,13 +684,12 @@
       const r = sel.request, v = vitals(r), w = sel.workflow;
       const checked = state.checklists[r.request_id] || new Set();
       const allChecked = CHECKLIST.every(([k]) => checked.has(k));
-      const standby = [...sel.reservations.map(x => [`${x.quantity}× ${x.resource_type}`, 'Reserved']), ...depts(r).filter(d => !d.startsWith('ICU')).map(d => [d, 'Alerted']),
-                       ...(r.required_specialist ? [[r.required_specialist, 'Paged']] : []), ...(r.additional_needs || []).map(n => [n, 'Check'])];
       const vbox = (label, val, sub, bad) => `<div class="rounded-lg bg-surface-container-lowest p-space-sm"><div class="font-telemetry-sm text-telemetry-sm text-on-surface-variant">${label}</div><div class="font-telemetry-lg text-telemetry-lg ${bad ? 'text-tertiary' : ''}">${val ?? '—'}</div><div class="font-telemetry-sm text-telemetry-sm ${bad ? 'text-tertiary' : 'text-on-surface-variant'}">${sub}</div></div>`;
+      const adm = admFor(r.request_id);
       main = `
 <div class="rounded-xl bg-tertiary-fixed px-space-lg py-space-md flex items-center justify-between gap-space-md">
   <span class="flex items-center gap-space-sm font-headline-sm text-headline-sm text-tertiary"><span class="w-9 h-9 rounded-full bg-tertiary text-on-tertiary flex items-center justify-center ring-pulse"><span class="material-symbols-outlined text-[20px]">local_shipping</span></span>Bay Dock: Ambulance ${unit(r.ambulance_id)} arrived <span class="px-space-sm py-0.5 rounded bg-tertiary text-on-tertiary font-telemetry-sm text-telemetry-sm">+${Math.max(0, Math.round((Date.now() - new Date(w.arrival_time)) / 60000))}m</span></span>
-  <span class="hidden md:inline font-telemetry-sm text-telemetry-sm text-tertiary">Station: TRAUMA-RESUS</span>
+  <span class="hidden md:inline font-telemetry-sm text-telemetry-sm text-tertiary">To: ${esc(adm?.data?.admission?.location || 'allocating bed…')}</span>
 </div>
 <div class="bg-surface-container-lowest rounded-xl shadow-sm p-space-lg flex flex-col gap-space-lg">
   <div class="flex items-center justify-between flex-wrap gap-space-sm"><h2 class="font-headline-lg text-headline-lg flex items-center gap-space-sm"><span class="w-3 h-3 rounded-full bg-tertiary animate-pulse"></span>Ambulance Arrived • Ready for Handover</h2>${priorityChip(r)}</div>
@@ -555,20 +707,18 @@
       ${vbox('Crew Note', '📝', v.notes ? esc(v.notes.slice(0, 40)) + (v.notes.length > 40 ? '…' : '') : 'None', false)}</div>`
       : '<span class="font-body-sm text-body-sm text-on-surface-variant">No vitals were transmitted from the field. Capture on arrival.</span>'}
   </div>
+</div>
+${admissionCard(sel, adm)}
+${resourcesCard(sel, adm)}
+<div class="bg-surface-container-lowest rounded-xl shadow-sm p-space-lg flex flex-col gap-space-md">
+  <div class="flex justify-between"><span class="font-headline-sm text-headline-sm flex items-center gap-space-xs"><span class="material-symbols-outlined text-primary">fact_check</span>Clinical Handover Checklist</span><span class="font-telemetry-sm text-telemetry-sm ${allChecked ? 'text-primary' : 'text-tertiary'}">${checked.size}/${CHECKLIST.length} VERIFIED</span></div>
   <div class="grid grid-cols-1 md:grid-cols-2 gap-space-md">
-    <div class="rounded-lg border border-surface-container-high p-space-md flex flex-col gap-space-sm">
-      <div class="flex justify-between"><span class="font-label-lg text-label-lg">Reserved Resources on Standby</span><span class="font-telemetry-sm text-telemetry-sm text-primary">${standby.length}/${standby.length} READY</span></div>
-      ${standby.map(([n, t]) => `<div class="flex items-center justify-between gap-space-sm"><span class="flex items-center gap-space-xs font-body-md text-body-md"><span class="material-symbols-outlined text-[18px] text-primary">check_circle</span>${esc(n)}</span><span class="px-space-sm py-0.5 rounded ${t === 'Check' ? 'bg-surface-container text-on-surface-variant' : 'bg-secondary-container/40 text-primary'} font-telemetry-sm text-telemetry-sm">${t}</span></div>`).join('')}
-    </div>
-    <div class="rounded-lg border border-surface-container-high p-space-md flex flex-col gap-space-sm">
-      <div class="flex justify-between"><span class="font-label-lg text-label-lg">Clinical Handover Checklist</span><span class="font-telemetry-sm text-telemetry-sm ${allChecked ? 'text-primary' : 'text-tertiary'}">${checked.size}/${CHECKLIST.length} VERIFIED</span></div>
-      ${CHECKLIST.map(([k, t, d]) => `<label class="flex items-start gap-space-sm cursor-pointer"><input type="checkbox" class="mt-1 w-4 h-4 accent-[#006765]" data-check="${k}" data-req="${esc(r.request_id)}" ${checked.has(k) ? 'checked' : ''}>
-        <span class="flex flex-col"><span class="font-label-lg text-label-lg">${t}</span><span class="font-body-sm text-body-sm text-on-surface-variant">${d}</span></span></label>`).join('')}
-    </div>
+  ${CHECKLIST.map(([k, t, d]) => `<label class="flex items-start gap-space-sm cursor-pointer"><input type="checkbox" class="mt-1 w-4 h-4 accent-[#006765]" data-check="${k}" data-req="${esc(r.request_id)}" ${checked.has(k) ? 'checked' : ''}>
+    <span class="flex flex-col"><span class="font-label-lg text-label-lg">${t}</span><span class="font-body-sm text-body-sm text-on-surface-variant">${d}</span></span></label>`).join('')}
   </div>
   <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-space-md pt-space-sm border-t border-surface-container-low">
-    <span></span>
-    <button class="px-space-xl py-space-md rounded-lg bg-tertiary hover:bg-tertiary-container text-on-tertiary font-headline-sm text-headline-sm flex items-center justify-center gap-space-sm disabled:opacity-40 disabled:cursor-not-allowed" data-complete="${esc(r.request_id)}" type="button" ${allChecked ? '' : 'disabled'} title="${allChecked ? '' : 'Tick all 4 checklist items first'}">Complete Handover &amp; Admit<span class="material-symbols-outlined">arrow_forward</span></button>
+    <span class="font-telemetry-sm text-telemetry-sm ${adm?.data?.admission?.room && allChecked ? 'text-primary' : 'text-on-surface-variant'}">${!adm?.data?.admission?.room ? 'Allocate a ward, room and bed first' : !allChecked ? 'Tick all 4 checklist items to admit' : `Ready: ${esc(adm.data.admission.ward)} · Room ${esc(adm.data.admission.room)} · Bed ${esc(adm.data.admission.bed)}`}</span>
+    <button class="px-space-xl py-space-md rounded-lg bg-tertiary hover:bg-tertiary-container text-on-tertiary font-headline-sm text-headline-sm flex items-center justify-center gap-space-sm disabled:opacity-40 disabled:cursor-not-allowed" data-complete="${esc(r.request_id)}" type="button" ${allChecked && adm?.data?.admission?.room && adm?.data?.admission?.bed && !adm.saving ? '' : 'disabled'}>Complete Handover &amp; Admit<span class="material-symbols-outlined">arrow_forward</span></button>
   </div>
 </div>`;
     }
@@ -1032,7 +1182,7 @@ ${backupHTML}`;
         <span class="md:col-span-2 font-telemetry-md text-telemetry-md">#${esc(x.request?.request_id)}</span>
         <span class="md:col-span-3 font-label-lg text-label-lg">${x.request ? esc(condition(x.request)) : '—'}</span>
         <span class="md:col-span-2"><span class="px-space-sm py-0.5 rounded font-telemetry-sm text-telemetry-sm ${tone[x.response] || ''}">${x.response}${x.rejection_reason ? ` · ${esc(x.rejection_reason)}` : ''}</span></span>
-        <span class="md:col-span-3 font-body-sm text-body-sm text-on-surface-variant">${x.handover_status === 'COMPLETED' ? `Handed over ${fmt.timeIST(x.handover_time)}` : x.arrival_time ? `Arrived ${fmt.timeIST(x.arrival_time)}` : x.departure_time ? 'En route' : x.response === 'ACCEPTED' ? 'Accepted' : x.response === 'WITHDRAWN' ? 'Filled by another hospital / withdrawn' : '—'}</span>
+        <span class="md:col-span-3 font-body-sm text-body-sm text-on-surface-variant">${x.handover_status === 'COMPLETED' ? `Admitted ${fmt.timeIST(x.handover_time)}${x.admission?.room ? ` · ${esc(x.admission.ward)} · Room ${esc(x.admission.room)} · Bed ${esc(x.admission.bed)}` : ''}` : x.arrival_time ? `Arrived ${fmt.timeIST(x.arrival_time)}` : x.departure_time ? 'En route' : x.response === 'ACCEPTED' ? 'Accepted' : x.response === 'WITHDRAWN' ? 'Filled by another hospital / withdrawn' : '—'}</span>
       </div>`).join('');
   }
 
@@ -1072,7 +1222,7 @@ ${backupHTML}`;
     try {
       await api(`/api/requests/${encodeURIComponent(requestId)}/handoff`, { method: 'POST', body: { step } });
       if (step === 'arrive') { toast('Ambulance arrived', 'Complete the clinical checklist to admit the patient.', 'success'); location.hash = `#handover/${encodeURIComponent(requestId)}`; }
-      if (step === 'complete') { toast('Handover complete', `#${esc(requestId)} admitted. The case is closed for the ambulance.`, 'success'); delete state.checklists[requestId]; loadHistory(); }
+      if (step === 'complete') { toast('Patient admitted', `#${esc(requestId)} → ${esc(state.adm[requestId]?.data?.admission?.location || 'ward')}. The case is closed for the ambulance.`, 'success'); delete state.checklists[requestId]; delete state.adm[requestId]; loadHistory(); }
     } catch (err) { toast('Could not update', esc(err.message), 'critical'); }
     loadItems();
   }
@@ -1124,6 +1274,8 @@ ${backupHTML}`;
   window.addEventListener('hashchange', route);
 
   function render() {
+    // don't rebuild the handover form while staff are typing / choosing in it
+    if (state.view === 'handover' && document.activeElement?.closest?.('#view-handover') && ['INPUT', 'SELECT', 'TEXTAREA'].includes(document.activeElement.tagName) && document.activeElement.type !== 'checkbox') return;
     const p = pending();
     $('nav-live').classList.toggle('hidden', !p.length);
     $('nav-handover-dot').classList.toggle('hidden', !atBay().length);

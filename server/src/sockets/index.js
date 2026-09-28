@@ -9,6 +9,7 @@
 //   reservation:update   → { action, request, hospital_id, reservations }  held / accepted / rejected / cancelled / expired / failed
 //   handoff:update       → { step, request, hospital_id, workflow }  depart / arrive / complete
 //   ambulance:position   → { request_id, lat, lng, source, left_km, eta_min, at }  live GPS / simulated drive
+//   admission:update     → { request_id, hospital_id, admission }  ward / room / bed + resources used at handover
 //
 // Events received from clients:
 //   ambulance:position   ← the ambulance crew's screen sends its position every few seconds (relayed to everyone)
@@ -51,6 +52,7 @@ export function initSockets(httpServer) {
   bus.on(EVENTS.REQUEST_UPDATE, (payload) => io.emit(EVENTS.REQUEST_UPDATE, payload));
   bus.on(EVENTS.RESERVATION_UPDATE, (payload) => io.emit(EVENTS.RESERVATION_UPDATE, payload));
   bus.on(EVENTS.HANDOFF_UPDATE, (payload) => io.emit(EVENTS.HANDOFF_UPDATE, payload));
+  bus.on(EVENTS.ADMISSION_UPDATE, (payload) => io.emit(EVENTS.ADMISSION_UPDATE, payload));
 
   // Freshness decays with time even when nothing changes, so re-broadcast it regularly
   setInterval(() => io.emit(EVENTS.FRESHNESS_TICK, freshnessSnapshot()), FRESHNESS_EVERY_MS).unref();

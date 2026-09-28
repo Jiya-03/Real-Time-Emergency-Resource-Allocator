@@ -2,7 +2,9 @@
 import { Router } from 'express';
 import {
   listHospitals, getHospital, getSummary, getHistory, updateHospitalResources, ApiError,
+  updateHospitalServices,
 } from '../services/hospitalService.js';
+import { requireRole } from '../services/authService.js';
 import { RESOURCE_KEYS, SERVICES } from '../services/resources.js';
 
 const router = Router();
@@ -49,6 +51,13 @@ router.patch('/:id/resources', (req, res) => {
   if (Object.keys(changes).length === 0)
     throw new ApiError(400, `Send at least one of: ${RESOURCE_KEYS.join(', ')}`);
   res.json(updateHospitalResources(req.params.id, changes, { expectedVersion: version, source }));
+});
+
+// PATCH /api/hospitals/:id/services { services: { cardiology: false }, specialists: ["Cardiologist"] }
+// Hospital staff mark departments available / unavailable. Only that hospital's own staff.
+router.patch('/:id/services', requireRole('hospital'), (req, res) => {
+  if (req.user.hospital_id !== req.params.id) throw new ApiError(403, 'You can only change your own hospital');
+  res.json(updateHospitalServices(req.params.id, req.body || {}));
 });
 
 // POST /api/hospitals/:id/confirm  → "our numbers are still correct" (clears stale warning)

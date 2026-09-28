@@ -5,6 +5,7 @@ import { getFreshness } from './freshness.js';
 import { nextId } from '../utils/ids.js';
 import bus, { EVENTS } from '../events.js';
 import { ApiError } from '../utils/errors.js';
+import { SPECIALISTS } from './requestConfig.js';
 
 const BASE_QUERY = `
   SELECT h.*, r.*, s.*
@@ -156,4 +157,31 @@ export function updateHospitalResources(id, changes, opts) {
   const result = updateResources(id, changes, opts);
   bus.emit(EVENTS.HOSPITAL_UPDATE, result);
   return result;
+}
+
+/** Hospital staff: mark departments available / unavailable and set specialists on call. Changes ranking eligibility at once. */
+export function updateHospitalServices(id, { services = {}, specialists } = {}) {
+  const row = db.prepare('SELECT * FROM hospital_services WHERE hospital_id = ?').get(id);
+  if (!row) throw new ApiError(404, `Hospital ${id} not found`);
+  const sets = [], params = { id }, changed = [];
+  for (const [k, v] of Object.entries(services)) {
+    if (!SERVICES.includes(k)) throw new ApiError(400, `Unknown department "${k}". Use: ${SERVICES.join(', ')}`);
+    if (typeof v !== 'boolean') throw new ApiError(400, `${k} must be true or false`);
+    if ((row[k] ? true : false) !== v) { sets.push(`${k} = @${k}`); params[k] = v ? 1 : 0; changed.push({ service: k, available: v }); }
+  }
+  if (specialists !== undefined) {
+    if (!Array.isArray(specialists) || specialists.some(x => !SPECIALISTS.includes(x))) throw new ApiError(400, `specialists must be a list from: ${SPECIALISTS.join(', ')}`);
+    const val = specialists.length ? [...new Set(specialists)].join(';') : 'None';
+    if (val !== row.specialists) { sets.push('specialists = @specialists'); params.specialists = val; changed.push({ specialists: val }); }
+  }
+  if (sets.length) {
+    db.transaction(() => {
+      db.prepare(`UPDATE hospital_services SET ${sets.join(', ')} WHERE hospital_id = @id`).run(params);
+      db.prepare(`UPDATE hospital_resources SET last_updated_timestamp = ?, update_source = 'Hospital Staff', version = version + 1 WHERE hospital_id = ?`)
+        .run(new Date().toISOString(), id);
+    })();
+  }
+  const hospital = getHospital(id);
+  if (sets.length) bus.emit(EVENTS.HOSPITAL_UPDATE, { hospital, changed, source: 'Hospital Staff' });
+  return { hospital, changed };
 }

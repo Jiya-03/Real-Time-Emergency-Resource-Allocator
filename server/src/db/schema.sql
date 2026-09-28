@@ -123,6 +123,24 @@ CREATE TABLE IF NOT EXISTS emergency_workflow_handover (
   handover_status    TEXT CHECK (handover_status IS NULL OR handover_status IN ('PENDING','IN_PROGRESS','COMPLETED'))
 );
 
+-- OUR addition: where the patient was admitted at handover + which tracked resources they occupy
+CREATE TABLE IF NOT EXISTS admissions (
+  request_id   TEXT PRIMARY KEY REFERENCES emergency_requests(request_id),
+  hospital_id  TEXT NOT NULL REFERENCES hospitals(hospital_id),
+  ward         TEXT,
+  block        TEXT,
+  floor        TEXT,
+  room         TEXT,
+  bed          TEXT,
+  attending    TEXT,
+  nurse        TEXT,
+  resources    TEXT NOT NULL DEFAULT '{}',   -- JSON { "icu": 1, "ventilator": 1 }: units this patient occupies right now
+  services     TEXT NOT NULL DEFAULT '[]',   -- JSON ["operation_theatre", "blood_bank"]: departments involved
+  created_at   TEXT NOT NULL,
+  updated_at   TEXT NOT NULL,
+  admitted_at  TEXT                          -- set when the handover is completed
+);
+
 CREATE TABLE IF NOT EXISTS match_ranking_results (
   match_id                   TEXT PRIMARY KEY,
   request_id                 TEXT NOT NULL REFERENCES emergency_requests(request_id),

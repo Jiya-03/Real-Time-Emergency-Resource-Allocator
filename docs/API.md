@@ -140,6 +140,19 @@ Each ranking row: `{ rank, hospital_id, hospital_name, eligible, scores: { resou
 - Optional env `BROADCAST_MAX` caps hospitals per wave (default: all suitable).
 - Proven by `npm run test:broadcast` (simultaneous accepts → exactly one winner, no bed locked elsewhere).
 
+### Departments on / off (hospital staff)
+`PATCH /api/hospitals/:id/services` `{ "services": { "cardiology": false }, "specialists": ["Trauma Surgeon"] }`. Hospital role, own hospital only.
+Departments: `trauma_care, cardiology, neurology, blood_bank, operation_theatre, dialysis, burn_unit`. Changes affect ranking eligibility immediately and are broadcast as `hospital:update`.
+
+### Admission at handover (ward / room / bed + resources used)
+| Method | Path | Who | What |
+|---|---|---|---|
+| GET | /api/requests/:id/admission?ward= | Receiving hospital | Saved admission, or a draft: suggested ward (from the needs), first free room/bed, the resources the reservation holds |
+| PUT | /api/requests/:id/admission `{ ward, room, bed, attending, nurse, resources: { icu: 1, ventilator: 1 }, services: ["operation_theatre"] }` | Receiving hospital, after arrival | Saves the allocation. **Resource changes hit the live inventory immediately** (conditional UPDATE; 409 `NO_CAPACITY` if none free). The reserved beds are taken over on the first save (never counted twice) |
+
+Completing the handover now requires a ward, room and bed (409 `NO_BED_ALLOCATED` otherwise); it stamps `admitted_at`. `GET /api/requests/:id` includes `admission`. Socket event `admission:update` → `{ request_id, hospital_id, admission }`.
+Wards: ICU, Trauma Resus Bay, Cardiac Care Unit (CCU), Stroke Unit, Respiratory Ward (O₂), Burns Unit, Emergency Observation, General Ward.
+
 ### Live ambulance tracking (Live Route map)
 | Method / event | Who | What |
 |---|---|---|

@@ -468,7 +468,10 @@ export function historyForHospital(hospitalId, { hours = 24 } = {}) {
   if (!getHospital(hospitalId)) throw new ApiError(404, `Hospital ${hospitalId} not found`);
   const rows = db.prepare(`SELECT * FROM emergency_workflow_handover WHERE hospital_id = ? AND assignment_time >= ?
                            ORDER BY assignment_time DESC LIMIT 200`).all(hospitalId, iso(Date.now() - hours * 3600e3));
+  const adm = db.prepare('SELECT request_id, ward, room, bed FROM admissions WHERE hospital_id = ?').all(hospitalId);
+  const admBy = Object.fromEntries(adm.map(a => [a.request_id, a]));
   return rows.map(w => ({
+    admission: w.hospital_response === 'ACCEPTED' ? admBy[w.request_id] || null : null,
     workflow_id: w.workflow_id,
     request: getRequest(w.request_id),
     response: w.hospital_response,

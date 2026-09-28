@@ -6,6 +6,7 @@ import { matchRequest, getSavedRankings } from '../services/rankingService.js';
 import { handoff } from '../services/handoffService.js';
 import { broadcast, withdrawAll } from '../services/reservationService.js';
 import { lastPosition } from '../services/tracking.js';
+import { admissionView, saveAdmission } from '../services/admissionService.js';
 import { requireRole } from '../services/authService.js';
 import {
   EMERGENCY_TYPES, SEVERITIES, PATIENT_CONDITIONS, SPECIALISTS, REQUEST_STATUSES, REQUIREMENT_KEYS,
@@ -61,6 +62,13 @@ router.post('/:id/withdraw', requireRole('dispatcher'), (req, res) => res.json(w
 
 // GET /api/requests/:id/position → last live ambulance position (GPS or simulated), or null
 router.get('/:id/position', (req, res) => res.json({ position: lastPosition(req.params.id) }));
+
+// GET /api/requests/:id/admission?ward=ICU → saved admission or a suggested ward / room / bed (receiving hospital only)
+router.get('/:id/admission', requireRole('hospital'), (req, res) => res.json(admissionView(req.params.id, req.user, { ward: req.query.ward })));
+
+// PUT /api/requests/:id/admission { ward, room, bed, attending, nurse, resources: { icu: 1 }, services: [...] }
+// Resource changes update the hospital's live inventory immediately (409 NO_CAPACITY if none free).
+router.put('/:id/admission', requireRole('hospital'), (req, res) => res.json(saveAdmission(req.params.id, req.body, req.user)));
 
 // POST /api/requests/:id/handoff { step: "depart" | "arrive" | "complete" } → ambulance / hospital progress
 router.post('/:id/handoff', requireRole('dispatcher', 'hospital'), (req, res) => {

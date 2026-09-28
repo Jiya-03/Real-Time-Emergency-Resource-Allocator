@@ -8,6 +8,7 @@ import { getRequest } from './requestService.js';
 import { getHospital } from './hospitalService.js';
 import { ApiError } from '../utils/errors.js';
 import bus, { EVENTS } from '../events.js';
+import { getAdmission, markAdmitted } from './admissionService.js';
 
 const STEPS = ['depart', 'arrive', 'complete'];
 
@@ -47,6 +48,9 @@ export function handoff(requestId, step, user) {
     if (step === 'complete') {
       if (!wf.arrival_time) throw new ApiError(409, 'Record the ambulance arrival before completing handover', { code: 'NOT_ARRIVED' });
       if (wf.handover_status === 'COMPLETED') throw new ApiError(409, 'Handover already completed', { code: 'BAD_STATE' });
+      const adm = getAdmission(requestId);
+      if (!adm?.room || !adm?.bed) throw new ApiError(409, 'Allocate a ward, room and bed before completing the handover', { code: 'NO_BED_ALLOCATED' });
+      markAdmitted(requestId);
       db.prepare(`UPDATE emergency_workflow_handover SET handover_time = ?, handover_status = 'COMPLETED' WHERE workflow_id = ?`).run(now, wf.workflow_id);
       db.prepare(`UPDATE emergency_requests SET request_status = 'COMPLETED' WHERE request_id = ?`).run(requestId);
     }
@@ -58,6 +62,7 @@ export function handoff(requestId, step, user) {
     hospital_id: wf.hospital_id,
     hospital_name: getHospital(wf.hospital_id)?.name,
     workflow: acceptedWorkflow(requestId),
+    admission: getAdmission(requestId),
   };
   bus.emit(EVENTS.REQUEST_UPDATE, payload.request);
   bus.emit(EVENTS.HANDOFF_UPDATE, payload);

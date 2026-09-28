@@ -169,6 +169,7 @@
       ref: `NEW-${Math.floor(1000 + Math.random() * 9000)}`,
       type: 'Road Accident', priority: 'Critical', age: '', beds: 1,
       area: AMBULANCE.name, lat: AMBULANCE.lat, lng: AMBULANCE.lng,
+      report: { bp: '', hr: '', spo2: '', notes: '' },
       departments: [], equipment: [],
     };
   }
@@ -229,7 +230,8 @@
       el.textContent = a.text;
       el.className = `font-telemetry-sm text-telemetry-sm ${a.live ? 'text-primary font-semibold' : 'text-on-surface-variant'}`;
     });
-    if (state.view === 'cart') renderCart();
+    // don't rebuild the cart while the crew is typing the field report
+    if (state.view === 'cart' && !document.activeElement?.closest?.('[data-report]')) renderCart();
   }
 
   // ───────────── View: Create Emergency (d3) ─────────────
@@ -478,6 +480,16 @@
           <span class="font-telemetry-sm text-telemetry-sm text-on-surface-variant flex items-center gap-1">Equipment Index [E]<span class="material-symbols-outlined text-[16px]">chevron_right</span></span></a>
       </div>
 
+      <details class="rounded-lg border border-surface-container-high px-space-lg py-space-md" ${draft.report && (draft.report.bp || draft.report.hr || draft.report.spo2 || draft.report.notes) ? 'open' : ''}>
+        <summary class="cursor-pointer list-none flex items-center justify-between font-headline-sm text-headline-sm text-on-surface"><span class="flex items-center gap-space-xs"><span class="material-symbols-outlined text-primary">ecg</span>Field Report <span class="font-telemetry-sm text-telemetry-sm text-on-surface-variant">(optional · sent to the hospital)</span></span><span class="material-symbols-outlined">expand_more</span></summary>
+        <div class="grid grid-cols-3 gap-space-md mt-space-md">
+          <label class="flex flex-col gap-space-xs"><span class="font-label-md text-label-md text-on-surface-variant uppercase">BP (mmHg)</span><input class="bg-surface-container-low rounded-lg px-space-md py-space-sm font-telemetry-md text-telemetry-md border-0 focus:outline-none focus:ring-2 focus:ring-[#18B9B5]" data-report="bp" placeholder="120/80" value="${esc(draft.report?.bp || '')}"></label>
+          <label class="flex flex-col gap-space-xs"><span class="font-label-md text-label-md text-on-surface-variant uppercase">Heart rate</span><input class="bg-surface-container-low rounded-lg px-space-md py-space-sm font-telemetry-md text-telemetry-md border-0 focus:outline-none focus:ring-2 focus:ring-[#18B9B5]" data-report="hr" inputmode="numeric" placeholder="bpm" value="${esc(draft.report?.hr || '')}"></label>
+          <label class="flex flex-col gap-space-xs"><span class="font-label-md text-label-md text-on-surface-variant uppercase">SpO₂ %</span><input class="bg-surface-container-low rounded-lg px-space-md py-space-sm font-telemetry-md text-telemetry-md border-0 focus:outline-none focus:ring-2 focus:ring-[#18B9B5]" data-report="spo2" inputmode="numeric" placeholder="98" value="${esc(draft.report?.spo2 || '')}"></label>
+        </div>
+        <label class="flex flex-col gap-space-xs mt-space-md"><span class="font-label-md text-label-md text-on-surface-variant uppercase">Paramedic notes</span><textarea class="bg-surface-container-low rounded-lg px-space-md py-space-sm font-body-md text-body-md border-0 focus:outline-none focus:ring-2 focus:ring-[#18B9B5]" data-report="notes" maxlength="600" rows="2" placeholder="Mechanism, interventions on scene, anything the ED team must prepare for…">${esc(draft.report?.notes || '')}</textarea></label>
+      </details>
+
       <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-space-sm rounded-lg bg-surface-container-low px-space-lg py-space-md">
         <span class="flex items-center gap-space-sm font-label-lg text-label-lg text-on-surface"><span class="material-symbols-outlined text-primary">verified</span>Clinical Validation: ${criteria} Criteria Locked</span>
         <span class="font-telemetry-sm text-telemetry-sm text-on-surface-variant" title="Pickup: ${esc(areaLabel())}">Geo-Boundary: 15km Radius <span class="mx-1">•</span>
@@ -512,6 +524,13 @@
   </aside>
 </div>`;
   }
+
+  document.addEventListener('input', (e) => {
+    const f = e.target.closest('[data-report]'); if (!f) return;
+    draft.report = draft.report || {};
+    draft.report[f.dataset.report] = f.value;
+    saveDraft();
+  });
 
   document.addEventListener('click', (e) => {
     const r = e.target.closest('[data-remove]');
@@ -555,6 +574,15 @@
           required_specialist: draftSpecialist(),
           beds_required: Number(draft.beds) || 1,
           additional_needs: draftInfoOnly(),
+          field_report: (() => {
+            const rp = draft.report || {};
+            const out = {};
+            if (rp.bp) out.bp = rp.bp.trim();
+            if (rp.hr) out.hr = Number(rp.hr);
+            if (rp.spo2) out.spo2 = Number(rp.spo2);
+            if (rp.notes && rp.notes.trim()) out.notes = rp.notes.trim();
+            return Object.keys(out).length ? out : null;
+          })(),
         },
       });
       if (warnings.length) toast(`#${request.request_id} logged`, warnings.map(esc).join(' '), 'warn');
@@ -734,7 +762,9 @@
     const active = (detail.reservations || []).filter(r => ['PENDING', 'CONFIRMED'].includes(r.reservation_status));
     if (!active.length) return null;
     const r = active[0];
-    return { hospital_id: r.hospital_id, hospital_name: r.hospital_name, status: r.reservation_status, reservation_id: r.reservation_id, expires_at: r.expires_at };
+    const wf = (detail.workflow || []).find(w => w.hospital_id === r.hospital_id && w.hospital_response === 'ACCEPTED');
+    const stage = wf?.handover_status === 'COMPLETED' ? 'done' : wf?.arrival_time ? 'arrived' : wf?.departure_time ? 'enroute' : undefined;
+    return { hospital_id: r.hospital_id, hospital_name: r.hospital_name, status: r.reservation_status, reservation_id: r.reservation_id, expires_at: r.expires_at, stage };
   }
 
   function mmss(sec) { const s = Math.max(0, Math.round(sec)); return `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`; }
@@ -772,11 +802,22 @@
       };
       tick(); holdTimer = setInterval(tick, 1000);
     } else if (h.status === 'CONFIRMED') {
-      panel.innerHTML = box('border-[#36B37E] text-[#065F46]', 'verified',
-        `${esc(h.hospital_name)} accepted. Bed confirmed`,
-        'The emergency is ASSIGNED. The bed stays reserved for the arriving ambulance.',
-        `<button class="px-space-lg py-space-sm rounded-lg border border-outline-variant font-label-lg text-label-lg text-on-surface hover:bg-surface-container-low" data-cancel-hold="${h.reservation_id}" type="button">Release bed</button>
-         <a class="inline-flex items-center gap-space-sm px-space-lg py-space-sm rounded-lg bg-primary text-on-primary font-label-lg text-label-lg" href="#dispatch"><span class="material-symbols-outlined text-[18px]">local_shipping</span>Back to dashboard</a>`);
+      const st = state.match.data?.request?.status;
+      const stage = h.stage || (st === 'IN_TRANSIT' ? 'enroute' : st === 'COMPLETED' ? 'done' : 'assigned');
+      const titles = {
+        assigned: [`${esc(h.hospital_name)} accepted. Bed confirmed`, 'The emergency is ASSIGNED. Start transport when the patient is loaded.'],
+        enroute: [`En route to ${esc(h.hospital_name)}`, 'The hospital sees your live ETA and is preparing the bay.'],
+        arrived: [`Arrived at ${esc(h.hospital_name)}`, 'Waiting for the hospital team to complete the clinical handover.'],
+        done: [`Handed over at ${esc(h.hospital_name)}`, 'Patient admitted. This emergency is COMPLETED.'],
+      }[stage];
+      const actions = {
+        assigned: `<button class="px-space-lg py-space-sm rounded-lg border border-outline-variant font-label-lg text-label-lg text-on-surface hover:bg-surface-container-low" data-cancel-hold="${h.reservation_id}" type="button">Release bed</button>
+          <button class="inline-flex items-center gap-space-sm px-space-lg py-space-sm rounded-lg bg-primary text-on-primary font-label-lg text-label-lg" data-handoff="depart" type="button"><span class="material-symbols-outlined text-[18px]">local_shipping</span>Depart · En route</button>`,
+        enroute: `<button class="inline-flex items-center gap-space-sm px-space-lg py-space-sm rounded-lg bg-primary text-on-primary font-label-lg text-label-lg" data-handoff="arrive" type="button"><span class="material-symbols-outlined text-[18px]">where_to_vote</span>Arrived at hospital</button>`,
+        arrived: `<span class="font-telemetry-sm text-telemetry-sm text-on-surface-variant">Handover in progress…</span>`,
+        done: `<a class="inline-flex items-center gap-space-sm px-space-lg py-space-sm rounded-lg bg-primary text-on-primary font-label-lg text-label-lg" href="#dispatch">Back to dashboard</a>`,
+      }[stage];
+      panel.innerHTML = box('border-[#36B37E] text-[#065F46]', stage === 'done' ? 'task_alt' : stage === 'assigned' ? 'verified' : 'local_shipping', titles[0], titles[1], actions);
     } else if (h.status === 'REJECTED' || h.status === 'EXPIRED' || h.status === 'CANCELLED') {
       const title = h.status === 'REJECTED' ? `${esc(h.hospital_name)} declined${h.reason ? `: ${esc(h.reason)}` : ''}`
         : h.status === 'EXPIRED' ? `${esc(h.hospital_name)} did not answer in time. Hold expired` : `Hold at ${esc(h.hospital_name)} cancelled`;
@@ -818,7 +859,31 @@
   document.addEventListener('click', (e) => {
     const c = e.target.closest('[data-cancel-hold]');
     if (c) cancelHold(c.dataset.cancelHold);
+    const hf = e.target.closest('[data-handoff]');
+    if (hf) doHandoff(hf.dataset.handoff, hf);
   });
+
+  async function doHandoff(step, btn) {
+    btn.disabled = true;
+    try {
+      const res = await api(`/api/requests/${encodeURIComponent(state.match.id)}/handoff`, { method: 'POST', body: { step } });
+      if (state.match.data) state.match.data.request = res.request;
+      state.hold.stage = step === 'depart' ? 'enroute' : 'arrived';
+      toast(step === 'depart' ? 'En route' : 'Arrived', step === 'depart' ? `${esc(res.hospital_name)} is tracking your ETA.` : 'The hospital team has been notified to take over.', 'success');
+      renderHold();
+    } catch (err) { toast('Could not update', esc(err.message), 'critical'); btn.disabled = false; }
+  }
+
+  function onHandoffUpdate(p) {
+    if (!myHolds.has(p.request.request_id)) return;
+    if (state.view === 'match' && state.match.id === p.request.request_id && state.hold) {
+      if (state.match.data) state.match.data.request = p.request;
+      state.hold.stage = p.step === 'complete' ? 'done' : p.step === 'arrive' ? 'arrived' : 'enroute';
+      renderHold();
+    }
+    if (p.step === 'complete') toast(`✅ Handover complete`, `${esc(p.hospital_name)} admitted #${esc(p.request.request_id)}.`, 'success');
+    if (p.step === 'arrive' && p.workflow) toast('Arrival logged by hospital', `#${esc(p.request.request_id)} at ${esc(p.hospital_name)}.`, 'info');
+  }
 
   // Live: hospital answered / hold expired / cancelled
   function onReservationUpdate(p) {
@@ -1006,6 +1071,7 @@
 
     socket.on('hospital:update', (p) => { onHospitalUpdate(p); if (p.source !== 'Reservation') onHospitalChangeForMatch(p); });
     socket.on('reservation:update', onReservationUpdate);
+    socket.on('handoff:update', onHandoffUpdate);
   } else {
     setConnection(false);
   }

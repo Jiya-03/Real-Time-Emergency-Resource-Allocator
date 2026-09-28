@@ -7,6 +7,7 @@
 //   request:new          → request object                      when a dispatcher logs an emergency
 //   request:update       → request object                      when its status changes
 //   reservation:update   → { action, request, hospital_id, reservations }  held / accepted / rejected / cancelled / expired / failed
+//   handoff:update       → { step, request, hospital_id, workflow }  depart / arrive / complete
 import { Server } from 'socket.io';
 import db from '../db/index.js';
 import bus, { EVENTS } from '../events.js';
@@ -40,6 +41,7 @@ export function initSockets(httpServer) {
   bus.on(EVENTS.REQUEST_NEW, (payload) => io.emit(EVENTS.REQUEST_NEW, payload));
   bus.on(EVENTS.REQUEST_UPDATE, (payload) => io.emit(EVENTS.REQUEST_UPDATE, payload));
   bus.on(EVENTS.RESERVATION_UPDATE, (payload) => io.emit(EVENTS.RESERVATION_UPDATE, payload));
+  bus.on(EVENTS.HANDOFF_UPDATE, (payload) => io.emit(EVENTS.HANDOFF_UPDATE, payload));
 
   // Freshness decays with time even when nothing changes, so re-broadcast it regularly
   setInterval(() => io.emit(EVENTS.FRESHNESS_TICK, freshnessSnapshot()), FRESHNESS_EVERY_MS).unref();

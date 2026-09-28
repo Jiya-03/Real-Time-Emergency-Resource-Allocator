@@ -52,6 +52,7 @@ export function formatRequest(row) {
     beds_required: row.beds_required,
     ambulance_id: row.ambulance_id,
     additional_needs: row.additional_needs ? JSON.parse(row.additional_needs) : [],
+    field_report: row.field_report ? JSON.parse(row.field_report) : null,
     status: row.request_status,
     created_at: row.request_timestamp,
     waiting_minutes: Math.round((Date.now() - new Date(row.request_timestamp)) / 6000) / 10,
@@ -63,7 +64,7 @@ function validate(body) {
   const errors = [];
   const {
     emergency_type, severity, patient_age, location, requirements = {},
-    required_specialist = null, beds_required = 1, additional_needs = [],
+    required_specialist = null, beds_required = 1, additional_needs = [], field_report = null,
   } = body || {};
 
   if (!EMERGENCY_TYPES.includes(emergency_type)) errors.push(`emergency_type must be one of: ${EMERGENCY_TYPES.join(', ')}`);
@@ -90,11 +91,25 @@ function validate(body) {
       additional_needs.some(x => typeof x !== 'string' || !x.trim() || x.length > 60)) {
     errors.push('additional_needs must be a list of up to 20 short text items');
   }
+  let report = null;
+  if (field_report !== null && field_report !== undefined) {
+    const { bp, hr, spo2, notes } = field_report;
+    if (typeof field_report !== 'object' || Array.isArray(field_report)) errors.push('field_report must be an object');
+    else {
+      if (bp !== undefined && bp !== '' && !/^\d{2,3}\/\d{2,3}$/.test(String(bp))) errors.push('field_report.bp must look like 120/80');
+      if (hr !== undefined && hr !== '' && !(Number.isInteger(hr) && hr >= 20 && hr <= 250)) errors.push('field_report.hr must be 20–250');
+      if (spo2 !== undefined && spo2 !== '' && !(Number.isInteger(spo2) && spo2 >= 50 && spo2 <= 100)) errors.push('field_report.spo2 must be 50–100');
+      if (notes !== undefined && (typeof notes !== 'string' || notes.length > 600)) errors.push('field_report.notes must be text up to 600 characters');
+      report = Object.fromEntries(Object.entries({ bp, hr, spo2, notes: notes?.trim() }).filter(([, v]) => v !== undefined && v !== ''));
+      if (!Object.keys(report).length) report = null;
+    }
+  }
 
   if (errors.length) throw new ApiError(400, 'Invalid emergency request', { details: errors });
   return {
     emergency_type, severity, patient_age, lat, lng, requirements, required_specialist, beds_required,
     additional_needs: [...new Set(additional_needs.map(x => x.trim()))],
+    field_report: report,
   };
 }
 
@@ -114,6 +129,7 @@ const insertRequest = db.transaction((data) => {
     request_timestamp: new Date().toISOString(),
     request_status: 'CREATED',
     additional_needs: data.additional_needs.length ? JSON.stringify(data.additional_needs) : null,
+    field_report: data.field_report ? JSON.stringify(data.field_report) : null,
   };
   for (const key of REQUIREMENT_KEYS) row[REQUIREMENTS[key]] = data.requirements[key] ? 1 : 0;
 

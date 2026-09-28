@@ -14,6 +14,7 @@ import { primaryBed } from './rankingService.js';
 import { nextId } from '../utils/ids.js';
 import { ApiError } from '../utils/errors.js';
 import bus, { EVENTS } from '../events.js';
+import { roadDistanceKm, etaMinutes } from './geo.js';
 
 export const HOLD_MINUTES = Number(process.env.HOLD_MINUTES) || 10;   // hospital must answer within this
 export const CONFIRMED_HOLD_MINUTES = 15;                              // bed kept for the arriving ambulance
@@ -290,11 +291,44 @@ export function listForHospital(hospitalId, { status } = {}) {
     if (!byReq.has(row.request_id)) byReq.set(row.request_id, { request: getRequest(row.request_id), reservations: [] });
     byReq.get(row.request_id).reservations.push(f);
   }
-  return [...byReq.values()].map(x => ({
-    ...x,
-    status: x.reservations[0].status,
-    reservation_id: x.reservations[0].reservation_id,
-    seconds_left: Math.min(...x.reservations.map(r => r.seconds_left)),
+  const hospital = getHospital(hospitalId);
+  return [...byReq.values()].map(x => {
+    const wf = db.prepare(`SELECT * FROM emergency_workflow_handover WHERE request_id = ? AND hospital_id = ?
+                           ORDER BY assignment_time DESC LIMIT 1`).get(x.request.request_id, hospitalId);
+    const distance_km = roadDistanceKm(x.request.location.lat, x.request.location.lng, hospital.location.lat, hospital.location.lng);
+    const eta_min = etaMinutes(distance_km);
+    return {
+      ...x,
+      status: x.reservations[0].status,
+      reservation_id: x.reservations[0].reservation_id,
+      seconds_left: Math.min(...x.reservations.map(r => r.seconds_left)),
+      distance_km,
+      eta_min,
+      // en route: ETA counts down from departure
+      arrival_eta: wf?.departure_time && !wf.arrival_time ? new Date(new Date(wf.departure_time).getTime() + eta_min * 60000).toISOString() : null,
+      workflow: wf ? {
+        response: wf.hospital_response, assignment_time: wf.assignment_time, departure_time: wf.departure_time,
+        arrival_time: wf.arrival_time, handover_time: wf.handover_time, handover_status: wf.handover_status,
+      } : null,
+    };
+  });
+}
+
+/** Hospital history: every emergency this hospital was contacted for in the last N hours. */
+export function historyForHospital(hospitalId, { hours = 24 } = {}) {
+  if (!getHospital(hospitalId)) throw new ApiError(404, `Hospital ${hospitalId} not found`);
+  const rows = db.prepare(`SELECT * FROM emergency_workflow_handover WHERE hospital_id = ? AND assignment_time >= ?
+                           ORDER BY assignment_time DESC LIMIT 200`).all(hospitalId, iso(Date.now() - hours * 3600e3));
+  return rows.map(w => ({
+    workflow_id: w.workflow_id,
+    request: getRequest(w.request_id),
+    response: w.hospital_response,
+    rejection_reason: w.rejection_reason,
+    assignment_time: w.assignment_time,
+    departure_time: w.departure_time,
+    arrival_time: w.arrival_time,
+    handover_time: w.handover_time,
+    handover_status: w.handover_status,
   }));
 }
 

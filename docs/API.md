@@ -9,7 +9,7 @@ Freshness: `fresh` (≤5 min), `aging` (5–30 min), `stale` (>30 min)
 |-----|------|
 | http://localhost:5000/ | Login (Dispatcher / Hospital) |
 | http://localhost:5000/dispatcher.html | Dispatcher portal: Dashboard · Create Emergency · Emergency Cart · Hospital Match |
-| http://localhost:5000/hospital.html | Hospital portal: accept/reject incoming requests, update live capacity |
+| http://localhost:5000/hospital.html | Hospital portal: Dashboard · Emergency Requests · Resources · Active Cases · Handover · History (+ full-screen siren alarm on new requests) |
 | http://localhost:5000/live.html | Developer live-feed test page |
 
 ## ✅ Built
@@ -89,7 +89,8 @@ POST /api/requests
   "requirements": { "icu": true, "trauma_care": true, "blood_bank": true, "operation_theatre": true },
   "required_specialist": "Trauma Surgeon",   // optional
   "beds_required": 1,                        // optional, default 1
-  "additional_needs": ["CT Scanner"]         // optional: extra items not tracked in capacity data (notes for the hospital)
+  "additional_needs": ["CT Scanner"],        // optional: extra items not tracked in capacity data (notes for the hospital)
+  "field_report": { "bp": "84/52", "hr": 128, "spo2": 91, "notes": "MVA, intubated on scene" }   // optional paramedic vitals/notes
 }
 ```
 Requirement keys: `icu`, `ventilator`, `oxygen`, `trauma_care`, `cardiology`, `neurology`, `blood_bank`, `operation_theatre`, `dialysis` (any missing = false).
@@ -186,8 +187,14 @@ Test page: **http://localhost:5000/live.html**
 ### Errors
 All errors return `{ "error": "message" }` with status 400 (bad input), 404 (not found) or 409 (conflict).
 
-## 🔜 Coming next
+### Handoff workflow
+| Method | Endpoint | Who | Purpose |
+|--------|----------|-----|---------|
+| POST | /api/requests/:id/handoff `{ "step": "depart" }` | Dispatcher (crew) | Ambulance leaves the scene → request `IN_TRANSIT`, hospital sees a live ETA |
+| POST | /api/requests/:id/handoff `{ "step": "arrive" }` | Crew or receiving hospital | Ambulance docked at the bay |
+| POST | /api/requests/:id/handoff `{ "step": "complete" }` | Receiving hospital only | Patient handed to ED staff → request `COMPLETED` |
+| GET | /api/reservations/history | Hospital | Every case the hospital was contacted for in the last 24 h |
 
-| Method | Endpoint | Purpose |
-|--------|----------|---------|
-| PATCH | /api/requests/:id/status | Handoff: en route → arrived → handed over |
+Rules: must be accepted first (409 `NOT_ASSIGNED`); cannot complete before arrival (409 `NOT_ARRIVED`); timestamps always satisfy assignment ≤ departure ≤ arrival ≤ handover.
+Socket event: `handoff:update` → `{ step, request, hospital_id, hospital_name, workflow }`.
+

@@ -12,6 +12,7 @@ export const EVENTS = {
   REQUEST_NEW: 'request:new',
   REQUEST_UPDATE: 'request:update',
   RESERVATION_UPDATE: 'reservation:update',
+  HANDOFF_UPDATE: 'handoff:update',
 };
 
 export default bus;

@@ -8,7 +8,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const DB_PATH = process.env.DB_PATH || path.join(__dirname, '..', '..', 'emergency.db');
 
 // Bump this whenever schema.sql changes: old local databases get rebuilt automatically.
-const SCHEMA_VERSION = 4;
+const SCHEMA_VERSION = 5;
 
 const db = new Database(DB_PATH);
 db.pragma('journal_mode = WAL');   // better for many simultaneous reads/writes

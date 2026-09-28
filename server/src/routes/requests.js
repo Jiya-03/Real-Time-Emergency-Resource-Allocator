@@ -3,6 +3,8 @@ import { Router } from 'express';
 import { createRequest, getRequestDetail, listRequests, getRequestSummary } from '../services/requestService.js';
 import { ApiError } from '../utils/errors.js';
 import { matchRequest, getSavedRankings } from '../services/rankingService.js';
+import { handoff } from '../services/handoffService.js';
+import { requireRole } from '../services/authService.js';
 import {
   EMERGENCY_TYPES, SEVERITIES, SPECIALISTS, REQUEST_STATUSES, REQUIREMENT_KEYS,
   TYPE_DEFAULTS, SEVERITY_DEFAULTS,
@@ -44,6 +46,11 @@ router.post('/:id/match', (req, res) => res.json(matchRequest(req.params.id)));
 
 // GET /api/requests/:id/rankings → last saved ranking (dataset requests have one too)
 router.get('/:id/rankings', (req, res) => res.json(getSavedRankings(req.params.id)));
+
+// POST /api/requests/:id/handoff { step: "depart" | "arrive" | "complete" } → ambulance / hospital progress
+router.post('/:id/handoff', requireRole('dispatcher', 'hospital'), (req, res) => {
+  res.json(handoff(req.params.id, req.body?.step, req.user));
+});
 
 // POST /api/requests → dispatcher logs a new emergency
 router.post('/', (req, res) => {

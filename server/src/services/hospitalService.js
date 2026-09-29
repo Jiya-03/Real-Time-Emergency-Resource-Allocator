@@ -45,9 +45,9 @@ export function formatHospital(row, now = Date.now()) {
   };
 }
 
-export function listHospitals({ freshness, has, service, accepting } = {}) {
+export async function listHospitals({ freshness, has, service, accepting } = {}) {
   const now = Date.now();
-  let list = db.prepare(`${BASE_QUERY} ORDER BY h.hospital_id`).all().map(r => formatHospital(r, now));
+  let list = (await db.prepare(`${BASE_QUERY} ORDER BY h.hospital_id`).all()).map(r => formatHospital(r, now));
 
   if (freshness) list = list.filter(h => h.freshness.status === freshness);
   if (has)       list = list.filter(h => h.resources[has]?.available > 0);
@@ -57,18 +57,18 @@ export function listHospitals({ freshness, has, service, accepting } = {}) {
 }
 
 // All hospitals, formatted, with freshness measured at `now` (used by the ranking engine)
-export function getAllHospitals(now = Date.now()) {
-  return db.prepare(`${BASE_QUERY} ORDER BY h.hospital_id`).all().map(r => formatHospital(r, now));
+export async function getAllHospitals(now = Date.now()) {
+  return (await db.prepare(`${BASE_QUERY} ORDER BY h.hospital_id`).all()).map(r => formatHospital(r, now));
 }
 
-export function getHospital(id) {
-  const row = db.prepare(`${BASE_QUERY} WHERE h.hospital_id = ?`).get(id);
+export async function getHospital(id) {
+  const row = await db.prepare(`${BASE_QUERY} WHERE h.hospital_id = ?`).get(id);
   return row ? formatHospital(row) : null;
 }
 
 // Network-wide numbers for the dashboard header
-export function getSummary() {
-  const list = listHospitals();
+export async function getSummary() {
+  const list = await listHospitals();
   const summary = {
     hospitals: list.length,
     accepting_patients: list.filter(h => h.accepting_patients).length,
@@ -86,12 +86,12 @@ export function getSummary() {
   return summary;
 }
 
-export function getHistory(id, { type, limit = 20 } = {}) {
+export async function getHistory(id, { type, limit = 20 } = {}) {
   const params = [id];
   let where = 'hospital_id = ?';
   if (type) { where += ' AND resource_type = ?'; params.push(RESOURCES[type].label); }
   params.push(Math.min(Number(limit) || 20, 200));
-  return db.prepare(
+  return await db.prepare(
     `SELECT * FROM resource_update_history WHERE ${where} ORDER BY updated_at DESC, update_id DESC LIMIT ?`
   ).all(...params);
 }
@@ -105,8 +105,8 @@ export { ApiError };
  *   expectedVersion (optional): if another update landed first, reject with 409
  * Also used with empty changes to simply re-confirm (refresh) stale data.
  */
-const updateResources = db.transaction((id, changes = {}, { expectedVersion, source = 'Hospital Staff' } = {}) => {
-  const row = db.prepare('SELECT * FROM hospital_resources WHERE hospital_id = ?').get(id);
+const updateResources = db.transaction(async (id, changes = {}, { expectedVersion, source = 'Hospital Staff' } = {}) => {
+  const row = await db.prepare('SELECT * FROM hospital_resources WHERE hospital_id = ?').get(id);
   if (!row) throw new ApiError(404, `Hospital ${id} not found`);
   if (!UPDATE_SOURCES.includes(source)) throw new ApiError(400, `source must be one of: ${UPDATE_SOURCES.join(', ')}`);
 
@@ -129,7 +129,7 @@ const updateResources = db.transaction((id, changes = {}, { expectedVersion, sou
 
   const nowISO = new Date().toISOString();
   // Optimistic lock: only succeeds if nobody changed this row since the client read it
-  const result = db.prepare(`
+  const result = await db.prepare(`
     UPDATE hospital_resources
     SET ${[...sets, 'last_updated_timestamp = @now', 'update_source = @source', 'version = version + 1'].join(', ')}
     WHERE hospital_id = @id ${expectedVersion !== undefined ? 'AND version = @expectedVersion' : ''}
@@ -137,7 +137,7 @@ const updateResources = db.transaction((id, changes = {}, { expectedVersion, sou
 
   if (result.changes === 0) {
     throw new ApiError(409, 'Availability was changed by someone else. Reload and try again.', {
-      current: getHospital(id),
+      current: await getHospital(id),
     });
   }
 
@@ -146,22 +146,22 @@ const updateResources = db.transaction((id, changes = {}, { expectedVersion, sou
       (update_id, hospital_id, resource_type, old_available_count, new_available_count, updated_at, update_source)
     VALUES (?, ?, ?, ?, ?, ?, ?)`);
   for (const l of logs) {
-    insertLog.run(nextId(db, 'resource_update_history', 'update_id', 'UPD', 6), id, l.label, l.old, l.new, nowISO, source);
+    await insertLog.run(await nextId(db, 'resource_update_history', 'update_id', 'UPD', 6), id, l.label, l.old, l.new, nowISO, source);
   }
 
-  return { hospital: getHospital(id), changed: logs, source };
+  return { hospital: await getHospital(id), changed: logs, source };
 });
 
 // Public version: runs the DB transaction, then tells everyone (sockets) what changed
-export function updateHospitalResources(id, changes, opts) {
-  const result = updateResources(id, changes, opts);
+export async function updateHospitalResources(id, changes, opts) {
+  const result = await updateResources(id, changes, opts);
   bus.emit(EVENTS.HOSPITAL_UPDATE, result);
   return result;
 }
 
 /** Hospital staff: mark departments available / unavailable and set specialists on call. Changes ranking eligibility at once. */
-export function updateHospitalServices(id, { services = {}, specialists } = {}) {
-  const row = db.prepare('SELECT * FROM hospital_services WHERE hospital_id = ?').get(id);
+export async function updateHospitalServices(id, { services = {}, specialists } = {}) {
+  const row = await db.prepare('SELECT * FROM hospital_services WHERE hospital_id = ?').get(id);
   if (!row) throw new ApiError(404, `Hospital ${id} not found`);
   const sets = [], params = { id }, changed = [];
   for (const [k, v] of Object.entries(services)) {
@@ -175,13 +175,13 @@ export function updateHospitalServices(id, { services = {}, specialists } = {}) 
     if (val !== row.specialists) { sets.push('specialists = @specialists'); params.specialists = val; changed.push({ specialists: val }); }
   }
   if (sets.length) {
-    db.transaction(() => {
-      db.prepare(`UPDATE hospital_services SET ${sets.join(', ')} WHERE hospital_id = @id`).run(params);
-      db.prepare(`UPDATE hospital_resources SET last_updated_timestamp = ?, update_source = 'Hospital Staff', version = version + 1 WHERE hospital_id = ?`)
+    await db.transaction(async () => {
+      await db.prepare(`UPDATE hospital_services SET ${sets.join(', ')} WHERE hospital_id = @id`).run(params);
+      await db.prepare(`UPDATE hospital_resources SET last_updated_timestamp = ?, update_source = 'Hospital Staff', version = version + 1 WHERE hospital_id = ?`)
         .run(new Date().toISOString(), id);
     })();
   }
-  const hospital = getHospital(id);
+  const hospital = await getHospital(id);
   if (sets.length) bus.emit(EVENTS.HOSPITAL_UPDATE, { hospital, changed, source: 'Hospital Staff' });
   return { hospital, changed };
 }

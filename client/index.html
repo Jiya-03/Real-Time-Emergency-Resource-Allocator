@@ -378,8 +378,7 @@
 <!-- Mode Descriptive Header (Morphs smoothly) -->
 <div class="transition-all duration-200" id="portal-meta-container" style="opacity: 1; transform: translateY(0);">
 <div class="flex items-center gap-2" id="portal-heading-row">
-<span class="text-base select-none" id="portal-icon">🚨</span>
-<h3 class="text-lg font-bold text-midnightNavy flex items-center gap-2" id="portal-heading">Dispatcher Login</h3>
+<h3 class="text-lg font-bold text-midnightNavy" id="portal-heading">Dispatcher Login</h3>
 </div>
 <p class="text-xs text-slateGray mt-1" id="portal-desc">Access emergency coordination from your ambulance.</p>
 
@@ -465,7 +464,6 @@
       const tabDispatcher = document.getElementById('tab-dispatcher');
       const tabHospital = document.getElementById('tab-hospital');
       const portalHeading = document.getElementById('portal-heading');
-      const portalIcon = document.getElementById('portal-icon');
       const portalDesc = document.getElementById('portal-desc');
       const labelIdentifier = document.getElementById('label-identifier');
       const identifierInput = document.getElementById('identifier-input');
@@ -485,7 +483,6 @@
           tabDispatcher.className = inactiveClasses;
           tabDispatcher.setAttribute('aria-pressed', 'false');
 
-          portalIcon.innerText = '🏥';
           portalHeading.innerText = 'Hospital Login';
           portalDesc.innerText = 'Manage hospital resources and respond to emergency requests.';
           labelIdentifier.innerText = 'HOSPITAL ID';
@@ -506,7 +503,6 @@
           tabHospital.className = inactiveClasses;
           tabHospital.setAttribute('aria-pressed', 'false');
 
-          portalIcon.innerText = '🚨';
           portalHeading.innerText = 'Dispatcher Login';
           portalDesc.innerText = 'Access emergency coordination from your ambulance.';
           labelIdentifier.innerText = 'DISPATCHER ID';

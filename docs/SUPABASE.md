@@ -1,4 +1,37 @@
-# Supabase live database (two-way sync)
+# Supabase live database
+
+Two ways to use Supabase:
+
+| Mode | Set in `server/.env` | What happens | Use when |
+|---|---|---|---|
+| **A. Mirror** (default) | `SUPABASE_URL` + `SUPABASE_SERVICE_ROLE_KEY` | App runs on its local SQLite file and copies everything to Supabase live (below) | Demo on one laptop, works offline |
+| **B. Postgres** | `DATABASE_URL` (+ optionally the two above) | App reads/writes **Supabase's Postgres directly**; several servers can run at once and share live events | Real deployment / more than one server |
+
+## Mode B: run on Supabase Postgres directly
+1. Supabase → your project → **Connect** → *Connection string* → **Session pooler** (port 5432, IPv4). Copy it and put your
+   database password in it. (Not the *Transaction pooler* on 6543: live events between servers need a session connection.)
+2. `server/.env`:
+   ```
+   DATABASE_URL=postgresql://postgres.<project-ref>:<db-password>@aws-0-<region>.pooler.supabase.com:5432/postgres
+   SUPABASE_URL=https://<project-ref>.supabase.co          # optional: dashboard edits refresh every screen live
+   SUPABASE_SERVICE_ROLE_KEY=<service role key>             # optional (same reason)
+   ```
+3. Run `server/supabase/schema.sql` once more in the SQL Editor (adds 2 small tables + security), then:
+   ```bash
+   cd server
+   npm install
+   npm run seed      # loads the dataset INTO SUPABASE (replaces what is there)
+   npm run dev       # console: "database: Postgres"
+   ```
+4. Second server (optional, to see the sharing): open another Git Bash, `cd server`, `PORT=5001 npm run dev`.
+   Dispatcher on http://localhost:5000, hospital on http://localhost:5001: alerts, accepts and GPS flow between them.
+   Only one server prints "👑 This server runs the background jobs".
+
+To go back to the local database, remove (or comment out) `DATABASE_URL` in `.env`.
+
+---
+
+# Mode A: two-way sync (mirror)
 
 The app keeps its fast local database (that's what guarantees no double-booking) and mirrors
 **everything** to Supabase live. Supabase becomes the shared dashboard where you can **view, create,

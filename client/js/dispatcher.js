@@ -31,12 +31,7 @@
   // ───────────── Header ─────────────
   $('user-name').textContent = session.user.name;
   $('user-id').textContent = `ID ${session.user.id}`;
-  $('user-btn').addEventListener('click', (e) => {
-    e.stopPropagation();
-    const open = $('user-menu').classList.toggle('hidden') === false;
-    $('user-btn').setAttribute('aria-expanded', String(open));
-  });
-  document.addEventListener('click', () => $('user-menu').classList.add('hidden'));
+
   $('logout-btn').addEventListener('click', () => { Session.clear(); location.replace('index.html'); });
 
 
@@ -91,10 +86,8 @@
   function rowHTML(r) {
     const a = r.assignment;
     const facility = a
-      ? `<span class="material-symbols-outlined text-outline text-[18px]">local_hospital</span>
-         <span class="font-body-md text-body-md font-semibold">${esc(a.hospital_name)}</span>`
-      : `<span class="material-symbols-outlined text-outline text-[18px]">local_hospital</span>
-         <span class="font-body-md text-body-md text-on-surface-variant">Awaiting hospital match</span>`;
+      ? `<span class="font-body-md text-body-md font-semibold">${esc(a.hospital_name)}</span>`
+      : `<span class="font-body-md text-body-md text-on-surface-variant">Awaiting hospital match</span>`;
     const transit = a
       ? `<span class="font-telemetry-md text-telemetry-md text-on-surface font-semibold">${a.transit_minutes} min ${a.transit_source === 'actual' ? 'transit' : 'ETA'}</span>
          <span class="font-telemetry-sm text-telemetry-sm text-on-surface-variant">Distance: ${a.distance_km} km</span>`
@@ -406,15 +399,9 @@
 
   function cartItemHTML(item, kind) {
     const a = availabilityText(item);
-    const code = item.code || item.tag;
     return `
-<div class="flex items-center gap-space-md bg-surface-container-low rounded-lg px-space-lg py-space-md">
-  <div class="w-11 h-11 rounded-lg bg-surface-container-lowest flex items-center justify-center shrink-0"><span class="material-symbols-outlined text-primary">${item.icon}</span></div>
-  <div class="flex flex-col flex-1 min-w-0">
-    <div class="flex items-center gap-space-sm flex-wrap"><span class="font-headline-sm text-headline-sm text-on-surface">${esc(item.name)}</span>
-    ${code ? `<span class="px-1.5 py-0.5 rounded ${item.req ? 'bg-surface-container text-primary' : 'bg-surface-container-high text-on-surface-variant'} font-telemetry-sm text-telemetry-sm uppercase">${esc(code)}</span>` : ''}</div>
-    <span class="font-body-md text-body-md text-on-surface-variant">${esc(item.desc)}</span>
-  </div>
+<div class="flex items-center gap-space-md bg-surface-container-low rounded-lg px-space-lg py-space-sm">
+  <div class="flex flex-col flex-1 min-w-0"><span class="font-label-lg text-label-lg text-on-surface">${esc(item.name)}</span><span class="font-body-sm text-body-sm text-on-surface-variant">${esc(item.desc)}</span></div>
   <span class="hidden sm:inline px-space-sm py-1 rounded font-telemetry-sm text-telemetry-sm ${a.live ? 'bg-secondary-container/40 text-primary' : item.req ? 'bg-tertiary-fixed text-tertiary' : 'text-on-surface-variant'}">${a.live || !item.req ? esc(a.text) : 'Unavailable'}</span>
   <button class="w-8 h-8 rounded hover:bg-surface-container flex items-center justify-center text-on-surface-variant" data-remove="${item.id}" data-kind="${kind}" type="button" aria-label="Remove ${esc(item.name)}"><span class="material-symbols-outlined">close</span></button>
 </div>`;
@@ -442,85 +429,45 @@
       : preview.inRadius === 0 ? 'No capable hospital within 15 km'
       : unavailable.length ? `${unavailable.length} item${unavailable.length > 1 ? 's' : ''} unavailable` : 'Zero Protocol Conflicts';
 
+    const section = (title, items, kind, focus, addLabel) => `
+      <div class="flex flex-col gap-space-sm">
+        <h3 class="font-label-lg text-label-lg text-on-surface-variant uppercase">${title}</h3>
+        ${items.map(x => cartItemHTML(x, kind)).join('') || `<span class="font-body-sm text-body-sm text-on-surface-variant">None added</span>`}
+        <a class="w-fit inline-flex items-center gap-space-xs font-label-lg text-label-lg text-primary hover:underline" href="#create" data-focus="${focus}"><span class="material-symbols-outlined text-[18px]">add</span>${addLabel}</a>
+      </div>`;
     $('cart-content').innerHTML = `
 <div class="grid grid-cols-1 lg:grid-cols-3 gap-space-xl items-start">
-  <!-- Requisition -->
-  <div class="lg:col-span-2 bg-surface-container-lowest rounded-xl shadow-sm overflow-hidden">
-    <div class="h-1.5 bg-tertiary"></div>
-    <div class="p-space-xl flex flex-col gap-space-xl">
-      <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-space-md">
-        <div class="flex items-center gap-space-md min-w-0">
-          <div class="w-11 h-11 rounded-lg bg-tertiary-fixed flex items-center justify-center shrink-0"><span class="material-symbols-outlined text-tertiary">e911_emergency</span></div>
-          <h2 class="font-headline-md text-headline-md text-on-surface whitespace-nowrap">Emergency #${esc(draft.ref)}</h2>
-          <span class="px-space-sm py-0.5 rounded bg-tertiary-fixed text-tertiary font-telemetry-sm text-telemetry-sm font-semibold uppercase whitespace-nowrap">Pending Hospital Dispatch</span>
-        </div>
-        <div class="flex items-center gap-space-xs shrink-0">
-          <span class="inline-flex items-center gap-1 px-space-sm py-1 rounded bg-surface-container-low font-label-lg text-label-lg text-on-surface"><span class="material-symbols-outlined text-[16px] text-tertiary">warning</span>${esc(TYPE_NOUN[draft.type] || draft.type)}</span>
-          <span class="inline-flex items-center gap-1.5 px-space-sm py-1 rounded font-label-lg text-label-lg" style="background:${p.bg};color:${p.color}"><span class="w-2 h-2 rounded-full" style="background:${p.color}"></span>${esc(draft.priority)} · ${p.code}</span>
-        </div>
-      </div>
-
-      <div class="flex flex-col gap-space-sm">
-        <div class="flex items-center justify-between"><div class="flex items-center gap-space-sm"><h3 class="font-headline-md text-headline-md text-on-surface uppercase">Departments</h3>
-          <span class="px-space-sm py-0.5 rounded bg-surface-container font-telemetry-sm text-telemetry-sm text-on-surface">${depts.length} Locked</span></div>
-          <span class="font-telemetry-sm text-telemetry-sm text-on-surface-variant uppercase">Capacity Mandatory</span></div>
-        ${depts.map(d => cartItemHTML(d, 'dept')).join('')}
-        <a class="flex items-center justify-between gap-space-md rounded-lg px-space-lg py-space-md shadow-sm hover:bg-surface-container-low" href="#create" data-focus="dept-grid">
-          <span class="flex items-center gap-space-md"><span class="w-10 h-10 rounded-full bg-surface-container flex items-center justify-center"><span class="material-symbols-outlined text-primary">add</span></span><span class="font-label-lg text-label-lg text-primary">+ Add another department</span></span>
-          <span class="font-telemetry-sm text-telemetry-sm text-on-surface-variant flex items-center gap-1">Catalog Shortcut [D]<span class="material-symbols-outlined text-[16px]">chevron_right</span></span></a>
-      </div>
-
-      <div class="flex flex-col gap-space-sm">
-        <div class="flex items-center justify-between"><div class="flex items-center gap-space-sm"><h3 class="font-headline-md text-headline-md text-on-surface uppercase">Major Equipment</h3>
-          <span class="px-space-sm py-0.5 rounded bg-surface-container font-telemetry-sm text-telemetry-sm text-on-surface">${equip.length} Locked</span></div>
-          <span class="font-telemetry-sm text-telemetry-sm text-on-surface-variant uppercase">Hardware Reservation</span></div>
-        ${equip.map(e => cartItemHTML(e, 'equip')).join('')}
-        <a class="flex items-center justify-between gap-space-md rounded-lg px-space-lg py-space-md shadow-sm hover:bg-surface-container-low" href="#create" data-focus="equip-grid">
-          <span class="flex items-center gap-space-md"><span class="w-10 h-10 rounded-full bg-surface-container flex items-center justify-center"><span class="material-symbols-outlined text-primary">add</span></span><span class="font-label-lg text-label-lg text-primary">+ Add equipment</span></span>
-          <span class="font-telemetry-sm text-telemetry-sm text-on-surface-variant flex items-center gap-1">Equipment Index [E]<span class="material-symbols-outlined text-[16px]">chevron_right</span></span></a>
-      </div>
-
-      <details class="rounded-lg border border-surface-container-high px-space-lg py-space-md" ${draft.report && (draft.report.bp || draft.report.hr || draft.report.spo2 || draft.report.notes) ? 'open' : ''}>
-        <summary class="cursor-pointer list-none flex items-center justify-between font-headline-sm text-headline-sm text-on-surface"><span class="flex items-center gap-space-xs"><span class="material-symbols-outlined text-primary">ecg</span>Field Report <span class="font-telemetry-sm text-telemetry-sm text-on-surface-variant">(optional · sent to the hospital)</span></span><span class="material-symbols-outlined">expand_more</span></summary>
-        <div class="grid grid-cols-3 gap-space-md mt-space-md">
-          <label class="flex flex-col gap-space-xs"><span class="font-label-md text-label-md text-on-surface-variant uppercase">BP (mmHg)</span><input class="bg-surface-container-low rounded-lg px-space-md py-space-sm font-telemetry-md text-telemetry-md border-0 focus:outline-none focus:ring-2 focus:ring-[#18B9B5]" data-report="bp" placeholder="120/80" value="${esc(draft.report?.bp || '')}"></label>
-          <label class="flex flex-col gap-space-xs"><span class="font-label-md text-label-md text-on-surface-variant uppercase">Heart rate</span><input class="bg-surface-container-low rounded-lg px-space-md py-space-sm font-telemetry-md text-telemetry-md border-0 focus:outline-none focus:ring-2 focus:ring-[#18B9B5]" data-report="hr" inputmode="numeric" placeholder="bpm" value="${esc(draft.report?.hr || '')}"></label>
-          <label class="flex flex-col gap-space-xs"><span class="font-label-md text-label-md text-on-surface-variant uppercase">SpO₂ %</span><input class="bg-surface-container-low rounded-lg px-space-md py-space-sm font-telemetry-md text-telemetry-md border-0 focus:outline-none focus:ring-2 focus:ring-[#18B9B5]" data-report="spo2" inputmode="numeric" placeholder="98" value="${esc(draft.report?.spo2 || '')}"></label>
-        </div>
-        <label class="flex flex-col gap-space-xs mt-space-md"><span class="font-label-md text-label-md text-on-surface-variant uppercase">Paramedic notes</span><textarea class="bg-surface-container-low rounded-lg px-space-md py-space-sm font-body-md text-body-md border-0 focus:outline-none focus:ring-2 focus:ring-[#18B9B5]" data-report="notes" maxlength="600" rows="2" placeholder="Mechanism, interventions on scene, anything the ED team must prepare for…">${esc(draft.report?.notes || '')}</textarea></label>
-      </details>
-
-      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-space-sm rounded-lg bg-surface-container-low px-space-lg py-space-md">
-        <span class="flex items-center gap-space-sm font-label-lg text-label-lg text-on-surface"><span class="material-symbols-outlined text-primary">verified</span>Clinical Validation: ${criteria} Criteria Locked</span>
-        <span class="font-telemetry-sm text-telemetry-sm text-on-surface-variant" title="Pickup: ${esc(areaLabel())}">Geo-Boundary: 15km Radius <span class="mx-1">•</span>
-          <span class="${conflicts === 'Zero Protocol Conflicts' ? 'text-primary' : 'text-tertiary'} font-semibold">${conflicts}</span></span>
-      </div>
+  <div class="lg:col-span-2 bg-surface-container-lowest rounded-xl shadow-sm p-space-xl flex flex-col gap-space-xl">
+    <div class="flex items-center gap-space-sm flex-wrap">
+      <h2 class="font-headline-md text-headline-md text-on-surface">${esc(TYPE_NOUN[draft.type] || draft.type)} · age ${esc(draft.age || '—')}</h2>
+      <span class="inline-flex items-center gap-1.5 px-space-sm py-1 rounded font-label-lg text-label-lg" style="background:${p.bg};color:${p.color}"><span class="w-2 h-2 rounded-full" style="background:${p.color}"></span>${esc(draft.priority)} · ${p.code}</span>
+      <span class="font-body-sm text-body-sm text-on-surface-variant">Pickup: ${esc(areaLabel())}</span>
     </div>
+    ${section('Departments', depts, 'dept', 'dept-grid', 'Add department')}
+    ${section('Equipment', equip, 'equip', 'equip-grid', 'Add equipment')}
+    <details class="rounded-lg border border-surface-container-high px-space-lg py-space-md" ${draft.report && (draft.report.bp || draft.report.hr || draft.report.spo2 || draft.report.notes) ? 'open' : ''}>
+      <summary class="cursor-pointer list-none flex items-center justify-between font-label-lg text-label-lg text-on-surface"><span>Field report <span class="font-body-sm text-body-sm text-on-surface-variant">(optional, sent to the hospital)</span></span><span class="material-symbols-outlined">expand_more</span></summary>
+      <div class="grid grid-cols-3 gap-space-md mt-space-md">
+        <label class="flex flex-col gap-space-xs"><span class="font-label-md text-label-md text-on-surface-variant uppercase">BP (mmHg)</span><input class="bg-surface-container-low rounded-lg px-space-md py-space-sm font-telemetry-md text-telemetry-md border-0 focus:outline-none focus:ring-2 focus:ring-[#18B9B5]" data-report="bp" placeholder="120/80" value="${esc(draft.report?.bp || '')}"></label>
+        <label class="flex flex-col gap-space-xs"><span class="font-label-md text-label-md text-on-surface-variant uppercase">Heart rate</span><input class="bg-surface-container-low rounded-lg px-space-md py-space-sm font-telemetry-md text-telemetry-md border-0 focus:outline-none focus:ring-2 focus:ring-[#18B9B5]" data-report="hr" inputmode="numeric" placeholder="bpm" value="${esc(draft.report?.hr || '')}"></label>
+        <label class="flex flex-col gap-space-xs"><span class="font-label-md text-label-md text-on-surface-variant uppercase">SpO₂ %</span><input class="bg-surface-container-low rounded-lg px-space-md py-space-sm font-telemetry-md text-telemetry-md border-0 focus:outline-none focus:ring-2 focus:ring-[#18B9B5]" data-report="spo2" inputmode="numeric" placeholder="98" value="${esc(draft.report?.spo2 || '')}"></label>
+      </div>
+      <label class="flex flex-col gap-space-xs mt-space-md"><span class="font-label-md text-label-md text-on-surface-variant uppercase">Paramedic notes</span><textarea class="bg-surface-container-low rounded-lg px-space-md py-space-sm font-body-md text-body-md border-0 focus:outline-none focus:ring-2 focus:ring-[#18B9B5]" data-report="notes" maxlength="600" rows="2" placeholder="Mechanism, interventions on scene, anything the ED team must prepare for…">${esc(draft.report?.notes || '')}</textarea></label>
+    </details>
   </div>
 
-  <!-- Requisition Summary -->
   <aside class="bg-surface-container-lowest rounded-xl shadow-sm p-space-xl flex flex-col gap-space-lg lg:sticky lg:top-24">
-    <div class="flex items-center justify-between"><h2 class="font-headline-md text-headline-md text-on-surface">Requisition Summary</h2>
-      <span class="px-space-sm py-0.5 rounded bg-surface-container text-primary font-telemetry-sm text-telemetry-sm font-semibold">VERIFIED</span></div>
-    <div class="flex flex-col gap-space-md font-body-md text-body-md">
-      <div class="flex justify-between"><span class="text-on-surface-variant">Selected Departments</span><span class="font-telemetry-md text-telemetry-md text-on-surface">${depts.length} items</span></div>
-      <div class="flex justify-between"><span class="text-on-surface-variant">Major Medical Equipment</span><span class="font-telemetry-md text-telemetry-md text-on-surface">${equip.length} units</span></div>
-      <div class="flex justify-between"><span class="text-on-surface-variant">Incident Severity Coeff.</span><span class="font-telemetry-md text-telemetry-md" style="color:${p.color}">${p.level}</span></div>
-      <div class="flex justify-between"><span class="text-on-surface-variant">Expected Response Radius</span><span class="font-telemetry-md text-telemetry-md text-on-surface">${preview.eta ? `&lt; ${preview.eta} min ETA` : '—'}</span></div>
+    <h2 class="font-headline-md text-headline-md text-on-surface">Ready to send</h2>
+    <div class="flex flex-col gap-space-sm font-body-md text-body-md">
+      <div class="flex justify-between"><span class="text-on-surface-variant">Suitable hospitals nearby</span><span class="font-telemetry-md text-telemetry-md ${preview.capable ? 'text-on-surface' : 'text-tertiary'}">${preview.capable}</span></div>
+      <div class="flex justify-between"><span class="text-on-surface-variant">Nearest one</span><span class="font-telemetry-md text-telemetry-md text-on-surface">${preview.eta ? `~${preview.eta} min` : '—'}</span></div>
     </div>
-    <div class="h-px bg-surface-container-high"></div>
-    <div class="flex items-end justify-between">
-      <div class="flex flex-col"><span class="font-headline-md text-headline-md text-on-surface">Total Criteria</span><span class="font-telemetry-sm text-telemetry-sm text-on-surface-variant">Mandatory allocation</span></div>
-      <span class="font-telemetry-lg text-[28px] text-primary">${criteria} Locked</span>
-    </div>
-    <button class="w-full py-space-lg rounded-lg bg-tertiary hover:bg-tertiary-container text-on-tertiary font-headline-sm text-headline-sm shadow-sm disabled:opacity-60" id="start-search" type="button">Start Searching....</button>
-    <p class="-mt-space-sm text-center font-body-sm text-body-sm text-on-surface-variant flex items-center justify-center gap-space-xs"><span class="material-symbols-outlined text-[16px] text-primary">campaign</span>Alerts every suitable hospital at once. The first to accept gets the patient.</p>
+    ${conflicts !== 'Zero Protocol Conflicts' ? `<span class="rounded-lg bg-tertiary-fixed text-tertiary px-space-md py-space-sm font-body-sm text-body-sm">${esc(conflicts)}</span>` : ''}
+    <button class="w-full py-space-lg rounded-lg bg-tertiary hover:bg-tertiary-container text-on-tertiary font-headline-sm text-headline-sm shadow-sm disabled:opacity-60" id="start-search" type="button">Start Searching</button>
+    <p class="-mt-space-sm text-center font-body-sm text-body-sm text-on-surface-variant">Every suitable hospital is alerted at once. The first to accept gets the patient.</p>
     <div class="flex items-center justify-center gap-space-md font-label-md text-label-md">
-      <a class="text-on-surface underline underline-offset-4" href="#dispatch">Cancel &amp; Return to Dashboard</a><span class="text-outline">•</span>
-      <button class="font-telemetry-sm text-telemetry-sm text-on-surface-variant hover:text-tertiary" id="clear-cart" type="button">Clear Cart</button>
-    </div>
-    <div class="rounded-lg bg-surface-container-low px-space-lg py-space-md text-center font-telemetry-sm text-telemetry-sm text-on-surface-variant leading-6">
-      Press <span class="px-1.5 py-0.5 rounded bg-surface-container-lowest text-on-surface font-semibold">ENTER ↵</span> to execute hospital search immediately
+      <a class="text-on-surface-variant hover:text-on-surface" href="#dispatch">Cancel</a><span class="text-outline">•</span>
+      <button class="text-on-surface-variant hover:text-tertiary" id="clear-cart" type="button">Clear</button>
     </div>
   </aside>
 </div>`;
@@ -594,7 +541,7 @@
       try {
         const bc = await api(`/api/requests/${encodeURIComponent(request.request_id)}/broadcast`, { method: 'POST' });
         waveToasted[request.request_id] = bc.wave;
-        toast(`🚨 Alert sent to ${bc.sent_to.length} hospital${bc.sent_to.length > 1 ? 's' : ''}`, `First to accept gets #${esc(request.request_id)}. They have ${bc.hold_minutes} min.`, 'success');
+        toast(`🚨 Alert sent to ${bc.sent_to.length} hospital${bc.sent_to.length > 1 ? 's' : ''}`, `${esc(bc.sent_to.map(t => t.hospital_name).join(', '))}. They have ${bc.response_seconds} s to answer.`, 'success');
       } catch (err) {
         toast('No hospital could be alerted', esc(err.message), 'critical');
       }
@@ -602,7 +549,7 @@
     } catch (err) {
       toast('Could not log emergency', esc((err.details?.length ? err.details : [err.message]).join(' ')), 'critical');
       btn.disabled = false;
-      btn.textContent = 'Start Searching....';
+      btn.textContent = 'Start Searching';
     }
   }
 
@@ -679,7 +626,7 @@
           <span class="px-space-sm py-0.5 rounded font-telemetry-sm text-telemetry-sm ${fc}" title="Availability data is ${Math.round(f.age_minutes)} min old">${fl} · ${Math.round(f.age_minutes)} min</span>
           ${r.is_nearest ? '<span class="px-space-sm py-0.5 rounded bg-surface-container-low font-telemetry-sm text-telemetry-sm text-on-surface-variant">NEAREST</span>' : ''}
         </div>
-        <span class="font-telemetry-sm text-telemetry-sm text-on-surface-variant">${esc(r.hospital_type || '')} · ${r.distance_km} km · ~${Math.round(r.eta_min)} min ETA${r.primary_bed ? ` · ${esc(r.primary_bed.label)} free: ${r.primary_bed.available}` : ''}</span>
+        <span class="font-telemetry-sm text-telemetry-sm text-on-surface-variant">${esc(r.hospital_type || '')} · ${r.distance_km} km · ~${Math.round(r.eta_min)} min ETA${r.eta_source === 'mapbox' ? ' (live traffic)' : ''}${r.primary_bed ? ` · ${esc(r.primary_bed.label)} free: ${r.primary_bed.available}` : ''}</span>
       </div>
     </div>
     <div class="flex flex-col items-end shrink-0">
@@ -776,21 +723,24 @@
       if (!res.length) res = (d.reservations || []).filter(x => x.hospital_id === hid);
       const st = res.map(x => x.reservation_status);
       const resp = o.w.hospital_response;
-      const state_ = resp === 'ACCEPTED' ? 'accepted' : resp === 'PENDING' ? (st.includes('PENDING') ? 'waiting' : 'closed')
+      const mark = (d.marks || []).find(x => x.hospital_id === hid) || {};
+      const state_ = resp === 'ACCEPTED' ? 'accepted' : resp === 'PENDING' ? (st.includes('PENDING') ? (mark.offered_at ? 'offered' : 'waiting') : 'closed')
         : resp === 'WITHDRAWN' ? 'withdrawn' : st.includes('EXPIRED') ? 'expired' : st.includes('FAILED') ? 'nobed' : 'declined';
-      return { hid, name: o.w.hospital_name, w: o.w, res, state: state_, rank: rank[hid],
-               expires: res.find(x => x.reservation_status === 'PENDING')?.expires_at,
+      return { hid, name: o.w.hospital_name, w: o.w, res, state: state_, rank: rank[hid], manual: !!mark.manual, decide_at: mark.decide_at,
+               expires: state_ === 'offered' ? mark.decide_at : res.find(x => x.reservation_status === 'PENDING')?.expires_at,
                confirmed: res.find(x => x.reservation_status === 'CONFIRMED'),
                at: res.map(x => x.confirmed_at || x.requested_at).filter(Boolean).sort().pop() || o.w.assignment_time };
     });
-    const order = { accepted: 0, waiting: 1, declined: 2, nobed: 2, expired: 3, withdrawn: 4, closed: 5 };
+    const order = { accepted: 0, offered: 1, waiting: 1, declined: 2, nobed: 2, expired: 3, withdrawn: 4, closed: 5 };
     list.sort((a, b) => order[a.state] - order[b.state] || (a.rank?.rank ?? 99) - (b.rank?.rank ?? 99));
-    return { list, acc: list.find(o => o.state === 'accepted'), waiting: list.filter(o => o.state === 'waiting'), wave: d.broadcast_round || 0 };
+    return { list, acc: list.find(o => o.state === 'accepted'), waiting: list.filter(o => ['waiting', 'offered'].includes(o.state)),
+             offers: list.filter(o => o.state === 'offered'), wave: d.broadcast_round || 0 };
   }
 
   const BC_CHIP = {
     accepted: ['bg-[#10B981] text-white', '✓ ACCEPTED'],
     waiting: ['bg-tertiary-fixed text-tertiary', '● Waiting for response'],
+    offered: ['bg-[#ECFDF5] text-[#065F46]', '✓ Said yes · confirming'],
     declined: ['bg-surface-container text-on-surface-variant', '✕ Declined'],
     nobed: ['bg-surface-container text-on-surface-variant', '✕ Bed gone'],
     expired: ['bg-[#FFFBEB] text-[#92400E]', '⏱ No answer'],
@@ -799,7 +749,8 @@
   };
   const bcChip = (o) => { const [c, t] = BC_CHIP[o.state]; return `<span class="px-space-sm py-0.5 rounded font-telemetry-sm text-telemetry-sm font-semibold ${c}">${t}</span>`; };
   function bcLine(o, m) {
-    if (o.state === 'waiting') return `<span class="text-tertiary">Deciding · <b data-bc-cd="${esc(o.expires)}">--:--</b> left</span>`;
+    if (o.state === 'waiting') return `<span class="text-tertiary">Deciding · <b data-bc-cd="${esc(o.expires)}">--:--</b> left${o.manual ? ' · your pick' : ''}</span>`;
+    if (o.state === 'offered') return `<span class="text-[#047857]">Can take the patient · confirmed in <b data-bc-cd="${esc(o.expires)}">--:--</b> unless a better-ranked one says yes</span>`;
     if (o.state === 'accepted') return `<span class="text-[#047857]">Accepted ${fmt.timeIST(o.at)} · resources locked</span>`;
     if (o.state === 'declined') return `Declined${o.w.rejection_reason ? ` · ${esc(o.w.rejection_reason)}` : ''}`;
     if (o.state === 'nobed') return 'Last bed was taken before they could accept';
@@ -823,7 +774,7 @@
     document.querySelectorAll('[data-bc-status]').forEach(el => {
       const o = byId[el.dataset.bcStatus];
       el.innerHTML = o ? `<span class="inline-flex items-center gap-space-sm">${bcChip(o)}${o.state === 'waiting' ? `<span class="font-telemetry-sm text-telemetry-sm text-tertiary" data-bc-cd="${esc(o.expires)}">--:--</span>` : ''}</span>`
-        : m.list.length ? '<span class="px-space-sm py-0.5 rounded bg-surface-container-low text-on-surface-variant font-telemetry-sm text-telemetry-sm">Not alerted</span>' : '';
+        : m.list.length && open ? `<button class="px-space-md py-space-xs rounded-lg border border-outline-variant font-label-md text-label-md hover:bg-surface-container-low" data-pick="${esc(el.dataset.bcStatus)}" type="button">Send to this hospital</button>` : '';
     });
 
     if (!m.list.length) {
@@ -831,8 +782,8 @@
 <div class="rounded-xl border-2 border-tertiary bg-surface-container-lowest px-space-xl py-space-lg flex flex-col md:flex-row md:items-center justify-between gap-space-md">
   <div class="flex items-center gap-space-md"><span class="material-symbols-outlined text-[28px] text-tertiary">campaign</span>
     <div class="flex flex-col"><span class="font-headline-sm text-headline-sm text-on-surface">No hospital has been alerted yet</span>
-    <span class="font-body-md text-body-md text-on-surface-variant">Sends this emergency to every eligible hospital below at once. The first to accept gets the patient; the rest are withdrawn automatically.</span></div></div>
-  <button class="inline-flex items-center gap-space-sm px-space-lg py-space-md rounded-lg bg-tertiary hover:bg-tertiary-container text-on-tertiary font-label-lg text-label-lg shrink-0" data-broadcast type="button"><span class="material-symbols-outlined text-[18px]">campaign</span>Alert all suitable hospitals</button>
+    <span class="font-body-md text-body-md text-on-surface-variant">Alerts the best few hospitals first. The best one that says yes gets the patient; if none can, the next ones are alerted automatically.</span></div></div>
+  <button class="inline-flex items-center gap-space-sm px-space-lg py-space-md rounded-lg bg-tertiary hover:bg-tertiary-container text-on-tertiary font-label-lg text-label-lg shrink-0" data-broadcast type="button"><span class="material-symbols-outlined text-[18px]">campaign</span>Alert best hospitals</button>
 </div>` : '';
       return;
     }
@@ -863,9 +814,10 @@
       const soonest = m.waiting.map(o => o.expires).filter(Boolean).sort()[0];
       banner = `<div class="rounded-lg border border-[#FCD34D] bg-[#FFFBEB] px-space-lg py-space-md flex flex-col md:flex-row md:items-center justify-between gap-space-md">
         <div class="flex items-center gap-space-md"><span class="w-10 h-10 rounded-full bg-tertiary text-on-tertiary flex items-center justify-center shrink-0 animate-pulse"><span class="material-symbols-outlined">campaign</span></span>
-          <div class="flex flex-col"><span class="font-headline-sm text-headline-sm text-[#92400E]">Alert sent to ${m.waiting.length} hospital${m.waiting.length > 1 ? 's' : ''}${m.wave > 1 ? ` · wave ${m.wave}` : ''}. Waiting for the first to accept</span>
-          <span class="font-body-md text-body-md text-on-surface-variant">No bed is locked until a hospital accepts, so nothing is blocked for other patients. If everyone declines, the next suitable hospitals are alerted automatically.</span></div></div>
+          <div class="flex flex-col"><span class="font-headline-sm text-headline-sm text-[#92400E]">${m.offers.length ? `${esc(m.offers[0].name)} said yes · waiting briefly for a better-ranked hospital` : `Alert sent to the ${m.waiting.length} best hospital${m.waiting.length > 1 ? 's' : ''}${m.wave > 1 ? ` · wave ${m.wave}` : ''}`}</span>
+          <span class="font-body-md text-body-md text-on-surface-variant">The best hospital that says yes gets the patient. If they all decline or don't answer, the next ones are alerted automatically.</span></div></div>
         <div class="flex items-center gap-space-md shrink-0"><span class="font-telemetry-lg text-telemetry-lg text-[#92400E]" data-bc-cd="${esc(soonest || '')}">--:--</span>
+          <button class="px-space-lg py-space-sm rounded-lg border border-outline-variant font-label-lg text-label-lg text-on-surface hover:bg-surface-container-low" data-broadcast type="button"><span></span>Send to next hospitals</button>
           <button class="px-space-lg py-space-sm rounded-lg border border-outline-variant font-label-lg text-label-lg text-on-surface hover:bg-surface-container-low" data-withdraw type="button">Cancel all</button></div></div>`;
     } else {
       const noMore = st === 'NO_MATCH';
@@ -873,7 +825,7 @@
         <div class="flex items-center gap-space-md"><span class="material-symbols-outlined text-[28px] text-tertiary">${noMore ? 'error' : 'block'}</span>
           <div class="flex flex-col"><span class="font-headline-sm text-headline-sm text-[#991B1B]">${noMore ? 'No suitable hospital accepted and none are left to alert' : 'No hospital is currently deciding'}</span>
           <span class="font-body-md text-body-md text-on-surface-variant">${noMore ? 'Relax a non-critical requirement in the cart, or alert again when availability changes.' : 'Alert the remaining suitable hospitals.'}</span></div></div>
-        ${open ? '<button class="inline-flex items-center gap-space-sm px-space-lg py-space-sm rounded-lg bg-tertiary text-on-tertiary font-label-lg text-label-lg shrink-0" data-broadcast type="button"><span class="material-symbols-outlined text-[18px]">campaign</span>Re-rank &amp; alert again</button>' : ''}</div>`;
+        ${open ? '<button class="inline-flex items-center gap-space-sm px-space-lg py-space-sm rounded-lg bg-tertiary text-on-tertiary font-label-lg text-label-lg shrink-0" data-broadcast type="button"><span class="material-symbols-outlined text-[18px]">campaign</span>Alert next hospitals</button>' : ''}</div>`;
     }
 
     const rows = m.list.map(o => `
@@ -902,12 +854,22 @@
     try {
       const bc = await api(`/api/requests/${encodeURIComponent(id)}/broadcast`, { method: 'POST' });
       waveToasted[id] = bc.wave;
-      toast(`🚨 Alert sent to ${bc.sent_to.length} hospital${bc.sent_to.length > 1 ? 's' : ''}`, `First to accept gets #${esc(id)}.`, 'success');
+      toast(`🚨 Alert sent to ${bc.sent_to.length} hospital${bc.sent_to.length > 1 ? 's' : ''}`, esc(bc.sent_to.map(t => t.hospital_name).join(', ')), 'success');
       await openMatch(id);
     } catch (err) {
       toast('Could not alert hospitals', esc(err.message), 'critical');
       await openMatch(id);
     }
+  }
+
+  // Dispatcher override: alert one chosen hospital; if it accepts, it gets the patient
+  async function pickHospital(id, hospitalId, btn) {
+    if (btn) btn.disabled = true;
+    rememberHold(id);
+    try {
+      const bc = await api(`/api/requests/${encodeURIComponent(id)}/broadcast`, { method: 'POST', body: { hospital_id: hospitalId } });
+      toast(`Sent to ${esc(bc.sent_to[0].hospital_name)}`, 'Your pick: if they accept, they get the patient straight away.', 'success');
+    } catch (err) { toast('Could not send', esc(err.message), 'critical'); if (btn) btn.disabled = false; }
   }
 
   async function withdrawAll() {
@@ -930,6 +892,7 @@
     const c = e.target.closest('[data-cancel-hold]'); if (c) cancelHold(c.dataset.cancelHold);
     const hf = e.target.closest('[data-handoff]'); if (hf) doHandoff(hf.dataset.handoff, hf);
     const bb = e.target.closest('[data-broadcast]'); if (bb && !bb.disabled) sendBroadcast(bb);
+    const pk = e.target.closest('[data-pick]'); if (pk && !pk.disabled) pickHospital(state.match.id, pk.dataset.pick, pk).then(() => loadBroadcast(state.match.id));
     if (e.target.closest('[data-withdraw]')) withdrawAll();
   });
 
@@ -961,10 +924,11 @@
       else loadBroadcast(id);
     }
     if (!myHolds.has(id)) return;
+    if (p.action === 'offered') toast(`${p.hospital_name} can take #${esc(id)}`, `Waiting up to 30 s for ${esc((p.waiting_on || []).map(w => w.hospital_name).join(', ') || 'a better-ranked hospital')}.`, 'info');
     if (p.action === 'accepted') toast(`✅ ${p.hospital_name} accepted`, `#${esc(id)} is ASSIGNED.${p.withdrawn?.length ? ` ${p.withdrawn.length} other hospital(s) withdrawn.` : ''}`, 'success');
     if (p.action === 'rejected') toast(`${p.hospital_name} declined`, `#${esc(id)}${p.reason ? ` · ${esc(p.reason)}` : ''}${p.still_waiting ? `. ${p.still_waiting > 1 ? 'Others are' : 'One other is'} still deciding.` : '.'}`, p.still_waiting ? 'warn' : 'critical');
     if (p.action === 'expired') toast('No answer', `${esc(p.hospital_name)} did not answer #${esc(id)} in time.`, 'warn');
-    if (p.action === 'held' && p.auto && waveToasted[id] !== p.wave) { waveToasted[id] = p.wave; toast(`🚨 Wave ${p.wave}: alerting more hospitals`, `Everyone contacted for #${esc(id)} declined, so the next suitable hospitals were alerted automatically.`, 'warn'); }
+    if (p.action === 'held' && p.auto && waveToasted[id] !== p.wave) { waveToasted[id] = p.wave; toast(`🚨 Wave ${p.wave}: alerting the next hospitals`, `Nobody in the last wave could take #${esc(id)}, so the next best hospitals were alerted automatically.`, 'warn'); }
     if (p.action === 'exhausted') toast('No hospital left to alert', `#${esc(id)}: relax a requirement or alert again later.`, 'critical');
   }
 
@@ -976,7 +940,7 @@
   state.dl = { id: null, detail: null, rankings: [], map: null, route: null, routeFor: null, routing: false,
                gps: false, watchId: null, fix: null, lastEmit: 0, events: {}, fitted: false };
 
-  const MAP_TONE = { accepted: 'accepted', waiting: 'waiting', declined: 'declined', nobed: 'declined', expired: 'declined', withdrawn: 'declined', closed: 'declined' };
+  const MAP_TONE = { accepted: 'accepted', waiting: 'waiting', offered: 'waiting', declined: 'declined', nobed: 'declined', expired: 'declined', withdrawn: 'declined', closed: 'declined' };
   const hospLoc = (hid) => {
     const r = state.dl.rankings.find(x => x.hospital_id === hid)?.location || hospitals.find(h => h.hospital_id === hid)?.location;
     return r ? [r.lat, r.lng] : null;
@@ -1070,6 +1034,8 @@
     const { d, m, acc, phase } = L_;
     const n = { contacted: m.list.length, waiting: m.waiting.length, accepted: acc ? 1 : 0, declined: m.list.filter(o => ['declined', 'nobed', 'expired'].includes(o.state)).length };
     const pos = ambulanceNow(L_);
+    const busy = new Set(m.waiting.map(o => o.hid));
+    const spare = !acc && ['CREATED', 'MATCHING', 'NO_MATCH'].includes(d.status) ? state.dl.rankings.filter(r => r.eligible && !busy.has(r.hospital_id)).slice(0, 6) : [];
     let banner = '';
     if (acc) {
       const actions = {
@@ -1092,13 +1058,14 @@
     } else if (m.waiting.length) {
       const soonest = m.waiting.map(o => o.expires).filter(Boolean).sort()[0];
       banner = `<div class="rounded-lg border border-[#FCD34D] bg-[#FFFBEB] p-space-md flex flex-col gap-space-xs">
-        <span class="font-label-lg text-label-lg text-[#92400E] flex items-center gap-space-xs uppercase"><span class="material-symbols-outlined text-[20px]">campaign</span>Alert sent to ${m.waiting.length} hospital${m.waiting.length > 1 ? 's' : ''}</span>
-        <span class="font-body-sm text-body-sm text-on-surface-variant">Waiting for the first to accept · <b data-bc-cd="${esc(soonest || '')}">--:--</b>. The route appears on the map the moment one accepts.</span>
-        <button class="self-start mt-space-xs px-space-md py-space-xs rounded-lg border border-outline-variant font-label-md text-label-md bg-surface-container-lowest" data-live-withdraw type="button">Cancel all</button></div>`;
+        <span class="font-label-lg text-label-lg text-[#92400E] flex items-center gap-space-xs uppercase"><span class="material-symbols-outlined text-[20px]">campaign</span>${m.offers.length ? `${esc(m.offers[0].name)} said yes` : `Alert sent to ${m.waiting.length} hospital${m.waiting.length > 1 ? 's' : ''}${m.wave > 1 ? ` · wave ${m.wave}` : ''}`}</span>
+        <span class="font-body-sm text-body-sm text-on-surface-variant">${m.offers.length ? `Confirming in <b data-bc-cd="${esc(m.offers[0].expires || '')}">--:--</b> unless a better-ranked hospital says yes first.` : `Best hospitals first · <b data-bc-cd="${esc(soonest || '')}">--:--</b> to answer. The route appears the moment one is confirmed.`}</span>
+        <div class="flex gap-space-sm mt-space-xs"><button class="px-space-md py-space-xs rounded-lg border border-outline-variant font-label-md text-label-md bg-surface-container-lowest" data-live-broadcast type="button">Send to next hospitals</button>
+        <button class="px-space-md py-space-xs rounded-lg border border-outline-variant font-label-md text-label-md bg-surface-container-lowest" data-live-withdraw type="button">Cancel all</button></div></div>`;
     } else if (['CREATED', 'MATCHING', 'NO_MATCH'].includes(d.status)) {
       banner = `<div class="rounded-lg border border-[#F87171] bg-[#FEF2F2] p-space-md flex flex-col gap-space-sm">
         <span class="font-label-lg text-label-lg text-[#991B1B]">${m.list.length ? 'No hospital is deciding right now' : 'No hospital alerted yet'}</span>
-        <button class="py-space-sm rounded-lg bg-tertiary text-on-tertiary font-label-lg text-label-lg flex items-center justify-center gap-space-xs" data-live-broadcast type="button"><span class="material-symbols-outlined text-[18px]">campaign</span>${m.list.length ? 'Re-rank & alert again' : 'Alert all suitable hospitals'}</button></div>`;
+        <button class="py-space-sm rounded-lg bg-tertiary text-on-tertiary font-label-lg text-label-lg flex items-center justify-center gap-space-xs" data-live-broadcast type="button"><span class="material-symbols-outlined text-[18px]">campaign</span>${m.list.length ? 'Alert next hospitals' : 'Alert best hospitals'}</button></div>`;
     }
     const cards = m.list.map(o => `
       <div class="rounded-lg border ${o.state === 'accepted' ? 'border-[#6EE7B7] bg-[#F0FDF9]' : 'border-surface-container-high'} p-space-md flex flex-col gap-space-sm ${['withdrawn', 'closed'].includes(o.state) ? 'opacity-75' : ''}">
@@ -1113,7 +1080,10 @@
   <span><b>${n.contacted}</b> Contacted</span><span class="text-tertiary"><b>${n.waiting}</b> Waiting</span>${n.declined ? `<span><b>${n.declined}</b> Declined</span>` : ''}<span class="text-[#047857]"><b>${n.accepted}</b> Accepted</span>
 </div>
 ${banner}
-<div class="flex flex-col gap-space-sm">${cards || '<span class="font-body-sm text-body-sm text-on-surface-variant">No hospital contacted yet.</span>'}</div>`;
+<div class="flex flex-col gap-space-sm">${cards || '<span class="font-body-sm text-body-sm text-on-surface-variant">No hospital contacted yet.</span>'}</div>
+${spare.length ? `<details class="rounded-lg border border-surface-container-high px-space-md py-space-sm"><summary class="cursor-pointer font-label-md text-label-md text-on-surface-variant">Other suitable hospitals (${spare.length}) · send by hand</summary>
+  <div class="flex flex-col gap-space-xs mt-space-sm">${spare.map(r => `<div class="flex items-center justify-between gap-space-sm font-body-sm text-body-sm"><span><span class="text-on-surface-variant">#${r.rank}</span> ${esc(r.hospital_name)} · ${r.distance_km} km</span>
+    <button class="px-space-sm py-0.5 rounded border border-outline-variant font-label-md text-label-md shrink-0" data-live-pick="${esc(r.hospital_id)}" type="button">Send</button></div>`).join('')}</div></details>` : ''}`;
   }
 
   function liveLogHTML(L_) {
@@ -1126,6 +1096,7 @@ ${banner}
       for (const o of list) {
         if (o.state === 'declined' || o.state === 'nobed') rows.push([null, `${o.name} declined${o.w.rejection_reason ? ` (${o.w.rejection_reason})` : ''}`, 'bad', at]);
         if (o.state === 'expired') rows.push([null, `${o.name} did not answer in time`, 'bad', o.expires || at]);
+        if (o.state === 'offered') rows.push([null, `${o.name} said yes · waiting briefly for a better-ranked hospital`, 'ok', at]);
       }
     });
     if (acc) {
@@ -1258,10 +1229,12 @@ ${banner}
       catch (err) { toast('Could not cancel', esc(err.message), 'critical'); }
       loadLive();
     }
+    const lp = e.target.closest('[data-live-pick]');
+    if (lp && !lp.disabled) { await pickHospital(state.dl.id, lp.dataset.livePick, lp); state.dl.fitted = false; loadLive(); }
     const lb = e.target.closest('[data-live-broadcast]');
     if (lb) {
       lb.disabled = true; rememberHold(state.dl.id);
-      try { const bc = await api(`/api/requests/${encodeURIComponent(state.dl.id)}/broadcast`, { method: 'POST' }); waveToasted[state.dl.id] = bc.wave; toast(`🚨 Alert sent to ${bc.sent_to.length} hospital(s)`, 'First to accept gets the patient.', 'success'); }
+      try { const bc = await api(`/api/requests/${encodeURIComponent(state.dl.id)}/broadcast`, { method: 'POST' }); waveToasted[state.dl.id] = bc.wave; toast(`🚨 Alert sent to ${bc.sent_to.length} hospital(s)`, esc(bc.sent_to.map(t => t.hospital_name).join(', ')), 'success'); }
       catch (err) { toast('Could not alert hospitals', esc(err.message), 'critical'); }
       state.dl.fitted = false; loadLive();
     }
@@ -1413,15 +1386,19 @@ ${banner}
 
   // ───────────── Live updates (Socket.io) ─────────────
   function setConnection(online) {
-    $('conn-dot').className = `w-2 h-2 rounded-full ${online ? 'bg-primary animate-pulse' : 'bg-tertiary'}`;
-    $('conn-pill').title = online ? 'Live link online' : 'Reconnecting…';
+    $('offline-banner').classList.toggle('hidden', online);   // only shown when something is wrong
   }
 
   if (window.io) {
-    const socket = io();
+    const socket = io({ auth: { token: session.token } });   // signed in: allowed to stream this crew's GPS
     state.socket = socket;
     socket.on('connect', () => setConnection(true));
     socket.on('disconnect', () => setConnection(false));
+    const gpsWarned = new Set();
+    socket.on('ambulance:position:rejected', (p) => {             // e.g. this emergency was logged by another crew
+      if (gpsWarned.has(p.request_id)) return; gpsWarned.add(p.request_id);
+      toast('Position not shared', `#${esc(p.request_id || '')}: ${esc(p.reason || 'not allowed')}.`, 'warn');
+    });
 
     socket.on('request:new', (r) => {
       state.todayCount++; renderTodayCount();

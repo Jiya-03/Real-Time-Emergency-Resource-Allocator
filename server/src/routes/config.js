@@ -4,13 +4,13 @@ import { Router } from 'express';
 import { syncStatus } from '../services/supabaseSync.js';
 
 const router = Router();
-router.get('/', (req, res) => {
+router.get('/', async (req, res) => {
   const token = process.env.MAPBOX_TOKEN || '';
   res.json({
     mapbox: token.startsWith('pk.') ? { token, style: process.env.MAPBOX_STYLE || 'mapbox/navigation-day-v1' } : null,
   });
 });
 // GET /api/config/sync → Supabase sync health: { enabled, realtime, last_push, pending, pushed, pulled, errors }
-router.get('/sync', (req, res) => res.json(syncStatus()));
+router.get('/sync', async (req, res) => res.json(await syncStatus()));
 
 export default router;

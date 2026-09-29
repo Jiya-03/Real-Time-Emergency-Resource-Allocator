@@ -1,13 +1,8 @@
--- ═══════════════════════════════════════════════════════════════════════════
--- JeevanRoute ↔ Supabase: run this ONCE in Supabase → SQL Editor → New query → Run.
--- Creates the same tables as the app's local database, plus live-tracking tables/views,
--- turns on Realtime for the hospital tables (so edits you make in Supabase flow back into
--- the app), and locks everything with Row Level Security (only the server's service key
--- can read/write; the public anon key sees nothing).
--- Safe to run again.
--- ═══════════════════════════════════════════════════════════════════════════
+-- Postgres tables for DATABASE_URL mode (the server runs this on start; safe to run again).
+-- Same columns as the SQLite schema (timestamps are ISO text in both), so the same SQL works on both.
+-- For Supabase, also run supabase/schema.sql once in the SQL editor (row-level security, realtime, live views).
 
-create table if not exists public.hospitals (
+create table if not exists hospitals (
   hospital_id           text PRIMARY KEY,
   hospital_name         text NOT NULL,
   hospital_type         text NOT NULL CHECK (hospital_type IN ('Government','Private','Multispecialty','Trauma Center','Specialty')),
@@ -18,7 +13,7 @@ create table if not exists public.hospitals (
   active_status         integer NOT NULL CHECK (active_status IN (0,1))
 );
 
-create table if not exists public.hospital_resources (
+create table if not exists hospital_resources (
   resource_record_id      text PRIMARY KEY,
   hospital_id             text NOT NULL UNIQUE,
   total_icu_beds          integer NOT NULL CHECK (total_icu_beds >= 0),
@@ -34,7 +29,7 @@ create table if not exists public.hospital_resources (
   version                 integer NOT NULL DEFAULT 1
 );
 
-create table if not exists public.hospital_services (
+create table if not exists hospital_services (
   service_record_id  text PRIMARY KEY,
   hospital_id        text NOT NULL UNIQUE,
   trauma_care        integer NOT NULL,
@@ -47,7 +42,7 @@ create table if not exists public.hospital_services (
   specialists        text NOT NULL             -- "Cardiologist;Trauma Surgeon" or "None"
 );
 
-create table if not exists public.ambulances (
+create table if not exists ambulances (
   ambulance_id          text PRIMARY KEY,
   ambulance_type        text NOT NULL CHECK (ambulance_type IN ('Basic Life Support','Advanced Life Support','Other')),
   current_latitude      double precision NOT NULL,
@@ -57,7 +52,7 @@ create table if not exists public.ambulances (
   last_location_update  text NOT NULL
 );
 
-create table if not exists public.emergency_requests (
+create table if not exists emergency_requests (
   request_id                  text PRIMARY KEY,
   patient_id                  text NOT NULL,
   emergency_type              text NOT NULL CHECK (emergency_type IN ('Road Accident','Cardiac','Stroke','Burn','Respiratory','Other')),
@@ -85,7 +80,7 @@ create table if not exists public.emergency_requests (
   patient_condition           text CHECK (patient_condition IS NULL OR patient_condition IN ('Critical','Serious','Need Assistance','Stable','Minor'))  -- OUR addition: dispatcher's label (maps to severity)
 );
 
-create table if not exists public.resource_update_history (
+create table if not exists resource_update_history (
   update_id            text PRIMARY KEY,
   hospital_id          text NOT NULL,
   resource_type        text NOT NULL CHECK (resource_type IN ('ICU','Ventilator','Oxygen Bed','General Bed')),
@@ -95,7 +90,7 @@ create table if not exists public.resource_update_history (
   update_source        text NOT NULL
 );
 
-create table if not exists public.reservations (
+create table if not exists reservations (
   reservation_id      text PRIMARY KEY,
   request_id          text NOT NULL,
   hospital_id         text NOT NULL,
@@ -108,7 +103,7 @@ create table if not exists public.reservations (
   holds_capacity      integer NOT NULL DEFAULT 0   -- OUR addition: 1 = this hold subtracted beds (so releasing it returns them). Dataset rows = 0.
 );
 
-create table if not exists public.emergency_workflow_handover (
+create table if not exists emergency_workflow_handover (
   workflow_id        text PRIMARY KEY,
   request_id         text NOT NULL,
   hospital_id        text NOT NULL,
@@ -122,7 +117,7 @@ create table if not exists public.emergency_workflow_handover (
   handover_status    text CHECK (handover_status IS NULL OR handover_status IN ('PENDING','IN_PROGRESS','COMPLETED'))
 );
 
-create table if not exists public.admissions (
+create table if not exists admissions (
   request_id   text PRIMARY KEY,
   hospital_id  text NOT NULL,
   ward         text,
@@ -139,7 +134,7 @@ create table if not exists public.admissions (
   admitted_at  text                          -- set when the handover is completed
 );
 
-create table if not exists public.match_ranking_results (
+create table if not exists match_ranking_results (
   match_id                   text PRIMARY KEY,
   request_id                 text NOT NULL,
   hospital_id                text NOT NULL,
@@ -154,7 +149,7 @@ create table if not exists public.match_ranking_results (
 );
 
 -- Live ambulance position (one row per emergency, updated every few seconds while driving)
-create table if not exists public.ambulance_positions (
+create table if not exists ambulance_positions (
   request_id   text PRIMARY KEY,
   hospital_id  text,
   lat          double precision NOT NULL,
@@ -166,83 +161,9 @@ create table if not exists public.ambulance_positions (
   updated_at   timestamptz NOT NULL DEFAULT now()
 );
 
--- App bookkeeping (used when the server runs directly on this database with DATABASE_URL)
-create table if not exists public.dispatch_marks (
-  request_id text NOT NULL, hospital_id text NOT NULL,
-  manual integer NOT NULL DEFAULT 0,       -- 1 = hospital picked by the dispatcher: its accept is final
-  offered_at text, decide_at text,         -- a lower-ranked "yes" waiting for better-ranked hospitals
-  PRIMARY KEY (request_id, hospital_id)
-);
-create table if not exists public.request_owners (   -- which crew logged the emergency (only they may send its GPS)
-  request_id text PRIMARY KEY, dispatcher_id text NOT NULL, created_at text NOT NULL
-);
-
 -- Helpful indexes for the dashboards
-create index if not exists idx_req_status   on public.emergency_requests(request_status);
-create index if not exists idx_res_request  on public.reservations(request_id);
-create index if not exists idx_wf_request   on public.emergency_workflow_handover(request_id);
-create index if not exists idx_mr_request   on public.match_ranking_results(request_id);
+create index if not exists idx_req_status   on emergency_requests(request_status);
+create index if not exists idx_res_request  on reservations(request_id);
+create index if not exists idx_wf_request   on emergency_workflow_handover(request_id);
+create index if not exists idx_mr_request   on match_ranking_results(request_id);
 
--- ───────────── Live views (read-only; open them in Table Editor) ─────────────
-create or replace view public.live_hospital_capacity as
-select h.hospital_id, h.hospital_name, h.hospital_type,
-       (h.emergency_department = 1 and h.active_status = 1) as accepting_patients,
-       r.available_icu_beds || ' / ' || r.total_icu_beds         as icu,
-       r.available_ventilators || ' / ' || r.total_ventilators   as ventilators,
-       r.available_oxygen_beds || ' / ' || r.total_oxygen_beds   as oxygen_beds,
-       r.available_general_beds || ' / ' || r.total_general_beds as general_beds,
-       concat_ws(', ',
-         case when s.trauma_care = 1 then 'Trauma' end, case when s.cardiology = 1 then 'Cardiology' end,
-         case when s.neurology = 1 then 'Neurology' end, case when s.operation_theatre = 1 then 'OT' end,
-         case when s.blood_bank = 1 then 'Blood Bank' end, case when s.dialysis = 1 then 'Dialysis' end,
-         case when s.burn_unit = 1 then 'Burns' end)            as departments,
-       s.specialists,
-       round(extract(epoch from (now() - r.last_updated_timestamp::timestamptz)) / 60) as data_age_min,
-       r.update_source, r.version
-from public.hospitals h
-left join public.hospital_resources r on r.hospital_id = h.hospital_id
-left join public.hospital_services  s on s.hospital_id = h.hospital_id;
-
-create or replace view public.live_emergencies as
-select e.request_id, e.emergency_type, coalesce(e.patient_condition, e.severity) as condition, e.patient_age,
-       e.request_status, e.request_timestamp, e.broadcast_round,
-       (select count(*) from public.emergency_workflow_handover w where w.request_id = e.request_id and w.hospital_response = 'PENDING') as hospitals_deciding,
-       acc.hospital_id as accepted_hospital, h.hospital_name as accepted_hospital_name,
-       acc.departure_time, acc.arrival_time, acc.handover_time,
-       p.lat as ambulance_lat, p.lng as ambulance_lng, p.source as position_source, p.eta_min, p.left_km, p.updated_at as position_updated_at,
-       a.ward, a.room, a.bed
-from public.emergency_requests e
-left join lateral (select * from public.emergency_workflow_handover w
-                   where w.request_id = e.request_id and w.hospital_response = 'ACCEPTED'
-                   order by w.assignment_time desc limit 1) acc on true
-left join public.hospitals h on h.hospital_id = acc.hospital_id
-left join public.ambulance_positions p on p.request_id = e.request_id
-left join public.admissions a on a.request_id = e.request_id
-where e.request_status in ('CREATED','MATCHING','NO_MATCH','ASSIGNED','IN_TRANSIT')
-   or e.request_timestamp >= to_char(now() - interval '6 hours', 'YYYY-MM-DD"T"HH24:MI:SS');
-
--- ───────────── Security: RLS on, no public policies (server uses the service_role key) ─────────────
-do $$
-declare t text;
-begin
-  foreach t in array array['hospitals','hospital_resources','hospital_services','ambulances','emergency_requests',
-    'resource_update_history','reservations','emergency_workflow_handover','admissions','match_ranking_results','ambulance_positions',
-    'dispatch_marks','request_owners']
-  loop
-    execute format('alter table public.%I enable row level security', t);
-  end loop;
-end $$;
-alter view public.live_hospital_capacity set (security_invoker = true);
-alter view public.live_emergencies set (security_invoker = true);
-
--- ───────────── Realtime: hospital edits flow back into the app; positions/emergencies are watchable ─────────────
-do $$
-declare t text;
-begin
-  foreach t in array array['hospitals','hospital_resources','hospital_services','emergency_requests','ambulance_positions']
-  loop
-    if not exists (select 1 from pg_publication_tables where pubname = 'supabase_realtime' and schemaname = 'public' and tablename = t) then
-      execute format('alter publication supabase_realtime add table public.%I', t);
-    end if;
-  end loop;
-end $$;

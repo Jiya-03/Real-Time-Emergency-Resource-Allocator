@@ -18,24 +18,17 @@
 <a class="nav-link px-space-md py-space-xs transition-colors rounded" data-path="live-route" href="#live">Live Route</a>
 </nav></div>
 <div class="flex items-center gap-space-md">
-<div class="flex items-center px-space-md py-space-xs rounded bg-surface-container-low" id="conn-pill" title="Connecting…"><span class="w-2 h-2 rounded-full bg-outline" id="conn-dot"></span></div>
-<div class="h-6 w-px bg-outline-variant"></div>
-<div class="relative">
-<button class="flex items-center gap-space-sm pl-space-xs" id="user-btn" type="button" aria-haspopup="true" aria-expanded="false"><div class="hidden sm:flex flex-col text-right"><span class="font-label-md text-label-md text-on-surface leading-tight" id="user-name">Ctrl Dispatcher</span><span class="font-telemetry-sm text-telemetry-sm text-on-surface-variant leading-tight" id="user-id">ID —</span></div><div class="w-8 h-8 rounded-full bg-primary flex items-center justify-center"><span class="material-symbols-outlined text-on-primary text-[18px]">person</span></div></button>
-<div class="hidden absolute right-0 mt-2 w-44 bg-surface-container-lowest border border-outline-variant rounded-lg shadow-[0_4px_16px_-4px_rgba(11,31,58,0.08)] py-1 z-50" id="user-menu">
-<button class="w-full text-left px-space-md py-space-sm font-label-md text-label-md text-on-surface hover:bg-surface-container-low flex items-center gap-space-xs" id="logout-btn" type="button"><span class="material-symbols-outlined text-[16px]">logout</span>Sign out</button>
-</div>
-</div>
+<div class="hidden sm:flex flex-col text-right"><span class="font-label-md text-label-md text-on-surface leading-tight" id="user-name">Dispatcher</span><span class="font-telemetry-sm text-telemetry-sm text-on-surface-variant leading-tight" id="user-id">—</span></div>
+<button class="inline-flex items-center gap-space-xs px-space-md py-space-xs rounded-lg border border-outline-variant font-label-md text-label-md text-on-surface hover:bg-surface-container-low" id="logout-btn" type="button">Sign out</button>
 </div></div></header>
 
-<main class="w-full pt-16 bg-surface min-h-[calc(100vh-3rem)]"><div class="flex flex-col w-full">
+<main class="w-full pt-16 bg-surface min-h-[calc(100vh-3rem)]"><div class="hidden w-full bg-tertiary text-on-tertiary text-center py-space-xs font-label-md text-label-md" id="offline-banner">Connection lost. Reconnecting…</div><div class="flex flex-col w-full">
 
 <!-- ═════════════ VIEW: EMERGENCY DISPATCH (recent log) ═════════════ -->
 <section class="px-margin py-space-xl flex flex-col gap-space-xl max-w-7xl mx-auto w-full" id="view-dispatch">
 <!-- Top Command Section -->
 <div class="flex flex-col md:flex-row md:items-end justify-between gap-space-lg">
 <div class="flex flex-col gap-space-xs">
-<span class="text-outline-variant font-telemetry-sm text-telemetry-sm">•</span>
 <h1 class="font-headline-lg text-headline-lg text-on-surface tracking-tight">Emergency Dispatch</h1>
 <p class="font-body-md text-body-md text-on-surface-variant">Create and manage emergency requests.</p>
 </div>
@@ -43,7 +36,7 @@
 <a class="inline-flex items-center gap-space-sm px-space-xl py-space-md bg-tertiary hover:bg-tertiary-container active:bg-tertiary text-on-tertiary rounded-full transition-all duration-150 shadow-sm group" data-path="create-emergency" href="#create">
 <span class="material-symbols-outlined text-[20px] transition-transform group-hover:rotate-90 duration-200">add</span>
 <span class="font-label-lg text-label-lg tracking-tight font-semibold">+ Add Emergency</span>
-<span class="font-telemetry-sm text-telemetry-sm opacity-75 ml-space-xs font-normal">[N]</span>
+
 </a>
 </div>
 </div>
@@ -66,16 +59,6 @@
 <div id="recent-rows"><div class="px-space-lg py-space-xl text-on-surface-variant font-telemetry-sm text-telemetry-sm">Loading live emergencies…</div></div>
 </div>
 <button class="hidden self-center px-space-lg py-space-sm rounded bg-surface-container-low hover:bg-surface-container text-on-surface font-label-md text-label-md transition-colors" id="recent-more" type="button">Load more</button>
-</div>
-<!-- Active Protocol Audit Information -->
-<div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-space-sm py-space-xs px-space-sm text-on-surface-variant font-telemetry-sm text-telemetry-sm">
-<div class="flex items-center gap-space-md">
-<span class="">Handover Verification: Enabled</span>
-<span class="text-outline-variant">•</span>
-</div>
-<div>
-<span class="">Keyboard shortcut: Press <span class="px-1.5 py-0.5 bg-surface-container-low rounded font-semibold text-on-surface">N</span> to add new emergency</span>
-</div>
 </div>
 </section>
 
@@ -115,7 +98,7 @@
 <span class="px-space-sm py-0.5 rounded-full bg-surface-container text-primary font-telemetry-sm text-telemetry-sm font-semibold" id="dept-count">0 Selected</span></div>
 <p class="font-body-md text-body-md text-on-surface-variant">Select the hospital departments required.</p>
 </div>
-<div class="flex items-center gap-space-sm flex-wrap"><span class="font-telemetry-sm text-telemetry-sm text-on-surface-variant">Quick Preset:</span><span class="flex gap-space-xs flex-wrap" id="presets"></span></div>
+<div class="hidden"><span id="presets"></span></div>
 </div>
 <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-space-md" id="dept-grid"></div>
 </div>
@@ -149,7 +132,6 @@
 <!-- ═════════════ VIEW: EMERGENCY CART (design d2) ═════════════ -->
 <section class="hidden px-margin py-space-xl flex-col gap-space-xl max-w-7xl mx-auto w-full" id="view-cart">
 <div class="flex flex-col gap-space-xs">
-<span class="text-outline-variant font-telemetry-sm text-telemetry-sm">•</span>
 <h1 class="font-display-lg text-display-lg text-on-surface tracking-tight">Emergency Cart</h1>
 </div>
 <div id="cart-content"></div>
@@ -220,7 +202,6 @@
 <!-- Toasts -->
 <div class="fixed bottom-space-xl right-space-xl z-[70] flex flex-col gap-space-sm w-[min(360px,calc(100vw-2rem))]" id="toasts" aria-live="polite"></div>
 
-<footer class="w-full bg-surface-container-lowest mt-space-2xl"><div class="w-full px-margin py-space-md flex flex-col md:flex-row items-center justify-between gap-space-sm text-on-surface-variant font-telemetry-sm text-telemetry-sm"><div class="flex items-center gap-space-md"><span class="">JeevanRoute Telemetry Grid v4.2.1</span><span class="text-outline">|</span><span class="">Encrypted Dispatch Link (TLS 1.3)</span></div><div class="flex items-center gap-space-md"></div></div></footer>
 
 <script src="/socket.io/socket.io.js"></script>
 <script src="js/api.js"></script>

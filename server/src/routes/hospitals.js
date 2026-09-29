@@ -10,7 +10,7 @@ import { RESOURCE_KEYS, SERVICES } from '../services/resources.js';
 const router = Router();
 
 // GET /api/hospitals?freshness=stale&has=icu&service=cardiology&accepting=true
-router.get('/', (req, res) => {
+router.get('/', async (req, res) => {
   const { freshness, has, service, accepting } = req.query;
   if (freshness && !['fresh', 'aging', 'stale'].includes(freshness))
     throw new ApiError(400, 'freshness must be fresh, aging or stale');
@@ -19,7 +19,7 @@ router.get('/', (req, res) => {
   if (service && !SERVICES.includes(service))
     throw new ApiError(400, `service must be one of: ${SERVICES.join(', ')}`);
 
-  const hospitals = listHospitals({
+  const hospitals = await listHospitals({
     freshness, has, service,
     accepting: accepting === undefined ? undefined : accepting === 'true',
   });
@@ -27,43 +27,43 @@ router.get('/', (req, res) => {
 });
 
 // GET /api/hospitals/summary  → network totals for the dashboard header
-router.get('/summary', (req, res) => res.json(getSummary()));
+router.get('/summary', async (req, res) => res.json(await getSummary()));
 
 // GET /api/hospitals/:id
-router.get('/:id', (req, res) => {
-  const hospital = getHospital(req.params.id);
+router.get('/:id', async (req, res) => {
+  const hospital = await getHospital(req.params.id);
   if (!hospital) throw new ApiError(404, `Hospital ${req.params.id} not found`);
   res.json(hospital);
 });
 
 // GET /api/hospitals/:id/history?type=icu&limit=20
-router.get('/:id/history', (req, res) => {
-  if (!getHospital(req.params.id)) throw new ApiError(404, `Hospital ${req.params.id} not found`);
+router.get('/:id/history', async (req, res) => {
+  if (!await getHospital(req.params.id)) throw new ApiError(404, `Hospital ${req.params.id} not found`);
   const { type, limit } = req.query;
   if (type && !RESOURCE_KEYS.includes(type))
     throw new ApiError(400, `type must be one of: ${RESOURCE_KEYS.join(', ')}`);
-  res.json({ hospital_id: req.params.id, updates: getHistory(req.params.id, { type, limit }) });
+  res.json({ hospital_id: req.params.id, updates: await getHistory(req.params.id, { type, limit }) });
 });
 
 // PATCH /api/hospitals/:id/resources   body: { "icu": 4, "ventilator": 2, "version": 3, "source": "Hospital Staff" }
-router.patch('/:id/resources', (req, res) => {
+router.patch('/:id/resources', async (req, res) => {
   const { version, source, ...changes } = req.body || {};
   if (Object.keys(changes).length === 0)
     throw new ApiError(400, `Send at least one of: ${RESOURCE_KEYS.join(', ')}`);
-  res.json(updateHospitalResources(req.params.id, changes, { expectedVersion: version, source }));
+  res.json(await updateHospitalResources(req.params.id, changes, { expectedVersion: version, source }));
 });
 
 // PATCH /api/hospitals/:id/services { services: { cardiology: false }, specialists: ["Cardiologist"] }
 // Hospital staff mark departments available / unavailable. Only that hospital's own staff.
-router.patch('/:id/services', requireRole('hospital'), (req, res) => {
+router.patch('/:id/services', requireRole('hospital'), async (req, res) => {
   if (req.user.hospital_id !== req.params.id) throw new ApiError(403, 'You can only change your own hospital');
-  res.json(updateHospitalServices(req.params.id, req.body || {}));
+  res.json(await updateHospitalServices(req.params.id, req.body || {}));
 });
 
 // POST /api/hospitals/:id/confirm  → "our numbers are still correct" (clears stale warning)
-router.post('/:id/confirm', (req, res) => {
+router.post('/:id/confirm', async (req, res) => {
   const { version, source } = req.body || {};
-  res.json(updateHospitalResources(req.params.id, {}, { expectedVersion: version, source }));
+  res.json(await updateHospitalResources(req.params.id, {}, { expectedVersion: version, source }));
 });
 
 export default router;

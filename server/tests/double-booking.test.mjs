@@ -7,6 +7,7 @@
 //  3. REJECT returns the bed; ACCEPT assigns the patient (status ASSIGNED, hold CONFIRMED).
 //  4. EXPIRY: an unanswered hold is released automatically and the bed comes back.
 //  5. SECURITY: another hospital cannot accept this hospital's hold; dispatchers cannot accept at all.
+import { directSql } from './_env.mjs';
 import { spawn, execSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
@@ -53,7 +54,7 @@ try {
   const newReq = async () => (await call('POST', '/api/requests', {
     emergency_type: 'Cardiac', severity: 'Critical', patient_age: 60,
     location: { lat: 18.5592, lng: 73.8031 }, requirements: { icu: true, cardiology: true },
-  })).body.request.request_id;
+  }, dsp)).body.request.request_id;
   const ids = [];
   for (let i = 0; i < 20; i++) ids.push(await newReq());
   for (const id of ids) await call('POST', `/api/requests/${id}/match`);
@@ -98,11 +99,8 @@ try {
   check(again.status === 409, 'An answered hold cannot be answered twice (409)');
 
   // ── 4. Expiry: backdate one pending hold and let the sweeper release it
-  const { default: Database } = await import('better-sqlite3');
-  const direct = new Database(DB_PATH);
-  direct.prepare(`UPDATE reservations SET requested_at = ?, expires_at = ? WHERE reservation_id = ?`)
-    .run(new Date(Date.now() - 11 * 60000).toISOString(), new Date(Date.now() - 60000).toISOString(), winnerRes(winnerIds[1]));
-  direct.close();
+  await directSql(DB_PATH, `UPDATE reservations SET requested_at = ?, expires_at = ? WHERE reservation_id = ?`,
+    [new Date(Date.now() - 11 * 60000).toISOString(), new Date(Date.now() - 60000).toISOString(), winnerRes(winnerIds[1])]);
   const before = await icuNow();
   await new Promise(r => setTimeout(r, 6500));            // sweeper runs every 5 s
   const detail = (await call('GET', `/api/requests/${winnerIds[1]}`)).body;

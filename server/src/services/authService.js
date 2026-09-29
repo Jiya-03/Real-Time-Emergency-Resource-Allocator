@@ -30,7 +30,7 @@ export function verifyToken(token) {
   }
 }
 
-export function login({ role, identifier, password } = {}) {
+export async function login({ role, identifier, password } = {}) {
   const id = String(identifier || '').trim().toUpperCase();
   if (!['dispatcher', 'hospital'].includes(role)) throw new ApiError(400, 'role must be dispatcher or hospital');
   if (!id) throw new ApiError(400, 'Enter your ID');
@@ -41,7 +41,7 @@ export function login({ role, identifier, password } = {}) {
     if (!/^DSP-[A-Z0-9-]{2,}$/.test(id)) throw new ApiError(401, 'Dispatcher IDs start with DSP- (e.g. DSP-7704)');
     user = { role, id, name: 'Ctrl Dispatcher' };
   } else {
-    const h = db.prepare('SELECT hospital_id, hospital_name FROM hospitals WHERE hospital_id = ?').get(id);
+    const h = await db.prepare('SELECT hospital_id, hospital_name FROM hospitals WHERE hospital_id = ?').get(id);
     if (!h) throw new ApiError(401, 'Unknown hospital ID. Use your hospital code, e.g. HSP-011');
     user = { role, id, name: h.hospital_name, hospital_id: h.hospital_id };
   }

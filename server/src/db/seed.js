@@ -1,4 +1,5 @@
-// Loads Jiya's ERRA synthetic dataset (data/erra_dataset/*.csv) into SQLite.
+// Loads Jiya's ERRA synthetic dataset (data/erra_dataset/*.csv) into the database
+// (SQLite by default, or Postgres/Supabase when DATABASE_URL is set).
 //
 //   npm run seed              → load + time-shift so the data looks "live" right now
 //   npm run seed -- --no-shift → load with the original timestamps (2026-09-28 12:00 IST snapshot)
@@ -42,7 +43,7 @@ function convert(value, column, timeCols) {
   if (value === 'TRUE') return 1;
   if (value === 'FALSE') return 0;
   if (timeCols.includes(column)) return toISO(value);
-  return value;                                  // SQLite converts numeric strings via column type
+  return value;                                  // numeric text is converted by the column type (SQLite and Postgres)
 }
 
 if (!existsSync(DATA_DIR)) {
@@ -55,44 +56,47 @@ console.log(SHIFT
   ? `⏱️  Time-shifted: dataset snapshot (${SNAPSHOT_IST} IST) → now`
   : `⏱️  Original timestamps kept (--no-shift)`);
 
-db.prepare('UPDATE sync_state SET enabled = 0 WHERE id = 1').run();   // bulk load: don't queue 30k rows for Supabase
-db.pragma('foreign_keys = OFF');   // ambulances ↔ requests reference each other
+const sqlite = db.driver === 'sqlite';
+if (sqlite) {
+  await db.prepare('UPDATE sync_state SET enabled = 0 WHERE id = 1').run();   // bulk load: don't queue 30k rows for Supabase
+  db.raw.pragma('foreign_keys = OFF');   // ambulances ↔ requests reference each other
+}
+if (!sqlite) console.log('🐘 Loading into Postgres (DATABASE_URL). This replaces the data there.');
 
-const load = db.transaction(() => {
+const load = db.transaction(async () => {
   // Clear old data (reverse order), then insert fresh
-  db.prepare('DELETE FROM admissions').run();          // our own table (not in the dataset)
-  for (const t of [...TABLES].reverse()) db.prepare(`DELETE FROM ${t.name}`).run();
+  for (const t of ['admissions', 'dispatch_marks', 'request_owners', 'ambulance_positions']) {   // our own tables (not in the dataset)
+    await db.prepare(`DELETE FROM ${t}`).run();
+  }
+  for (const t of [...TABLES].reverse()) await db.prepare(`DELETE FROM ${t.name}`).run();
 
   const counts = {};
   for (const t of TABLES) {
     const rows = parse(readFileSync(path.join(DATA_DIR, t.file)), { columns: true, skip_empty_lines: true, bom: true });
     const cols = Object.keys(rows[0]);
-    const insert = db.prepare(
-      `INSERT INTO ${t.name} (${cols.join(',')}) VALUES (${cols.map(c => '@' + c).join(',')})`
-    );
-    for (const row of rows) {
-      const clean = {};
-      for (const c of cols) clean[c] = convert(row[c], c, t.time);
-      insert.run(clean);
-    }
+    const clean = rows.map(row => Object.fromEntries(cols.map(c => [c, convert(row[c], c, t.time)])));
+    await db.insertMany(t.name, cols, clean);
     counts[t.name] = rows.length;
   }
   return counts;
 });
 
 try {
-  const counts = load();
-  const broken = db.pragma('foreign_key_check');
-  db.pragma('foreign_keys = ON');
-  // Supabase (if configured) gets a full fresh copy the next time the server starts
-  db.prepare('DELETE FROM sync_outbox').run();
-  db.prepare('UPDATE sync_state SET initialized = 0 WHERE id = 1').run();
-  if (broken.length) {
-    console.error(`❌ ${broken.length} broken foreign-key references`, broken.slice(0, 5));
-    process.exit(1);
+  const counts = await load();
+  if (sqlite) {
+    const broken = db.raw.pragma('foreign_key_check');
+    db.raw.pragma('foreign_keys = ON');
+    // Supabase (if configured) gets a full fresh copy the next time the server starts
+    await db.prepare('DELETE FROM sync_outbox').run();
+    await db.prepare('UPDATE sync_state SET initialized = 0 WHERE id = 1').run();
+    if (broken.length) {
+      console.error(`❌ ${broken.length} broken foreign-key references`, broken.slice(0, 5));
+      process.exit(1);
+    }
   }
   console.table(counts);
   console.log('✅ Dataset loaded successfully');
+  await db.close();
 } catch (err) {
   console.error('❌ Seeding failed:', err.message);
   process.exit(1);

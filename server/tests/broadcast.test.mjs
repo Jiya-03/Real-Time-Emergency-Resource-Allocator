@@ -7,6 +7,7 @@
 //  3. AUTO NEXT WAVE: when every alerted hospital declines, the next suitable hospitals are alerted.
 //  4. BED GONE: a hospital whose last bed disappeared cannot accept (409 BED_TAKEN) and is skipped.
 //  5. WITHDRAW: the dispatcher can cancel the request at every hospital still deciding.
+import './_env.mjs';
 import { spawn, execSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
@@ -17,7 +18,10 @@ const serverDir = path.join(path.dirname(fileURLToPath(import.meta.url)), '..');
 const DB_PATH = path.join(os.tmpdir(), `erra-broadcast-${process.pid}.db`);
 const PORT = 5900 + (process.pid % 300);
 const BASE = `http://localhost:${PORT}`;
-const env = { ...process.env, DB_PATH, PORT: String(PORT), SIMULATOR: 'off', HOLD_MINUTES: '10', BROADCAST_MAX: '6' };
+// Wide bands + no waiting = every suitable hospital at once, first accept wins (the atomicity checks below).
+// The ranked cascade (small waves, best "yes" wins) is tested in cascade.test.mjs.
+const env = { ...process.env, DB_PATH, PORT: String(PORT), SIMULATOR: 'off', HOLD_MINUTES: '10', BROADCAST_MAX: '6',
+  ETA_BAND_MIN: '999', SCORE_BAND: '0', BETTER_WAIT_SECONDS: '0', RESPONSE_SECONDS: '600' };
 
 execSync('node src/db/seed.js', { cwd: serverDir, env, stdio: 'ignore' });
 const server = spawn('node', ['src/index.js'], { cwd: serverDir, env, stdio: 'ignore' });

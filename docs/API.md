@@ -73,7 +73,7 @@ PATCH /api/hospitals/HSP-011/resources
 | Method | Endpoint | Purpose |
 |--------|----------|---------|
 | GET | /api/requests/meta | Dropdown values + smart defaults for the "New emergency" form |
-| POST | /api/requests | Dispatcher logs a new emergency |
+| POST | /api/requests | Dispatcher logs a new emergency (**signed-in dispatcher only**; the crew that logs it owns its live GPS) |
 | GET | /api/requests?active=true&since_minutes=60&severity=Critical&sort=priority | List. `sort=priority` (Critical first) or `sort=recent` (newest first). Filters: `status` (comma list), `severity`, `emergency_type`, `active`, `since_minutes`, `limit` (≤200), `offset` |
 | GET | /api/requests/summary | Counts by status + active by severity |
 | GET | /api/requests/:id | Request + its reservations + handover timeline |
@@ -117,7 +117,11 @@ Request status flow: `CREATED → MATCHING → ASSIGNED → IN_TRANSIT → COMPL
 
 **Scoring** (identical to the ERRA reference engine):
 - `resource = 0.7 × (share of needs met) + 0.3 × headroom`, headroom = `min(1, free primary beds ÷ (5 × beds_required))`
-- `travel = max(0, 1 − ETA/60)`; ETA = road km ÷ traffic speed (20 km/h peak, 28 off-peak, 40 night) + 2 min
+- `travel = max(0, 1 − ETA/60)`; ETA first **estimated** = road km ÷ traffic speed (20 km/h peak, 28 off-peak, 40 night) + 2 min
+- **Live traffic for the top 5:** with `MAPBOX_TOKEN` set, one Mapbox Matrix call (`driving-traffic`) gets the real driving time
+  + road distance from the pickup to the 5 best hospitals, and the ranking is recomputed with them (row field `eta_source: "mapbox"`,
+  explanation says "with live traffic", summary `travel_times`). Cached 3 min per pickup point. No token / Mapbox down or slower
+  than 2.5 s (`ROAD_ETA_TIMEOUT_MS`) → the estimate is used (`eta_source: "estimate"`), dispatch is never blocked. Proven by `npm run test:road`.
 - `freshness = exp(−data age in minutes / 45)`
 - `final = 0.5 × resource + 0.3 × travel + 0.2 × freshness`; ineligible (missing a mandatory need, inactive, no ED) → `× 0.3`
 - Primary bed: ICU if required, else Oxygen Bed, else General Bed
@@ -127,18 +131,34 @@ Each ranking row: `{ rank, hospital_id, hospital_name, eligible, scores: { resou
 
 **Verified:** `npm run test:ranking` replays all 1,920 reference rankings: 99.97% of hospital scores match exactly, and in the 273 cases where our #1 differs, ours is an eligible hospital with a strictly higher score (found beyond the 5 nearest).
 
-### Broadcast dispatch (default): alert ALL suitable hospitals, first to accept wins
+### Dispatch (default): ranked cascade, best "yes" wins
 | Method | Path | Who | What |
 |---|---|---|---|
-| POST | /api/requests/:id/broadcast `{ max? }` | Dispatcher | Re-ranks, then alerts every eligible hospital (not yet contacted) that has the beds free. Returns `{ wave, sent_to[], hold_minutes, expires_at }`. Calling again = next wave |
+| POST | /api/requests/:id/broadcast `{ max? }` | Dispatcher | Re-ranks, then alerts the **next wave**: the best hospitals not yet contacted that have the beds free. Returns `{ wave, sent_to[], response_seconds, better_wait_seconds, expires_at }`. Calling again = next wave now |
+| POST | /api/requests/:id/broadcast `{ hospital_id }` | Dispatcher | **Send to this hospital** (override). Alerts one chosen eligible hospital; if it accepts it is confirmed at once. 409 `NOT_ELIGIBLE` / `ALREADY_ALERTED` / `BED_TAKEN` |
 | POST | /api/requests/:id/withdraw | Dispatcher | Cancel the request at every hospital still deciding |
 
-- **No bed is locked while hospitals decide.** Broadcast rows are `PENDING` with `holds_capacity = 0`.
-- **First accept wins:** accept runs one transaction: claim the request (`UPDATE … SET request_status='ASSIGNED' WHERE request_status='MATCHING'`), take the beds with the conditional UPDATE, then withdraw everyone else (reservations `CANCELLED`, workflow `WITHDRAWN`, socket action `filled`). A second hospital accepting at the same instant gets **409 `ALREADY_FILLED`**.
-- **Bed gone:** if the hospital's last bed disappeared before it accepted → **409 `BED_TAKEN`**; it is recorded as a `No Bed` decline.
-- **Auto next wave:** when every alerted hospital declines / times out, the next suitable hospitals are alerted automatically (`broadcast_round` + 1). None left → request `NO_MATCH` + socket action `exhausted`.
-- Optional env `BROADCAST_MAX` caps hospitals per wave (default: all suitable).
-- Proven by `npm run test:broadcast` (simultaneous accepts → exactly one winner, no bed locked elsewhere).
+How it works:
+- **Small waves, best first.** A wave is the top 3 hospitals (`BROADCAST_MAX`) that are still close to the best one left: ETA at most 10 min slower (`ETA_BAND_MIN`) and a score of at least 85% of its score (`SCORE_BAND`). A far, low-ranked hospital is never alerted alongside a much better one.
+- **Best "yes" wins.** If the best-ranked hospital still deciding accepts, it is confirmed at once. If a lower-ranked one accepts first, its beds are held and it becomes an **offer** (socket action `offered`, response `{ offered: true, decide_at, waiting_on[] }`). The system waits up to 30 s (`BETTER_WAIT_SECONDS`) for the better-ranked hospitals; then the best offer is confirmed. A better hospital declining ends the wait at once.
+- **Fast answers.** Each hospital has 60 s (`RESPONSE_SECONDS`) to answer. A decline or no answer moves on; when nobody in the wave is left, the next wave is alerted automatically (`broadcast_round` + 1). None left → request `NO_MATCH` + socket action `exhausted`.
+- **Never two winners.** Confirming claims the request (`UPDATE … SET request_status='ASSIGNED' WHERE request_status='MATCHING'`), takes the beds with the conditional UPDATE and withdraws everyone else in one transaction (others: reservations `CANCELLED`, workflow `WITHDRAWN`, socket action `filled`; held offer beds go back). A late accept gets **409 `ALREADY_FILLED`**; a hospital whose last bed disappeared gets **409 `BED_TAKEN`** (recorded as a `No Bed` decline).
+- Hospital inbox items carry `offer: { manual, offered_at, decide_at }`; request detail carries `marks[]` (same fields per hospital).
+- Proven by `npm run test:cascade` (waves, offers, wait-over, declines, time-outs, override) and `npm run test:broadcast` (simultaneous accepts → exactly one winner).
+
+### Two patients, one bed (hospital queue)
+When several emergencies wait on the same hospital and it has beds for only some of them, `GET /api/reservations` returns them **in priority order**, each with a `queue` object: `{ position, gets_bed, contended, reason, behind, other_options }`.
+
+Order used, top rule first:
+1. More serious condition (Critical → Serious → Need Assistance → Stable / Minor)
+2. The patient with **no other hospital** still able to take them
+3. Whoever called in first (waited longer)
+4. Whoever is closer (arrives sooner)
+5. Request number (a perfect tie is never random)
+
+- Accepting a patient who is not next in line → **409 `PRIORITY_CONFLICT`** (`ahead` = the request in front). Send `{ action: "accept", override: true }` to accept anyway (the UI button says **Accept anyway**).
+- After an accept, patients still waiting at that hospital who no longer fit are released at once (`No Bed`) and search elsewhere / the next wave, instead of waiting for the hold to expire.
+- Proven by `npm run test:verify`, which also checks the three ranking parameters (distance, free beds, data freshness) with controlled experiments.
 
 ### Departments on / off (hospital staff)
 `PATCH /api/hospitals/:id/services` `{ "services": { "cardiology": false }, "specialists": ["Trauma Surgeon"] }`. Hospital role, own hospital only.
@@ -153,7 +173,17 @@ Departments: `trauma_care, cardiology, neurology, blood_bank, operation_theatre,
 Completing the handover now requires a ward, room and bed (409 `NO_BED_ALLOCATED` otherwise); it stamps `admitted_at`. `GET /api/requests/:id` includes `admission`. Socket event `admission:update` → `{ request_id, hospital_id, admission }`.
 Wards: ICU, Trauma Resus Bay, Cardiac Care Unit (CCU), Stroke Unit, Respiratory Ward (O₂), Burns Unit, Emergency Observation, General Ward.
 
-### Supabase live sync
+### Database: SQLite (default) or Postgres / Supabase (several servers)
+- No `DATABASE_URL` → local SQLite file (`server/emergency.db`), zero setup, works offline.
+- `DATABASE_URL=postgres://…` (e.g. Supabase → Connect → **Session pooler**) → the server uses Postgres directly. Tables are created on start
+  (`server/src/db/schema.pg.sql`); `npm run seed` loads the dataset there. Same API, same SQL.
+- **Several servers** can run on the same Postgres: Socket.io uses the Postgres adapter so live events reach screens on every server;
+  race-safety uses row locks (`SELECT … FOR UPDATE` per emergency / hospital) + the same conditional UPDATEs; only one server
+  (advisory-lock leader) runs the background jobs, and another takes over if it stops. Proven by `npm run test:multi`
+  (two servers: events across servers, simultaneous accepts on different servers → one winner, leader failover).
+- Tests: `TEST_DATABASE_URL=postgres://…/throwaway_db npm test` runs every suite on Postgres (the DB is wiped!).
+
+### Supabase live sync (SQLite mode)
 Two-way live mirror of the database to Supabase (setup: `SUPABASE.md`). `GET /api/config/sync` →
 `{ enabled, realtime: "SUBSCRIBED", initialized, last_push, pushed, pulled, pending, errors }`.
 App → Supabase: SQLite triggers queue every change in `sync_outbox`, pushed ~every second.
@@ -170,7 +200,7 @@ turn-by-turn text comes from Mapbox. Without a token the maps fall back to CARTO
 ### Live ambulance tracking (Live Route map)
 | Method / event | Who | What |
 |---|---|---|
-| socket emit `ambulance:position` `{ request_id, lat, lng, source: "gps"\|"simulated", accuracy_m?, left_km?, eta_min?, hospital_id? }` | Dispatcher screen (every 3 s while en route) | Validated (request must be ASSIGNED / IN_TRANSIT), stored in memory, relayed to every screen |
+| socket emit `ambulance:position` `{ request_id, lat, lng, source: "gps"\|"simulated", accuracy_m?, left_km?, eta_min?, hospital_id? }` | **Only the signed-in crew (dispatcher) who logged that emergency** (socket connected with `io({ auth: { token } })`) | Validated (request must be ASSIGNED / IN_TRANSIT, max 1 per second), stored in `ambulance_positions`, relayed to every screen. Anyone else gets `ambulance:position:rejected { request_id, reason }` |
 | socket `ambulance:position` | Hospital screen | Moves the ambulance on the hospital's Live Route map in real time |
 | GET /api/requests/:id/position | Any | Last position (≤ 10 min old) or `null` |
 
@@ -180,7 +210,7 @@ Maps: Leaflet (vendored in `client/vendor/leaflet`) + CARTO Voyager street tiles
 | Method | Endpoint | Who | Purpose |
 |--------|----------|-----|---------|
 | POST | /api/reservations `{ request_id, hospital_id }` | Dispatcher | Hold the bed(s) at a hospital. Beds leave availability immediately |
-| PATCH | /api/reservations/:id `{ action: "accept" \| "reject", reason }` | That hospital only | Answer a pending hold |
+| PATCH | /api/reservations/:id `{ action: "accept" \| "reject", reason, override? }` | That hospital only | Answer a pending hold. Accept may return `{ offered: true }` (see Dispatch). `override: true` = accept even if another patient is ahead for the last bed |
 | POST | /api/reservations/:id/cancel | Dispatcher | Release a pending/confirmed hold |
 | GET | /api/reservations | Hospital | Own inbox: PENDING first, then CONFIRMED patients still on the way |
 | GET | /api/reservations/meta | Any | Reject reasons + hold times |

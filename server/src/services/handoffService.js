@@ -12,16 +12,16 @@ import { getAdmission, markAdmitted } from './admissionService.js';
 
 const STEPS = ['depart', 'arrive', 'complete'];
 
-export function acceptedWorkflow(requestId) {
-  return db.prepare(`SELECT * FROM emergency_workflow_handover WHERE request_id = ? AND hospital_response = 'ACCEPTED'
+export async function acceptedWorkflow(requestId) {
+  return await db.prepare(`SELECT * FROM emergency_workflow_handover WHERE request_id = ? AND hospital_response = 'ACCEPTED'
                      ORDER BY assignment_time DESC LIMIT 1`).get(requestId);
 }
 
-export function handoff(requestId, step, user) {
+export async function handoff(requestId, step, user) {
   if (!STEPS.includes(step)) throw new ApiError(400, `step must be one of: ${STEPS.join(', ')}`);
-  const req = getRequest(requestId);
+  const req = await getRequest(requestId);
   if (!req) throw new ApiError(404, `Request ${requestId} not found`);
-  const wf = acceptedWorkflow(requestId);
+  const wf = await acceptedWorkflow(requestId);
   if (!wf) throw new ApiError(409, 'No hospital has accepted this emergency yet', { code: 'NOT_ASSIGNED' });
 
   // Who may do what: the crew (dispatcher) moves the ambulance; the receiving hospital can log arrival and must complete handover
@@ -31,38 +31,38 @@ export function handoff(requestId, step, user) {
   if (step === 'depart' && isHospital) throw new ApiError(403, 'Only the ambulance crew can mark departure');
 
   const now = new Date().toISOString();
-  db.transaction(() => {
+  await db.transaction(async () => {
     if (step === 'depart') {
       if (req.status !== 'ASSIGNED') throw new ApiError(409, `Cannot depart: emergency is ${req.status}`, { code: 'BAD_STATE' });
-      db.prepare(`UPDATE emergency_workflow_handover SET departure_time = ?, handover_status = 'IN_PROGRESS' WHERE workflow_id = ?`).run(now, wf.workflow_id);
-      db.prepare(`UPDATE emergency_requests SET request_status = 'IN_TRANSIT' WHERE request_id = ?`).run(requestId);
+      await db.prepare(`UPDATE emergency_workflow_handover SET departure_time = ?, handover_status = 'IN_PROGRESS' WHERE workflow_id = ?`).run(now, wf.workflow_id);
+      await db.prepare(`UPDATE emergency_requests SET request_status = 'IN_TRANSIT' WHERE request_id = ?`).run(requestId);
     }
     if (step === 'arrive') {
       if (!['ASSIGNED', 'IN_TRANSIT'].includes(req.status) || wf.arrival_time) {
         throw new ApiError(409, wf.arrival_time ? 'Arrival already recorded' : `Cannot arrive: emergency is ${req.status}`, { code: 'BAD_STATE' });
       }
-      db.prepare(`UPDATE emergency_workflow_handover SET departure_time = COALESCE(departure_time, ?), arrival_time = ?,
+      await db.prepare(`UPDATE emergency_workflow_handover SET departure_time = COALESCE(departure_time, ?), arrival_time = ?,
                   handover_status = 'IN_PROGRESS' WHERE workflow_id = ?`).run(now, now, wf.workflow_id);
-      db.prepare(`UPDATE emergency_requests SET request_status = 'IN_TRANSIT' WHERE request_id = ?`).run(requestId);
+      await db.prepare(`UPDATE emergency_requests SET request_status = 'IN_TRANSIT' WHERE request_id = ?`).run(requestId);
     }
     if (step === 'complete') {
       if (!wf.arrival_time) throw new ApiError(409, 'Record the ambulance arrival before completing handover', { code: 'NOT_ARRIVED' });
       if (wf.handover_status === 'COMPLETED') throw new ApiError(409, 'Handover already completed', { code: 'BAD_STATE' });
-      const adm = getAdmission(requestId);
+      const adm = await getAdmission(requestId);
       if (!adm?.room || !adm?.bed) throw new ApiError(409, 'Allocate a ward, room and bed before completing the handover', { code: 'NO_BED_ALLOCATED' });
-      markAdmitted(requestId);
-      db.prepare(`UPDATE emergency_workflow_handover SET handover_time = ?, handover_status = 'COMPLETED' WHERE workflow_id = ?`).run(now, wf.workflow_id);
-      db.prepare(`UPDATE emergency_requests SET request_status = 'COMPLETED' WHERE request_id = ?`).run(requestId);
+      await markAdmitted(requestId);
+      await db.prepare(`UPDATE emergency_workflow_handover SET handover_time = ?, handover_status = 'COMPLETED' WHERE workflow_id = ?`).run(now, wf.workflow_id);
+      await db.prepare(`UPDATE emergency_requests SET request_status = 'COMPLETED' WHERE request_id = ?`).run(requestId);
     }
   })();
 
   const payload = {
     step,
-    request: getRequest(requestId),
+    request: await getRequest(requestId),
     hospital_id: wf.hospital_id,
-    hospital_name: getHospital(wf.hospital_id)?.name,
-    workflow: acceptedWorkflow(requestId),
-    admission: getAdmission(requestId),
+    hospital_name: (await getHospital(wf.hospital_id))?.name,
+    workflow: await acceptedWorkflow(requestId),
+    admission: await getAdmission(requestId),
   };
   bus.emit(EVENTS.REQUEST_UPDATE, payload.request);
   bus.emit(EVENTS.HANDOFF_UPDATE, payload);

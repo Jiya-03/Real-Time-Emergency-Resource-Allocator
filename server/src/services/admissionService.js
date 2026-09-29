@@ -39,13 +39,13 @@ function format(row) {
     location: row.ward && row.room && row.bed ? `${row.ward} · Block ${row.block} · ${row.floor} · Room ${row.room} · Bed ${row.bed}` : null,
   };
 }
-export const getAdmission = (requestId) => format(db.prepare('SELECT * FROM admissions WHERE request_id = ?').get(requestId));
+export const getAdmission = async (requestId) => format(await db.prepare('SELECT * FROM admissions WHERE request_id = ?').get(requestId));
 
 // Units the confirmed reservation is holding for this patient (the starting point of the admission)
-function heldByReservation(requestId, hospitalId) {
+async function heldByReservation(requestId, hospitalId) {
   const held = {};
   const key = Object.fromEntries(RESOURCE_KEYS.map(k => [RESOURCES[k].label, k]));
-  for (const r of db.prepare(`SELECT * FROM reservations WHERE request_id = ? AND hospital_id = ? AND reservation_status = 'CONFIRMED' AND holds_capacity = 1`).all(requestId, hospitalId)) {
+  for (const r of await db.prepare(`SELECT * FROM reservations WHERE request_id = ? AND hospital_id = ? AND reservation_status = 'CONFIRMED' AND holds_capacity = 1`).all(requestId, hospitalId)) {
     held[key[r.resource_type]] = (held[key[r.resource_type]] || 0) + r.quantity;
   }
   return held;
@@ -60,60 +60,61 @@ function primaryWard(req) {
 }
 
 // First free room + bed in a ward (not used by another active admission at this hospital)
-function suggestSpot(hospitalId, ward, exceptRequest) {
+async function suggestSpot(hospitalId, ward, exceptRequest) {
   const w = WARDS[ward]; if (!w) return null;
-  const taken = new Set(db.prepare(`SELECT a.room, a.bed FROM admissions a JOIN emergency_requests e ON e.request_id = a.request_id
-      WHERE a.hospital_id = ? AND a.ward = ? AND a.request_id != ? AND a.room IS NOT NULL`).all(hospitalId, ward, exceptRequest || '')
+  const taken = new Set((await db.prepare(`SELECT a.room, a.bed FROM admissions a JOIN emergency_requests e ON e.request_id = a.request_id
+      WHERE a.hospital_id = ? AND a.ward = ? AND a.request_id != ? AND a.room IS NOT NULL`).all(hospitalId, ward, exceptRequest || ''))
     .map(x => `${x.room}|${x.bed}`));
   for (const room of w.rooms) for (const bed of w.beds) if (!taken.has(`${room}|${bed}`)) return { ward, block: w.block, floor: w.floor, room, bed };
   return { ward, block: w.block, floor: w.floor, room: w.rooms[0], bed: w.beds[0] };
 }
 
-function assertHospital(requestId, user) {
-  const req = getRequest(requestId);
+async function assertHospital(requestId, user) {
+  const req = await getRequest(requestId);
   if (!req) throw new ApiError(404, `Request ${requestId} not found`);
-  const wf = acceptedWorkflow(requestId);
+  const wf = await acceptedWorkflow(requestId);
   if (!wf) throw new ApiError(409, 'No hospital has accepted this emergency yet', { code: 'NOT_ASSIGNED' });
   if (user?.role !== 'hospital' || user.hospital_id !== wf.hospital_id) throw new ApiError(403, 'Only the receiving hospital can manage this admission');
   return { req, wf };
 }
 
 /** GET: the saved admission, or a ready-made draft (suggested ward/room/bed + what the reservation holds). */
-export function admissionView(requestId, user, { ward } = {}) {
-  const { req, wf } = assertHospital(requestId, user);
-  const saved = getAdmission(requestId);
+export async function admissionView(requestId, user, { ward } = {}) {
+  const { req, wf } = await assertHospital(requestId, user);
+  const saved = await getAdmission(requestId);
   const suggestedWard = ward && WARDS[ward] ? ward : saved?.ward || primaryWard(req);
   const draft = saved || {
-    request_id: requestId, hospital_id: wf.hospital_id, ...suggestSpot(wf.hospital_id, suggestedWard, requestId),
+    request_id: requestId, hospital_id: wf.hospital_id, ...(await suggestSpot(wf.hospital_id, suggestedWard, requestId)),
     attending: req.required_specialist ? `${req.required_specialist} on call` : null, nurse: null,
-    resources: heldByReservation(requestId, wf.hospital_id),
+    resources: await heldByReservation(requestId, wf.hospital_id),
     services: SERVICES.filter(s => req.requirements[s]),
     admitted_at: null, draft: true,
   };
-  return { admission: draft, suggestion: suggestSpot(wf.hospital_id, suggestedWard, requestId), wards: WARDS, hospital: getHospital(wf.hospital_id) };
+  return { admission: draft, suggestion: await suggestSpot(wf.hospital_id, suggestedWard, requestId), wards: WARDS, hospital: await getHospital(wf.hospital_id) };
 }
 
 // Atomic inventory change for one resource: take (+) only if enough are free, give back (−) up to the total
-function adjust(hospitalId, key, delta) {
+async function adjust(hospitalId, key, delta) {
   const { label, total, available } = RESOURCES[key];
-  const row = db.prepare(`SELECT ${available} AS a, ${total} AS t FROM hospital_resources WHERE hospital_id = ?`).get(hospitalId);
+  await db.lock('hospital_resources', 'hospital_id', hospitalId);     // Postgres: one inventory change at a time per hospital
+  const row = await db.prepare(`SELECT ${available} AS a, ${total} AS t FROM hospital_resources WHERE hospital_id = ?`).get(hospitalId);
   if (delta > 0) {
-    const r = db.prepare(`UPDATE hospital_resources SET ${available} = ${available} - @d, version = version + 1, last_updated_timestamp = @now
+    const r = await db.prepare(`UPDATE hospital_resources SET ${available} = ${available} - @d, version = version + 1, last_updated_timestamp = @now
                           WHERE hospital_id = @id AND ${available} >= @d`).run({ d: delta, id: hospitalId, now: iso() });
     if (!r.changes) throw new ApiError(409, `No ${label} is free right now (${row.a} available).`, { code: 'NO_CAPACITY', resource: key });
   } else {
     const next = Math.min(row.t, row.a - delta);
-    db.prepare(`UPDATE hospital_resources SET ${available} = ?, version = version + 1, last_updated_timestamp = ? WHERE hospital_id = ?`).run(next, iso(), hospitalId);
+    await db.prepare(`UPDATE hospital_resources SET ${available} = ?, version = version + 1, last_updated_timestamp = ? WHERE hospital_id = ?`).run(next, iso(), hospitalId);
   }
-  db.prepare(`INSERT INTO resource_update_history (update_id, hospital_id, resource_type, old_available_count, new_available_count, updated_at, update_source)
+  await db.prepare(`INSERT INTO resource_update_history (update_id, hospital_id, resource_type, old_available_count, new_available_count, updated_at, update_source)
               VALUES (?, ?, ?, ?, ?, ?, 'Handover Allocation')`)
-    .run(nextId(db, 'resource_update_history', 'update_id', 'UPD', 6), hospitalId, label, row.a, delta > 0 ? row.a - delta : Math.min(row.t, row.a - delta), iso());
+    .run(await nextId(db, 'resource_update_history', 'update_id', 'UPD', 6), hospitalId, label, row.a, delta > 0 ? row.a - delta : Math.min(row.t, row.a - delta), iso());
   return { resource: key, label, delta };
 }
 
 /** PUT: save ward/room/bed/staff + resources/services. Resource changes hit the live inventory immediately. */
-export function saveAdmission(requestId, body = {}, user) {
-  const { req, wf } = assertHospital(requestId, user);
+export async function saveAdmission(requestId, body = {}, user) {
+  const { req, wf } = await assertHospital(requestId, user);
   if (!wf.arrival_time) throw new ApiError(409, 'Mark the ambulance as arrived before allocating a bed', { code: 'NOT_ARRIVED' });
   if (wf.handover_status === 'COMPLETED') throw new ApiError(409, 'This patient is already admitted', { code: 'BAD_STATE' });
 
@@ -133,26 +134,26 @@ export function saveAdmission(requestId, body = {}, user) {
   if (errors.length) throw new ApiError(400, 'Invalid admission', { details: errors });
 
   const changes = [];
-  db.transaction(() => {
-    let row = db.prepare('SELECT * FROM admissions WHERE request_id = ?').get(requestId);
+  await db.transaction(async () => {
+    let row = await db.prepare('SELECT * FROM admissions WHERE request_id = ?').get(requestId);
     if (!row) {
       // take over whatever the confirmed reservation is holding
-      const held = heldByReservation(requestId, wf.hospital_id);
-      db.prepare(`UPDATE reservations SET holds_capacity = 0 WHERE request_id = ? AND hospital_id = ? AND reservation_status = 'CONFIRMED'`).run(requestId, wf.hospital_id);
-      db.prepare(`INSERT INTO admissions (request_id, hospital_id, resources, services, created_at, updated_at) VALUES (?, ?, ?, '[]', ?, ?)`)
+      const held = await heldByReservation(requestId, wf.hospital_id);
+      await db.prepare(`UPDATE reservations SET holds_capacity = 0 WHERE request_id = ? AND hospital_id = ? AND reservation_status = 'CONFIRMED'`).run(requestId, wf.hospital_id);
+      await db.prepare(`INSERT INTO admissions (request_id, hospital_id, resources, services, created_at, updated_at) VALUES (?, ?, ?, '[]', ?, ?)`)
         .run(requestId, wf.hospital_id, JSON.stringify(held), iso(), iso());
-      row = db.prepare('SELECT * FROM admissions WHERE request_id = ?').get(requestId);
+      row = await db.prepare('SELECT * FROM admissions WHERE request_id = ?').get(requestId);
     }
     if (resources) {
       const current = parse(row.resources, {});
       for (const k of RESOURCE_KEYS) {
         const delta = (resources[k] || 0) - (current[k] || 0);
-        if (delta) changes.push(adjust(wf.hospital_id, k, delta));   // throws 409 NO_CAPACITY → whole save rolls back
+        if (delta) changes.push(await adjust(wf.hospital_id, k, delta));   // throws 409 NO_CAPACITY → whole save rolls back
       }
     }
     const ward = body.ward !== undefined ? text(body.ward) : row.ward;
     const w = WARDS[ward];
-    db.prepare(`UPDATE admissions SET ward = @ward, block = @block, floor = @floor, room = @room, bed = @bed, attending = @attending, nurse = @nurse,
+    await db.prepare(`UPDATE admissions SET ward = @ward, block = @block, floor = @floor, room = @room, bed = @bed, attending = @attending, nurse = @nurse,
                 resources = @resources, services = @services, updated_at = @now WHERE request_id = @id`).run({
       id: requestId, ward,
       block: w ? w.block : row.block, floor: w ? w.floor : row.floor,
@@ -166,14 +167,14 @@ export function saveAdmission(requestId, body = {}, user) {
     });
   })();
 
-  const admission = getAdmission(requestId);
-  const hospital = getHospital(wf.hospital_id);
+  const admission = await getAdmission(requestId);
+  const hospital = await getHospital(wf.hospital_id);
   if (changes.length) bus.emit(EVENTS.HOSPITAL_UPDATE, { hospital, changed: changes.map(c => ({ label: c.label, delta: -c.delta })), source: 'Handover Allocation' });
   bus.emit(EVENTS.ADMISSION_UPDATE, { request_id: requestId, hospital_id: wf.hospital_id, admission, request: req });
   return { admission, hospital, changes };
 }
 
 /** Called when the handover is completed: stamp the admission time. */
-export function markAdmitted(requestId) {
-  db.prepare('UPDATE admissions SET admitted_at = ?, updated_at = ? WHERE request_id = ?').run(iso(), iso(), requestId);
+export async function markAdmitted(requestId) {
+  await db.prepare('UPDATE admissions SET admitted_at = ?, updated_at = ? WHERE request_id = ?').run(iso(), iso(), requestId);
 }

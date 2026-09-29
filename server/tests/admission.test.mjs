@@ -5,6 +5,7 @@
 //  3. LIVE INVENTORY: adding a ventilator at handover takes one from availability immediately; removing it gives it back.
 //  4. NO CAPACITY: asking for a resource that is not free is refused (409) and nothing changes.
 //  5. COMPLETE needs a ward / room / bed; afterwards the admission is stamped and shown in the request.
+import './_env.mjs';
 import { spawn, execSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';

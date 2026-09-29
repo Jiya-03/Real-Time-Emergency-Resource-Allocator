@@ -12,8 +12,10 @@ if (!process.env.SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
 const { createClient } = await import('@supabase/supabase-js');
 const client = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY, { auth: { persistSession: false } });
 
-if (cmd === 'push') {
-  db.prepare('UPDATE sync_state SET initialized = 1 WHERE id = 1').run();   // startSync must not auto-push twice
+if (cmd === 'push' && db.driver === 'postgres') {
+  console.log('ℹ️  DATABASE_URL is set: the app already writes straight into Postgres/Supabase, nothing to push. Use `npm run seed` to reload the dataset there.');
+} else if (cmd === 'push') {
+  await db.prepare('UPDATE sync_state SET initialized = 1 WHERE id = 1').run();   // startSync must not auto-push twice
   await startSync({ client, noRealtime: true, noTimer: true });
   await fullPush();
   stopSync();

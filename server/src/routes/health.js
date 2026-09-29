@@ -10,9 +10,9 @@ const TABLES = [
   'resource_update_history', 'match_ranking_results',
 ];
 
-router.get('/', (req, res) => {
+router.get('/', async (req, res) => {
   const counts = {};
-  for (const t of TABLES) counts[t] = db.prepare(`SELECT COUNT(*) AS n FROM ${t}`).get().n;
+  for (const t of TABLES) counts[t] = (await db.prepare(`SELECT COUNT(*) AS n FROM ${t}`).get()).n;
   res.json({ status: 'ok', time: new Date().toISOString(), db: counts });
 });
 

@@ -45,31 +45,15 @@
     <a class="side-link flex items-center gap-space-md px-space-md py-space-sm rounded-lg font-label-lg text-label-lg text-on-surface hover:bg-surface-container-low" href="#handover"><span class="material-symbols-outlined text-[20px] text-on-surface-variant">sync_alt</span><span class="flex-1">Handover</span><span class="hidden w-2 h-2 rounded-full bg-tertiary animate-pulse" id="nav-handover-dot"></span></a>
     <a class="side-link flex items-center gap-space-md px-space-md py-space-sm rounded-lg font-label-lg text-label-lg text-on-surface hover:bg-surface-container-low" href="#history"><span class="material-symbols-outlined text-[20px] text-on-surface-variant">history</span>History</a>
   </nav>
-  <div class="m-space-md p-space-md rounded-lg bg-surface-container-low flex flex-col gap-space-sm">
-    <div class="flex items-center justify-between gap-space-sm"><span class="flex items-center gap-space-xs font-label-md text-label-md text-on-surface min-w-0"><span class="material-symbols-outlined text-[16px] text-primary">local_hospital</span><span class="truncate" id="side-hosp">…</span></span><span class="w-2.5 h-2.5 rounded-full bg-outline shrink-0" id="conn-dot"></span></div>
-    <span class="font-telemetry-sm text-telemetry-sm text-on-surface-variant" id="conn-text">Connecting…</span>
-    <button class="w-full py-space-xs rounded bg-surface-container-lowest border border-outline-variant font-label-md text-label-md flex items-center justify-center gap-space-xs hover:bg-surface-container" id="logout-btn" type="button"><span class="material-symbols-outlined text-[16px]">logout</span>Logout</button>
-  </div>
+  <div class="m-space-md"><button class="w-full py-space-sm rounded-lg border border-outline-variant font-label-md text-label-md hover:bg-surface-container-low" id="logout-btn" type="button">Log out</button></div>
 </aside>
 
 <div class="flex-1 lg:ml-60 min-w-0 flex flex-col">
 <!-- ═════════════ TOP BAR ═════════════ -->
 <header class="sticky top-0 z-30 h-16 bg-surface-container-lowest/95 backdrop-blur border-b border-surface-container-low px-margin flex items-center justify-between gap-space-md">
-  <div class="flex flex-col min-w-0">
-    <span class="font-headline-sm text-headline-sm text-on-surface" id="greeting">Good day</span>
-    <span class="font-body-sm text-body-sm text-on-surface-variant truncate" id="hosp-sub">…</span>
-  </div>
+  <span class="font-headline-sm text-headline-sm text-on-surface truncate" id="hosp-name">…</span>
   <div class="flex items-center gap-space-sm">
     <button class="inline-flex items-center gap-space-xs px-space-md py-space-xs rounded-full font-label-md text-label-md border" id="arm-btn" type="button"></button>
-    <span class="hidden md:inline-flex items-center gap-space-xs px-space-md py-space-xs rounded bg-surface-container-low font-telemetry-sm text-telemetry-sm"><span class="material-symbols-outlined text-[16px]">schedule</span><span id="clock">--:--</span></span>
-    <div class="relative">
-      <button class="w-9 h-9 rounded-full bg-primary flex items-center justify-center" id="user-btn" type="button" aria-haspopup="true"><span class="material-symbols-outlined text-on-primary text-[18px]">person</span></button>
-      <div class="hidden absolute right-0 mt-2 w-52 bg-surface-container-lowest border border-outline-variant rounded-lg shadow-[0_4px_16px_-4px_rgba(11,31,58,0.08)] py-1 z-50" id="user-menu">
-        <div class="px-space-md py-space-sm border-b border-surface-container-low"><div class="font-label-md text-label-md">Hospital Staff</div><div class="font-telemetry-sm text-telemetry-sm text-on-surface-variant" id="user-id">—</div></div>
-        <button class="w-full text-left px-space-md py-space-sm font-label-md text-label-md hover:bg-surface-container-low flex items-center gap-space-xs" id="test-alert-btn" type="button"><span class="material-symbols-outlined text-[16px]">campaign</span>Test emergency alert</button>
-        <button class="lg:hidden w-full text-left px-space-md py-space-sm font-label-md text-label-md hover:bg-surface-container-low flex items-center gap-space-xs" id="logout-btn-2" type="button"><span class="material-symbols-outlined text-[16px]">logout</span>Logout</button>
-      </div>
-    </div>
   </div>
 </header>
 <!-- mobile nav -->
@@ -79,8 +63,10 @@
   <a class="side-link shrink-0 px-space-md py-space-xs rounded font-label-md text-label-md" href="#live">Live Route</a>
   <a class="side-link shrink-0 px-space-md py-space-xs rounded font-label-md text-label-md" href="#handover">Handover</a>
   <a class="side-link shrink-0 px-space-md py-space-xs rounded font-label-md text-label-md" href="#history">History</a>
+  <button class="shrink-0 px-space-md py-space-xs rounded font-label-md text-label-md bg-surface-container-low" id="logout-btn-2" type="button">Log out</button>
 </nav>
 
+<div class="hidden bg-tertiary text-on-tertiary text-center py-space-xs font-label-md text-label-md" id="offline-banner">Connection lost. Reconnecting…</div>
 <main class="flex-1 px-margin py-space-xl" id="views">
 
 <!-- ═════════════ DASHBOARD (h1) ═════════════ -->
@@ -90,7 +76,6 @@
     <div class="flex items-center justify-between gap-space-md flex-wrap">
       <div class="flex items-center gap-space-sm"><span class="w-1.5 h-7 rounded bg-tertiary"></span><h2 class="font-headline-lg text-headline-lg text-on-surface">Incoming Emergency Requests</h2>
         <span class="px-space-sm py-0.5 rounded bg-tertiary-fixed text-tertiary font-telemetry-sm text-telemetry-sm font-semibold uppercase" id="dash-pending-chip">0 pending</span></div>
-      <span class="inline-flex items-center gap-space-xs px-space-md py-space-xs rounded-full border border-outline-variant bg-surface-container-lowest font-telemetry-sm text-telemetry-sm"><span class="w-2 h-2 rounded-full bg-primary animate-pulse"></span>Listening on Dispatch Grid</span>
     </div>
     <div class="flex flex-col gap-space-md" id="dash-requests"></div>
   </div>
@@ -98,7 +83,6 @@
     <div class="flex items-center justify-between gap-space-md flex-wrap">
       <div class="flex items-center gap-space-sm"><span class="w-1.5 h-7 rounded bg-primary"></span><h2 class="font-headline-lg text-headline-lg text-on-surface">Active Cases &amp; Arrival Queue</h2>
         <span class="px-space-sm py-0.5 rounded bg-surface-container text-primary font-telemetry-sm text-telemetry-sm font-semibold uppercase" id="dash-active-chip">0 tracked</span></div>
-      <span class="font-telemetry-sm text-telemetry-sm text-on-surface-variant" id="dash-updated">Updated —</span>
     </div>
     <div class="bg-surface-container-lowest rounded-xl shadow-sm overflow-hidden" id="dash-active"></div>
   </div>
@@ -119,27 +103,22 @@
 <section class="view hidden flex-col gap-space-xl max-w-6xl mx-auto w-full" id="view-resources">
   <div class="flex flex-col md:flex-row md:items-end justify-between gap-space-md">
     <div class="flex flex-col gap-space-xs">
-      <span class="inline-flex w-fit items-center gap-space-xs px-space-md py-space-xs rounded-full border border-outline-variant bg-surface-container-lowest font-telemetry-sm text-telemetry-sm text-primary"><span class="w-2 h-2 rounded-full bg-primary animate-pulse"></span>LIVE AVAILABILITY TELEMETRY · <span id="res-updated" class="text-on-surface-variant">—</span></span>
-      <h1 class="font-display-lg text-display-lg text-on-surface tracking-tight">Hospital Resources &amp; Capacity</h1>
+      <span class="font-body-sm text-body-sm text-on-surface-variant" id="res-updated">—</span>
+      <h1 class="font-display-lg text-display-lg text-on-surface tracking-tight">Resources</h1>
     </div>
     <div class="flex items-center gap-space-sm">
-      <button class="inline-flex items-center gap-space-xs px-space-lg py-space-sm rounded-lg bg-primary text-on-primary font-label-lg text-label-lg" id="res-sync" type="button"><span class="material-symbols-outlined text-[18px]">verified</span>Confirm all numbers <span class="font-telemetry-sm opacity-75">[S]</span></button>
+      <button class="inline-flex items-center gap-space-xs px-space-lg py-space-sm rounded-lg bg-primary text-on-primary font-label-lg text-label-lg" id="res-sync" type="button"><span class="material-symbols-outlined text-[18px]">verified</span>Confirm all numbers</button>
     </div>
   </div>
   <div class="hidden rounded-lg border border-[#F87171] bg-[#FEF2F2] px-space-lg py-space-md font-body-md text-body-md text-[#991B1B]" id="res-error"></div>
   <div class="flex flex-col gap-space-md">
-    <div class="flex items-center justify-between"><div class="flex flex-col"><span class="font-telemetry-sm text-telemetry-sm text-primary uppercase">Section 01</span><h2 class="font-headline-lg text-headline-lg text-on-surface">Beds &amp; Critical Equipment</h2></div>
-      <span class="font-telemetry-sm text-telemetry-sm text-on-surface-variant">Tracked live · shown to every ambulance</span></div>
+    <div class="flex items-center justify-between"><div class="flex flex-col"><h2 class="font-headline-lg text-headline-lg text-on-surface">Beds &amp; Critical Equipment</h2></div></div>
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-space-md" id="res-capacity"></div>
   </div>
   <div class="flex flex-col gap-space-md">
-    <div class="flex items-center justify-between"><div class="flex flex-col"><span class="font-telemetry-sm text-telemetry-sm text-primary uppercase">Section 02</span><h2 class="font-headline-lg text-headline-lg text-on-surface">Departments Status</h2></div>
+    <div class="flex items-center justify-between"><div class="flex flex-col"><h2 class="font-headline-lg text-headline-lg text-on-surface">Departments</h2></div>
       <span class="font-telemetry-sm text-telemetry-sm text-on-surface-variant" id="dept-legend"></span></div>
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-space-md" id="res-depts"></div>
-  </div>
-  <div class="bg-surface-container-lowest rounded-xl shadow-sm px-space-xl py-space-md flex flex-col md:flex-row md:items-center justify-between gap-space-sm">
-    <span class="flex items-center gap-space-sm font-body-md text-body-md"><span class="material-symbols-outlined text-primary">verified_user</span><span id="res-footer">—</span></span>
-    <span class="font-telemetry-sm text-telemetry-sm text-primary flex items-center gap-space-xs"><span class="material-symbols-outlined text-[16px]">check_circle</span><span id="res-conflicts">No protocol conflicts</span></span>
   </div>
 </section>
 
@@ -168,7 +147,6 @@
 </section>
 
 </main>
-<footer class="px-margin py-space-md flex items-center justify-end gap-space-xs font-telemetry-sm text-telemetry-sm text-on-surface-variant"><span class="material-symbols-outlined text-[16px]">verified</span>JeevanRoute Telemetry Protocol v4.2.1 <span id="footer-conn">Connected</span></footer>
 </div>
 </div>
 
@@ -188,7 +166,7 @@
       <div class="flex flex-wrap gap-space-xs" id="alarm-needs"></div>
       <p class="font-body-md text-body-md text-on-surface-variant" id="alarm-notes"></p>
       <div class="flex flex-col sm:flex-row gap-space-md">
-        <button class="flex-1 py-space-lg rounded-lg bg-tertiary hover:bg-tertiary-container text-on-tertiary font-headline-sm text-headline-sm flex items-center justify-center gap-space-sm" id="alarm-review" type="button">Review Request <span class="font-telemetry-sm opacity-75">[Enter]</span><span class="material-symbols-outlined">arrow_forward</span></button>
+        <button class="flex-1 py-space-lg rounded-lg bg-tertiary hover:bg-tertiary-container text-on-tertiary font-headline-sm text-headline-sm flex items-center justify-center gap-space-sm" id="alarm-review" type="button">Review Request<span class="material-symbols-outlined">arrow_forward</span></button>
         <button class="sm:w-44 py-space-lg rounded-lg border border-outline-variant font-label-lg text-label-lg flex items-center justify-center gap-space-xs" id="alarm-silence" type="button"><span class="material-symbols-outlined text-[18px]">volume_off</span>Silence</button>
       </div>
       <span class="font-telemetry-sm text-telemetry-sm text-on-surface-variant text-center" id="alarm-queue"></span>

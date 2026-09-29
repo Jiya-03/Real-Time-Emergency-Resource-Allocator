@@ -5,6 +5,8 @@
 //  3. SUPABASE → APP: editing beds / adding a hospital / deleting one in Supabase updates the app.
 //  4. SAFETY: invalid edits are rejected and Supabase is put back; hospitals with history are
 //     deactivated instead of deleted; our own changes echoing back are ignored.
+import { PG } from './_env.mjs';
+if (PG) { console.log('⏭️  Supabase mirror sync is SQLite-only (in Postgres mode Supabase IS the database): skipped'); process.exit(0); }
 import { execSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
@@ -71,64 +73,71 @@ try {
 
   // 1. FIRST RUN
   await sync.startSync({ client: fake, noTimer: true });
-  const n = (t) => db.prepare(`SELECT COUNT(*) AS n FROM ${t}`).get().n;
-  check(fake.tables.hospitals.size === n('hospitals') && fake.tables.emergency_requests.size === n('emergency_requests')
-    && fake.tables.match_ranking_results.size === n('match_ranking_results'), `FIRST RUN: full copy (${fake.tables.hospitals.size} hospitals, ${fake.tables.emergency_requests.size} emergencies, ${fake.tables.match_ranking_results.size} rankings)`);
+  const n = async (t) => (await db.prepare(`SELECT COUNT(*) AS n FROM ${t}`).get()).n;
+  check(fake.tables.hospitals.size === await n('hospitals') && fake.tables.emergency_requests.size === await n('emergency_requests')
+    && fake.tables.match_ranking_results.size === await n('match_ranking_results'), `FIRST RUN: full copy (${fake.tables.hospitals.size} hospitals, ${fake.tables.emergency_requests.size} emergencies, ${fake.tables.match_ranking_results.size} rankings)`);
   check(fake.handlers.length === 3, 'Realtime subscribed to hospitals / hospital_resources / hospital_services');
 
   // 2. APP → SUPABASE
   const H = 'HSP-003';
-  const h0 = getHospital(H);
+  const h0 = await getHospital(H);
   const newIcu = h0.resources.icu.available > 0 ? h0.resources.icu.available - 1 : 1;
-  updateHospitalResources(H, { icu: newIcu }, { source: 'Hospital Staff' });
-  check(sync.syncStatus().pending > 0, `APP → SUPABASE: change queued (${sync.syncStatus().pending} pending)`);
+  await updateHospitalResources(H, { icu: newIcu }, { source: 'Hospital Staff' });
+  check((await sync.syncStatus()).pending > 0, `APP → SUPABASE: change queued (${(await sync.syncStatus()).pending} pending)`);
   await sync.flush();
   const rr = [...fake.tables.hospital_resources.values()].find(r => r.hospital_id === H);
-  check(rr.available_icu_beds === newIcu && sync.syncStatus().pending === 0, `APP → SUPABASE: ICU ${h0.resources.icu.available} → ${newIcu} visible in Supabase`);
+  check(rr.available_icu_beds === newIcu && (await sync.syncStatus()).pending === 0, `APP → SUPABASE: ICU ${h0.resources.icu.available} → ${newIcu} visible in Supabase`);
 
   // 3a. SUPABASE → APP: edit beds in the dashboard
   const edited = { ...rr, available_general_beds: Math.max(0, rr.available_general_beds - 3) };
   seen.length = 0;
   fake.remote('hospital_resources', 'UPDATE', edited);
-  const h1 = getHospital(H);
+  await sync.settle();
+  const h1 = await getHospital(H);
   check(h1.resources.general_bed.available === edited.available_general_beds, `SUPABASE → APP: general beds edited in Supabase → app shows ${edited.available_general_beds}`);
   check(h1.update_source === 'Admin' && h1.version === rr.version + 1, 'SUPABASE → APP: marked as an Admin update, version bumped (open edit screens refresh)');
   check(seen.some(p => p.source === 'Supabase' && p.hospital.hospital_id === H), 'SUPABASE → APP: every screen is notified (hospital:update)');
   await sync.flush();
   check(fake.tables.hospital_resources.get(rr.resource_record_id).version === rr.version + 1, 'Normalised row (version / source) pushed back to Supabase');
-  check(sync.applyRemote('hospital_resources', 'UPDATE', fake.tables.hospital_resources.get(rr.resource_record_id)) === 'noop', 'ECHO: our own change coming back is ignored');
+  check(await sync.applyRemote('hospital_resources', 'UPDATE', fake.tables.hospital_resources.get(rr.resource_record_id)) === 'noop', 'ECHO: our own change coming back is ignored');
 
   // 3b. new hospital created in Supabase
   fake.remote('hospitals', 'INSERT', { hospital_id: 'HSP-026', hospital_name: 'Symbiosis Test Hospital', hospital_type: 'Private', latitude: 18.54, longitude: 73.73,
     address: 'Lavale, Pune', emergency_department: 1, active_status: 1 });
-  const nh = getHospital('HSP-026');
+  await sync.settle();
+  const nh = await getHospital('HSP-026');
   check(nh && nh.name === 'Symbiosis Test Hospital' && nh.resources.icu.total === 0, 'NEW HOSPITAL: created in Supabase → appears in the app (empty beds to fill in)');
   await sync.flush();
   check([...fake.tables.hospital_resources.values()].some(r => r.hospital_id === 'HSP-026'), 'NEW HOSPITAL: its beds / departments rows appear in Supabase to edit');
   const nr = [...fake.tables.hospital_resources.values()].find(r => r.hospital_id === 'HSP-026');
   fake.remote('hospital_resources', 'UPDATE', { ...nr, total_icu_beds: 10, available_icu_beds: 6 });
-  check(getHospital('HSP-026').resources.icu.available === 6, 'NEW HOSPITAL: beds filled in Supabase → 6 of 10 ICU in the app');
+  await sync.settle();
+  check((await getHospital('HSP-026')).resources.icu.available === 6, 'NEW HOSPITAL: beds filled in Supabase → 6 of 10 ICU in the app');
   const ns = [...fake.tables.hospital_services.values()].find(r => r.hospital_id === 'HSP-026');
   fake.remote('hospital_services', 'UPDATE', { ...ns, trauma_care: 1, specialists: 'Trauma Surgeon' });
-  check(getHospital('HSP-026').services.trauma_care === true && getHospital('HSP-026').specialists[0] === 'Trauma Surgeon', 'NEW HOSPITAL: departments switched on in Supabase');
+  await sync.settle();
+  check((await getHospital('HSP-026')).services.trauma_care === true && (await getHospital('HSP-026')).specialists[0] === 'Trauma Surgeon', 'NEW HOSPITAL: departments switched on in Supabase');
 
   // 4a. invalid edit
-  const before = getHospital(H).resources.ventilator;
+  const before = (await getHospital(H)).resources.ventilator;
   const cur = fake.tables.hospital_resources.get(rr.resource_record_id);
   fake.remote('hospital_resources', 'UPDATE', { ...cur, available_ventilators: before.total + 5 });
-  check(getHospital(H).resources.ventilator.available === before.available, 'INVALID: available > total is rejected, app unchanged');
+  await sync.settle();
+  check((await getHospital(H)).resources.ventilator.available === before.available, 'INVALID: available > total is rejected, app unchanged');
   await sync.flush();
   check(fake.tables.hospital_resources.get(rr.resource_record_id).available_ventilators === before.available, 'INVALID: Supabase put back to the valid value');
 
   // 4b. delete a hospital with history → deactivated
   fake.remote('hospitals', 'DELETE', null, { hospital_id: 'HSP-001' });
-  check(getHospital('HSP-001')?.active === false, 'DELETE with history: HSP-001 kept but deactivated (emergency records stay intact)');
+  await sync.settle();
+  check((await getHospital('HSP-001'))?.active === false, 'DELETE with history: HSP-001 kept but deactivated (emergency records stay intact)');
   await sync.flush();
   check(fake.tables.hospitals.get('HSP-001')?.active_status === 0, 'DELETE with history: row reappears in Supabase as inactive');
 
   // 4c. delete a hospital without history → deleted
   fake.remote('hospitals', 'DELETE', null, { hospital_id: 'HSP-026' });
-  check(!getHospital('HSP-026'), 'DELETE: HSP-026 (no history) deleted from the app');
+  await sync.settle();
+  check(!await getHospital('HSP-026'), 'DELETE: HSP-026 (no history) deleted from the app');
   await sync.flush();
   check(![...fake.tables.hospital_resources.values()].some(r => r.hospital_id === 'HSP-026'), 'DELETE: its beds / departments rows removed from Supabase too');
 

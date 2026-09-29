@@ -9,18 +9,31 @@ import { PATIENT_CONDITIONS, CONDITION_FOR_SEVERITY,
   REQUIREMENTS, REQUIREMENT_KEYS, SERVICE_AREA,
 } from './requestConfig.js';
 
-// Which hospital is this patient going to? Accepted handover first, else a confirmed bed hold.
-function findAssignment(row) {
-  const wf = db.prepare(`
+// Which hospital is each patient going to? Accepted handover first, else a confirmed/pending bed hold.
+// Looked up for many requests at once (2 queries total), so long lists stay fast on a remote database.
+async function findAssignments(rows) {
+  const ids = rows.map(r => r.request_id);
+  if (!ids.length) return {};
+  const inList = ids.map(() => '?').join(',');
+  const wfs = await db.prepare(`
     SELECT w.*, h.hospital_name, h.latitude, h.longitude
     FROM emergency_workflow_handover w JOIN hospitals h ON h.hospital_id = w.hospital_id
-    WHERE w.request_id = ? AND w.hospital_response = 'ACCEPTED'
-    ORDER BY w.assignment_time DESC LIMIT 1`).get(row.request_id);
-  const target = wf || db.prepare(`
-    SELECT r.hospital_id, h.hospital_name, h.latitude, h.longitude
+    WHERE w.request_id IN (${inList}) AND w.hospital_response = 'ACCEPTED'
+    ORDER BY w.assignment_time DESC`).all(...ids);
+  const holds = await db.prepare(`
+    SELECT r.request_id, r.hospital_id, h.hospital_name, h.latitude, h.longitude
     FROM reservations r JOIN hospitals h ON h.hospital_id = r.hospital_id
-    WHERE r.request_id = ? AND r.reservation_status IN ('CONFIRMED','PENDING') AND r.resource_type != 'Ventilator'
-    ORDER BY r.requested_at DESC LIMIT 1`).get(row.request_id);
+    WHERE r.request_id IN (${inList}) AND r.reservation_status IN ('CONFIRMED','PENDING') AND r.resource_type != 'Ventilator'
+    ORDER BY r.requested_at DESC`).all(...ids);
+  const out = {};
+  for (const row of rows) {
+    const wf = wfs.find(w => w.request_id === row.request_id);
+    out[row.request_id] = assignmentOf(row, wf, wf || holds.find(h => h.request_id === row.request_id));
+  }
+  return out;
+}
+
+function assignmentOf(row, wf, target) {
   if (!target) return null;
 
   const distance_km = roadDistanceKm(row.patient_latitude, row.patient_longitude, target.latitude, target.longitude);
@@ -36,8 +49,14 @@ function findAssignment(row) {
   };
 }
 
-// DB row → clean JSON for the UI
-export function formatRequest(row) {
+// DB rows → clean JSON for the UI
+export async function formatRequests(rows) {
+  const assignments = await findAssignments(rows);
+  return rows.map(r => formatRequest(r, assignments[r.request_id] ?? null));
+}
+
+// One DB row → clean JSON (assignment looked up separately, see formatRequests)
+export function formatRequest(row, assignment = null) {
   const requirements = {};
   for (const key of REQUIREMENT_KEYS) requirements[key] = !!row[REQUIREMENTS[key]];
   return {
@@ -58,7 +77,7 @@ export function formatRequest(row) {
     status: row.request_status,
     created_at: row.request_timestamp,
     waiting_minutes: Math.round((Date.now() - new Date(row.request_timestamp)) / 6000) / 10,
-    assignment: findAssignment(row),
+    assignment,
   };
 }
 
@@ -120,8 +139,8 @@ function validate(body) {
   };
 }
 
-const insertRequest = db.transaction((data) => {
-  const request_id = nextId(db, 'emergency_requests', 'request_id', 'REQ', 6);
+const insertRequest = db.transaction(async (data) => {
+  const request_id = await nextId(db, 'emergency_requests', 'request_id', 'REQ', 6);
   const row = {
     request_id,
     patient_id: `PT-${String(Math.floor(100000 + Math.random() * 900000))}`,
@@ -142,14 +161,15 @@ const insertRequest = db.transaction((data) => {
   for (const key of REQUIREMENT_KEYS) row[REQUIREMENTS[key]] = data.requirements[key] ? 1 : 0;
 
   const cols = Object.keys(row);
-  db.prepare(`INSERT INTO emergency_requests (${cols.join(',')}) VALUES (${cols.map(c => '@' + c).join(',')})`).run(row);
+  await db.prepare(`INSERT INTO emergency_requests (${cols.join(',')}) VALUES (${cols.map(c => '@' + c).join(',')})`).run(row);
   return request_id;
 });
 
-export function createRequest(body) {
+export async function createRequest(body, { owner = null } = {}) {
   const data = validate(body);
-  const id = insertRequest(data);
-  const request = getRequest(id);
+  const id = await insertRequest(data);
+  if (owner) await db.prepare('INSERT INTO request_owners (request_id, dispatcher_id, created_at) VALUES (?, ?, ?)').run(id, owner, new Date().toISOString());
+  const request = await getRequest(id);
 
   const { minLat, maxLat, minLng, maxLng } = SERVICE_AREA;
   const warnings = [];
@@ -164,28 +184,30 @@ export function createRequest(body) {
   return { request, warnings };
 }
 
-export function getRequest(id) {
-  const row = db.prepare('SELECT * FROM emergency_requests WHERE request_id = ?').get(id);
-  return row ? formatRequest(row) : null;
+export async function getRequest(id) {
+  const row = await db.prepare('SELECT * FROM emergency_requests WHERE request_id = ?').get(id);
+  return row ? (await formatRequests([row]))[0] : null;
 }
 
 // Full picture for the request detail screen: request + reservations + handover timeline
-export function getRequestDetail(id) {
-  const request = getRequest(id);
+export async function getRequestDetail(id) {
+  const request = await getRequest(id);
   if (!request) return null;
-  const reservations = db.prepare(`
+  const reservations = await db.prepare(`
     SELECT r.*, h.hospital_name FROM reservations r JOIN hospitals h ON h.hospital_id = r.hospital_id
     WHERE r.request_id = ? ORDER BY r.requested_at`).all(id);
-  const workflow = db.prepare(`
+  const workflow = await db.prepare(`
     SELECT w.*, h.hospital_name FROM emergency_workflow_handover w JOIN hospitals h ON h.hospital_id = w.hospital_id
     WHERE w.request_id = ? ORDER BY w.assignment_time`).all(id);
-  const adm = db.prepare('SELECT * FROM admissions WHERE request_id = ?').get(id);
+  const adm = await db.prepare('SELECT * FROM admissions WHERE request_id = ?').get(id);
   const admission = adm ? { ward: adm.ward, block: adm.block, floor: adm.floor, room: adm.room, bed: adm.bed, attending: adm.attending, nurse: adm.nurse,
     resources: JSON.parse(adm.resources || '{}'), services: JSON.parse(adm.services || '[]'), admitted_at: adm.admitted_at, updated_at: adm.updated_at } : null;
-  return { ...request, reservations, workflow, admission };
+  const marks = (await db.prepare('SELECT hospital_id, manual, offered_at, decide_at FROM dispatch_marks WHERE request_id = ?').all(id))
+    .map(m => ({ ...m, manual: !!m.manual }));
+  return { ...request, reservations, workflow, admission, marks };
 }
 
-export function listRequests({ status, severity, emergency_type, active, since_minutes, sort = 'priority', limit = 50, offset = 0 } = {}) {
+export async function listRequests({ status, severity, emergency_type, active, since_minutes, sort = 'priority', limit = 50, offset = 0 } = {}) {
   const where = [];
   const params = [];
 
@@ -214,25 +236,25 @@ export function listRequests({ status, severity, emergency_type, active, since_m
   const lim = Math.min(Math.max(Number(limit) || 50, 1), 200);
   const off = Math.max(Number(offset) || 0, 0);
 
-  const total = db.prepare(`SELECT COUNT(*) AS n FROM emergency_requests ${whereSql}`).get(...params).n;
+  const total = (await db.prepare(`SELECT COUNT(*) AS n FROM emergency_requests ${whereSql}`).get(...params)).n;
   if (!['priority', 'recent'].includes(sort)) throw new ApiError(400, 'sort must be priority or recent');
   // priority: Critical first, then newest (the dispatcher queue). recent: newest first (the log).
   const orderSql = sort === 'recent'
     ? 'request_timestamp DESC, request_id DESC'
     : `CASE severity WHEN 'Critical' THEN 0 WHEN 'High' THEN 1 WHEN 'Moderate' THEN 2 ELSE 3 END, request_timestamp DESC`;
-  const rows = db.prepare(`
+  const rows = await db.prepare(`
     SELECT * FROM emergency_requests ${whereSql}
     ORDER BY ${orderSql}
     LIMIT ? OFFSET ?`).all(...params, lim, off);
 
-  return { total, limit: lim, offset: off, requests: rows.map(formatRequest) };
+  return { total, limit: lim, offset: off, requests: await formatRequests(rows) };
 }
 
-export function getRequestSummary() {
+export async function getRequestSummary() {
   const byStatus = Object.fromEntries(REQUEST_STATUSES.map(s => [s, 0]));
-  for (const r of db.prepare('SELECT request_status s, COUNT(*) n FROM emergency_requests GROUP BY 1').all()) byStatus[r.s] = r.n;
+  for (const r of await db.prepare('SELECT request_status s, COUNT(*) n FROM emergency_requests GROUP BY 1').all()) byStatus[r.s] = r.n;
   const activeBySeverity = Object.fromEntries(SEVERITIES.map(s => [s, 0]));
-  for (const r of db.prepare(`SELECT severity s, COUNT(*) n FROM emergency_requests
+  for (const r of await db.prepare(`SELECT severity s, COUNT(*) n FROM emergency_requests
       WHERE request_status IN (${ACTIVE_STATUSES.map(() => '?').join(',')}) GROUP BY 1`).all(...ACTIVE_STATUSES)) {
     activeBySeverity[r.s] = r.n;
   }

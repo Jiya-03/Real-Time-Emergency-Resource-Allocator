@@ -16,6 +16,7 @@ import { startExpirySweeper } from './services/reservationService.js';
 import { initSockets } from './sockets/index.js';
 import { startSimulator } from './services/simulator.js';
 import { startSync } from './services/supabaseSync.js';
+import db from './db/index.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
@@ -46,12 +47,19 @@ app.use((err, req, res, next) => {
 });
 
 const server = createServer(app);
-initSockets(server);
+await initSockets(server);
+
+// Background jobs run on ONE server only (Postgres mode: whoever holds the leader lock; others check again every 15 s)
+async function startBackgroundJobs() {
+  if (!await db.isLeader()) { setTimeout(() => startBackgroundJobs().catch(e => console.error('[jobs]', e.message)), 15000).unref(); return; }
+  if (db.driver === 'postgres') console.log('👑 This server runs the background jobs (hold expiry, simulator)');
+  if (process.env.SIMULATOR !== 'off') await startSimulator().catch(e => console.warn('[simulator]', e.message));
+  startExpirySweeper();
+}
 
 server.listen(PORT, () => {
-  console.log(`✅ Server running at http://localhost:${PORT}   (JeevanRoute UI)`);
+  console.log(`✅ Server running at http://localhost:${PORT}   (JeevanRoute UI · database: ${db.driver === 'postgres' ? 'Postgres' : 'SQLite'})`);
   console.log(`📡 Live test page: http://localhost:${PORT}/live.html`);
-  if (process.env.SIMULATOR !== 'off') startSimulator();
-  startExpirySweeper();
-  startSync();                                   // Supabase live sync (only if configured in .env)
+  startBackgroundJobs().catch(e => console.error('[jobs]', e.message));
+  startSync().catch(e => console.error('[supabase]', e.message));   // SQLite: live copy to Supabase · Postgres: dashboard edits refresh screens
 });

@@ -11,10 +11,15 @@
 //
 // Candidates: the 5 nearest hospitals (so the dispatcher sees why the nearest may be
 // unsuitable) + every other ELIGIBLE hospital reachable within 55 minutes.
+//
+// Travel time: first ESTIMATED for everyone (straight line × 1.35, time-of-day traffic speed);
+// then the top 5 get their REAL driving time with live traffic from Mapbox (roadEta.js) and the
+// ranking is recomputed. Without a Mapbox token (or if Mapbox is slow) the estimate is kept.
 import db from '../db/index.js';
 import { getAllHospitals } from './hospitalService.js';
 import { getRequest } from './requestService.js';
 import { roadDistanceKm, etaMinutes } from './geo.js';
+import { getRoadEtas, ROAD_TOP_N } from './roadEta.js';
 import { nextId } from '../utils/ids.js';
 import { ApiError } from '../utils/errors.js';
 import bus, { EVENTS } from '../events.js';
@@ -88,24 +93,34 @@ export function evaluate(req, h) {
 }
 
 /**
- * Rank hospitals for a request.
+ * Rank hospitals for a request (estimated travel times; see matchRequest for live traffic).
  * opts.now → clock for freshness (default: real time)
  * opts.at  → time used for traffic speed (default: now)
  */
-export function rankHospitals(req, { now = Date.now(), at = new Date(now) } = {}) {
-  const hospitals = getAllHospitals(now);
+export async function rankHospitals(req, opts = {}) {
+  const now = opts.now ?? Date.now();
+  return rankWith(req, await getAllHospitals(now), { ...opts, now });
+}
+
+/**
+ * Pure ranking over a list of hospitals.
+ * opts.roadEtas → Map hospital_id → { duration_min, distance_km } real driving times (Mapbox)
+ */
+export function rankWith(req, hospitals, { now = Date.now(), at = new Date(now), roadEtas = null } = {}) {
   const origin = req.location;
 
   const all = hospitals.map((h) => {
-    const distance_km = roadDistanceKm(origin.lat, origin.lng, h.location.lat, h.location.lng);
-    const eta = distance_km / speedFor(at) * 60 + 2;
-    return { h, distance_km, eta, ev: evaluate(req, h) };
-  }).sort((a, b) => a.distance_km - b.distance_km);
+    const road = roadEtas?.get(h.hospital_id);
+    const straight = roadDistanceKm(origin.lat, origin.lng, h.location.lat, h.location.lng);
+    const distance_km = road?.distance_km ?? straight;
+    const eta = road ? road.duration_min + 2 : straight / speedFor(at) * 60 + 2;     // +2 min to load / unload
+    return { h, distance_km, straight, eta, eta_source: road ? 'mapbox' : 'estimate', ev: evaluate(req, h) };
+  }).sort((a, b) => a.straight - b.straight);
 
   const candidates = all.filter((c, i) => i < NEAREST_ALWAYS || (c.ev.eligible && c.eta <= MAX_ETA_MIN));
   const nearestId = all[0]?.h.hospital_id;
 
-  const rows = candidates.map(({ h, distance_km, eta, ev }) => {
+  const rows = candidates.map(({ h, distance_km, eta, eta_source, ev }) => {
     const travel = Math.max(0, 1 - eta / 60);
     const fresh = h.freshness.score;
     const raw = W.resource * ev.resource_match_score + W.travel * travel + W.freshness * fresh;
@@ -123,6 +138,7 @@ export function rankHospitals(req, { now = Date.now(), at = new Date(now) } = {}
       },
       distance_km: round(distance_km, 2),
       eta_min: round(eta, 1),
+      eta_source,                       // 'mapbox' = real driving time with live traffic, 'estimate' = distance-based
       freshness: h.freshness,
       primary_bed: ev.primary_bed,
       needs: ev.needs,
@@ -147,7 +163,7 @@ function speedFor(date) {
 function explain(r) {
   const age = Math.round(r.freshness.age_minutes);
   const label = r.freshness.status === 'stale' ? 'STALE' : r.freshness.status;
-  const base = `${r.distance_km} km (~${Math.round(r.eta_min)} min); data ${age} min old (${label}). ` +
+  const base = `${r.distance_km} km (~${Math.round(r.eta_min)} min${r.eta_source === 'mapbox' ? ' with live traffic' : ''}); data ${age} min old (${label}). ` +
     `Score ${r.scores.final.toFixed(3)} = 0.5x${r.scores.resource.toFixed(2)} resource + 0.3x${r.scores.travel.toFixed(2)} travel + 0.2x${r.scores.freshness.toFixed(2)} freshness`;
   if (r.eligible) {
     let e = `ELIGIBLE: meets all requirements (${r.needs.join(', ')}). ${base}.`;
@@ -164,33 +180,40 @@ function explain(r) {
  * Run the match for a stored request: rank, save to match_ranking_results,
  * move the request CREATED → MATCHING (or NO_MATCH), and notify live screens.
  */
-export const matchRequest = (requestId) => {
-  const req = getRequest(requestId);
+export const matchRequest = async (requestId) => {
+  const req = await getRequest(requestId);
   if (!req) throw new ApiError(404, `Request ${requestId} not found`);
   if (!['CREATED', 'MATCHING', 'NO_MATCH'].includes(req.status)) {
     throw new ApiError(409, `Request is already ${req.status}; it can no longer be re-matched`);
   }
 
-  const rankings = rankHospitals(req);
+  const hospitals = await getAllHospitals();
+  let rankings = rankWith(req, hospitals);
+  // Real driving times with live traffic for the top 5, then rank again (never inside a DB transaction)
+  const road = db.inTransaction() ? new Map()
+    : await getRoadEtas(req.location, rankings.slice(0, ROAD_TOP_N).map(r => ({ hospital_id: r.hospital_id, location: r.location })));
+  if (road.size) rankings = rankWith(req, hospitals, { roadEtas: road });
   const eligibleCount = rankings.filter(r => r.eligible).length;
   const newStatus = eligibleCount ? 'MATCHING' : 'NO_MATCH';
 
-  db.transaction(() => {
-    db.prepare('DELETE FROM match_ranking_results WHERE request_id = ?').run(requestId);
+  await db.transaction(async () => {
+    await db.prepare('DELETE FROM match_ranking_results WHERE request_id = ?').run(requestId);
     const insert = db.prepare(`
       INSERT INTO match_ranking_results
         (match_id, request_id, hospital_id, resource_match_score, distance_km, estimated_travel_time_min,
          freshness_score, final_suitability_score, rank, eligibility, explanation)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`);
+    let n = null;                                   // one ID lookup, then count up
     for (const r of rankings) {
-      insert.run(nextId(db, 'match_ranking_results', 'match_id', 'MR', 6), requestId, r.hospital_id,
+      n = n ? n + 1 : Number((await nextId(db, 'match_ranking_results', 'match_id', 'MR', 6)).slice(3));
+      await insert.run(`MR-${String(n).padStart(6, '0')}`, requestId, r.hospital_id,
         r.scores.resource, r.distance_km, Math.max(0.1, r.eta_min), r.scores.freshness, r.scores.final,
         r.rank, r.eligible ? 1 : 0, r.explanation);
     }
-    db.prepare('UPDATE emergency_requests SET request_status = ? WHERE request_id = ?').run(newStatus, requestId);
+    await db.prepare('UPDATE emergency_requests SET request_status = ? WHERE request_id = ?').run(newStatus, requestId);
   })();
 
-  const request = getRequest(requestId);
+  const request = await getRequest(requestId);
   bus.emit(EVENTS.REQUEST_UPDATE, request);
   return {
     request,
@@ -199,6 +222,7 @@ export const matchRequest = (requestId) => {
       eligible: eligibleCount,
       best: rankings[0]?.eligible ? { hospital_id: rankings[0].hospital_id, hospital_name: rankings[0].hospital_name, eta_min: rankings[0].eta_min } : null,
       stale_in_results: rankings.filter(r => r.freshness.status === 'stale').length,
+      travel_times: road.size ? `live traffic (Mapbox) for the top ${road.size}` : 'estimated',
       ranked_at: new Date().toISOString(),
     },
     rankings,
@@ -206,11 +230,11 @@ export const matchRequest = (requestId) => {
 };
 
 // Saved rankings (works for dataset requests too), with each hospital's CURRENT freshness
-export function getSavedRankings(requestId) {
-  const req = getRequest(requestId);
+export async function getSavedRankings(requestId) {
+  const req = await getRequest(requestId);
   if (!req) throw new ApiError(404, `Request ${requestId} not found`);
-  const hospitals = Object.fromEntries(getAllHospitals().map(h => [h.hospital_id, h]));
-  const rows = db.prepare('SELECT * FROM match_ranking_results WHERE request_id = ? ORDER BY rank').all(requestId);
+  const hospitals = Object.fromEntries((await getAllHospitals()).map(h => [h.hospital_id, h]));
+  const rows = await db.prepare('SELECT * FROM match_ranking_results WHERE request_id = ? ORDER BY rank').all(requestId);
   return {
     request_id: requestId,
     rankings: rows.map(r => {

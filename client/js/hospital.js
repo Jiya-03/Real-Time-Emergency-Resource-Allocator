@@ -55,21 +55,11 @@
     <span class="material-symbols-outlined text-[32px] text-outline">${icon}</span><span class="font-body-md text-body-md text-on-surface-variant">${text}</span></div>`;
 
   // ───────────── Header / session ─────────────
-  $('side-hosp').textContent = session.user.name;
-  $('hosp-sub').textContent = `${session.user.name} • Emergency Operations`;
-  $('user-id').textContent = `ID ${HID}`;
+  $('hosp-name').textContent = session.user.name;
   const logout = () => { Session.clear(); location.replace('index.html'); };
   $('logout-btn').addEventListener('click', logout);
   $('logout-btn-2').addEventListener('click', logout);
-  $('user-btn').addEventListener('click', (e) => { e.stopPropagation(); $('user-menu').classList.toggle('hidden'); });
-  document.addEventListener('click', () => $('user-menu').classList.add('hidden'));
 
-  function tickClock() {
-    const now = new Date();
-    const h = Number(new Intl.DateTimeFormat('en-GB', { hour: 'numeric', hourCycle: 'h23', timeZone: 'Asia/Kolkata' }).format(now));
-    $('greeting').textContent = h < 12 ? 'Good morning' : h < 17 ? 'Good afternoon' : 'Good evening';
-    $('clock').textContent = fmt.timeIST(now.toISOString());
-  }
 
   function toast(title, body = '', tone = 'info') {
     const colors = { info: 'border-outline-variant', success: 'border-[#6EE7B7]', critical: 'border-[#F87171]', warn: 'border-[#D97706]' };
@@ -93,11 +83,6 @@
   }
   ['click', 'keydown', 'touchstart'].forEach(ev => document.addEventListener(ev, () => { if (!Siren.armed()) armOnce(); }, { capture: true }));
   $('arm-btn').addEventListener('click', () => { armOnce(); if (Siren.armed()) toast('Siren armed', 'Incoming requests will sound a loud alarm.', 'success'); });
-  $('test-alert-btn').addEventListener('click', () => {
-    armOnce();
-    const sample = state.items.find(i => i.status === 'PENDING');
-    showAlarm(sample || { reservation_id: null, request: { request_id: 'TEST', emergency_type: 'Road Accident', severity: 'Critical', patient_age: 34, requirements: { icu: true, trauma_care: true, operation_theatre: true }, field_report: { bp: '84/52', hr: 128, spo2: 91 }, ambulance_id: 'AMB-012' }, eta_min: 11, distance_km: 4.8, reservations: [{ expires_at: new Date(Date.now() + 600000).toISOString() }], test: true });
-  });
 
   // ───────────── FULL-SCREEN ALARM ─────────────
   let alarmItem = null;
@@ -116,7 +101,7 @@
     ].map(([k, val]) => `<div class="rounded-lg bg-surface-container-low px-space-md py-space-sm"><div class="font-label-md text-label-md text-on-surface-variant uppercase">${k}</div><div class="font-telemetry-lg text-telemetry-lg text-on-surface">${esc(val)}</div></div>`).join('');
     $('alarm-needs').innerHTML = [...depts(r).map(d => chip(d, 'bg-surface-container text-primary')), ...equips(r).map(e => chip(e, 'bg-tertiary-fixed text-tertiary'))].join('')
       + (r.required_specialist ? chip(r.required_specialist, 'bg-surface-container-high text-on-surface') : '');
-    const race = (r.broadcast_round > 0 || state.broadcastIds.has(r.request_id)) ? 'Also sent to other suitable hospitals. The FIRST to accept gets this patient. ' : '';
+    const race = (r.broadcast_round > 0 || state.broadcastIds.has(r.request_id)) ? 'Also sent to a few other nearby hospitals. If a better-ranked one also says yes, it gets the patient. ' : '';
     $('alarm-notes').textContent = race + (v.has ? `Vitals: ${[v.bp && `BP ${v.bp}`, v.hr && `HR ${v.hr}`, v.spo2 && `SpO₂ ${v.spo2}%`].filter(Boolean).join(' · ')}${v.unstable ? ' · UNSTABLE' : ''}${v.notes ? `. "${v.notes}"` : ''}`
       : (item.test ? 'This is a test alert.' : 'No field vitals transmitted.'));
     $('alarm-countdown').dataset.countdown = item.reservations?.[0]?.expires_at || '';
@@ -197,6 +182,21 @@
     return `<span class="font-telemetry-md text-telemetry-md text-on-surface">~${i.eta_min} min · ${i.distance_km} km</span>`;
   }
 
+  // This hospital already said yes and is waiting to be confirmed (a better-ranked hospital is still deciding)
+  const offered = (i) => !!i.offer?.offered_at;
+  function offerNote(i) {
+    return offered(i) ? `<span class="inline-flex w-fit items-center gap-1 px-space-sm py-0.5 rounded bg-[#ECFDF5] text-[#065F46] font-telemetry-sm text-telemetry-sm">You said yes · bed held · confirmed in <b data-countdown="${esc(i.offer.decide_at)}">--:--</b> unless a better-ranked hospital accepts</span>` : '';
+  }
+
+  // Two patients, one bed: who is next in line (from the server's queue)
+  function queueNote(i, { full = false } = {}) {
+    const q = i.queue;
+    if (!q?.contended) return '';
+    return q.gets_bed
+      ? `<span class="inline-flex w-fit items-center gap-1 px-space-sm py-0.5 rounded bg-[#ECFDF5] text-[#065F46] font-telemetry-sm text-telemetry-sm">Next in line for the last bed${full ? ` · ${esc(q.reason.replace(/^Next in line for the [^:]+: /, '').replace(/\.$/, ''))}` : ''}</span>`
+      : `<span class="inline-flex w-fit items-center gap-1 px-space-sm py-0.5 rounded bg-[#FFFBEB] text-[#92400E] font-telemetry-sm text-telemetry-sm">${full ? esc(q.reason) : `Waiting behind #${esc(q.behind || '')}: no bed left for both`}</span>`;
+  }
+
   // ───────────── DASHBOARD (h1) ─────────────
   function renderDashboard() {
     const p = pending(), c = confirmed();
@@ -205,28 +205,26 @@
     const heldTypes = [...new Set(c.flatMap(i => i.reservations.map(r => r.resource_type)))];
     const stat = (label, value, icon, iconCls, foot) => `
       <div class="bg-surface-container-lowest rounded-xl shadow-sm p-space-lg flex flex-col gap-space-sm">
-        <div class="flex items-start justify-between"><span class="font-label-md text-label-md text-on-surface-variant uppercase">${label}</span>
-          <span class="w-10 h-10 rounded-lg ${iconCls} flex items-center justify-center"><span class="material-symbols-outlined">${icon}</span></span></div>
+        <span class="font-label-md text-label-md text-on-surface-variant uppercase">${label}</span>
         <span class="font-display-lg text-[40px] leading-none ${label.startsWith('Emergency') && value ? 'text-tertiary' : 'text-on-surface'}">${value}</span>
         <span class="font-body-sm text-body-sm">${foot}</span></div>`;
     $('stats').innerHTML =
       stat('Emergency Requests', p.length, 'notifications_active', 'bg-tertiary-fixed text-tertiary',
         urgentCount ? `<span class="inline-flex items-center gap-1 px-space-sm py-0.5 rounded bg-tertiary text-on-tertiary font-telemetry-sm text-telemetry-sm">● ${urgentCount} Urgent Action Required</span>` : '<span class="text-on-surface-variant">No urgent requests</span>') +
       stat('Active Cases', c.length, 'airport_shuttle', 'bg-surface-container text-primary',
-        `<span class="text-on-surface-variant flex items-center gap-1"><span class="material-symbols-outlined text-[16px] text-primary">navigation</span>${enRoute().filter(i => i.workflow?.departure_time).length} in transit · ${atBay().length} at the bay</span>`) +
+        `<span class="text-on-surface-variant flex items-center gap-1">${enRoute().filter(i => i.workflow?.departure_time).length} in transit · ${atBay().length} at the bay</span>`) +
       stat('Resources Reserved', heldUnits, 'lock', 'bg-surface-container text-primary',
-        `<span class="text-on-surface-variant flex items-center gap-1"><span class="material-symbols-outlined text-[16px] text-primary">check_circle</span>${heldTypes.length ? esc(heldTypes.join(', ')) + ' locked' : 'Nothing held right now'}</span>`);
+        `<span class="text-on-surface-variant flex items-center gap-1">${heldTypes.length ? esc(heldTypes.join(', ')) + ' locked' : 'Nothing held right now'}</span>`);
 
     $('dash-pending-chip').textContent = `${p.length} pending`;
     $('dash-requests').innerHTML = p.length ? p.map((i, idx) => idx === 0 ? bigRequestCard(i) : smallRequestCard(i)).join('') : empty('No incoming requests. Ambulance requests will appear here and sound the alarm.', 'notifications_off');
     $('dash-active-chip').textContent = `${c.length} tracked`;
-    $('dash-updated').textContent = `Updated: ${fmt.timeIST(new Date().toISOString())}`;
     $('dash-active').innerHTML = casesTable(c, { compact: true });
   }
 
   function bigRequestCard(i) {
     const r = i.request, v = vitals(r);
-    const box = (icon, label, value, cls = 'text-on-surface') => `<div class="flex items-center gap-space-sm"><span class="w-9 h-9 rounded-lg bg-surface-container-lowest flex items-center justify-center shrink-0"><span class="material-symbols-outlined text-[18px] text-primary">${icon}</span></span>
+    const box = (icon, label, value, cls = 'text-on-surface') => `<div class="flex items-center gap-space-sm">
       <div class="flex flex-col"><span class="font-telemetry-sm text-telemetry-sm text-on-surface-variant uppercase">${label}</span><span class="font-label-lg text-label-lg ${cls}">${value}</span></div></div>`;
     return `
 <div class="bg-surface-container-lowest rounded-xl shadow-sm overflow-hidden ${urgent(r) ? 'ring-2 ring-[#F54B5E]/40' : ''}">
@@ -234,10 +232,10 @@
   <div class="p-space-lg flex flex-col lg:flex-row gap-space-lg">
     <div class="flex-1 flex flex-col gap-space-md min-w-0">
       <div class="flex items-center gap-space-sm flex-wrap">
-        <span class="inline-flex items-center gap-1 px-space-sm py-1 rounded bg-tertiary text-on-tertiary font-telemetry-sm text-telemetry-sm font-semibold"><span class="material-symbols-outlined text-[14px]">e911_emergency</span>EMERGENCY REQUEST</span>
         <span class="font-telemetry-md text-telemetry-md text-on-surface">#${esc(r.request_id)}</span><span class="text-outline">·</span>
         <span class="font-headline-sm text-headline-sm text-on-surface">${esc(condition(r))}</span>${priorityChip(r)}
       </div>
+      ${offerNote(i) || queueNote(i)}
       <div class="rounded-lg bg-surface-container-low p-space-md grid grid-cols-2 md:grid-cols-4 gap-space-md">
         ${box('airport_shuttle', 'Ambulance', `${unit(r.ambulance_id)} (ALS Unit)`)}
         ${box('timer', 'Transit ETA', `${i.eta_min} min`, 'text-tertiary')}
@@ -250,8 +248,8 @@
       </div>
     </div>
     <div class="lg:w-64 flex flex-col items-stretch justify-center gap-space-sm">
-      <span class="self-end inline-flex items-center gap-space-xs px-space-sm py-0.5 rounded-full bg-tertiary-fixed text-tertiary font-telemetry-sm text-telemetry-sm"><span class="w-2 h-2 rounded-full bg-tertiary animate-pulse"></span>Waiting · <span data-countdown="${esc(i.reservations[0].expires_at)}">--:--</span></span>
-      <a class="py-space-md rounded-lg bg-tertiary hover:bg-tertiary-container text-on-tertiary font-headline-sm text-headline-sm flex items-center justify-center gap-space-sm" href="#requests/${encodeURIComponent(r.request_id)}">Review Request <span class="font-telemetry-sm opacity-75">[Enter]</span><span class="material-symbols-outlined">arrow_forward</span></a>
+      ${offered(i) ? '' : `<span class="self-end inline-flex items-center gap-space-xs px-space-sm py-0.5 rounded-full bg-tertiary-fixed text-tertiary font-telemetry-sm text-telemetry-sm"><span class="w-2 h-2 rounded-full bg-tertiary animate-pulse"></span>Waiting · <span data-countdown="${esc(i.reservations[0].expires_at)}">--:--</span></span>`}
+      <a class="py-space-md rounded-lg bg-tertiary hover:bg-tertiary-container text-on-tertiary font-headline-sm text-headline-sm flex items-center justify-center gap-space-sm" href="#requests/${encodeURIComponent(r.request_id)}">Review Request<span class="material-symbols-outlined">arrow_forward</span></a>
     </div>
   </div>
 </div>`;
@@ -263,16 +261,16 @@
 <div class="bg-surface-container-lowest rounded-xl shadow-sm border-l-4 ${urgent(r) ? 'border-tertiary' : 'border-[#FF7A86]'} px-space-lg py-space-md flex flex-col lg:flex-row lg:items-center gap-space-md">
   <div class="flex-1 flex flex-col gap-space-xs min-w-0">
     <div class="flex items-center gap-space-sm flex-wrap">
-      <span class="inline-flex items-center gap-1 px-space-sm py-0.5 rounded bg-tertiary-fixed text-tertiary font-telemetry-sm text-telemetry-sm font-semibold">✱ EMERGENCY REQUEST</span>
       <span class="font-telemetry-md text-telemetry-md">#${esc(r.request_id)}</span><span class="text-outline">·</span><span class="font-label-lg text-label-lg">${esc(condition(r))}</span>${priorityChip(r)}
     </div>
     <div class="flex items-center gap-space-md flex-wrap font-telemetry-sm text-telemetry-sm text-on-surface-variant">
-      <span class="flex items-center gap-1"><span class="material-symbols-outlined text-[16px] text-primary">airport_shuttle</span>Amb ${unit(r.ambulance_id)} · Transit ETA: <b class="text-tertiary">${i.eta_min} min</b></span>
+      <span class="flex items-center gap-1">Amb ${unit(r.ambulance_id)} · Transit ETA: <b class="text-tertiary">${i.eta_min} min</b></span>
       <span class="flex items-center gap-1">REQUIRED: ${depts(r).slice(0, 3).map(d => chip(d)).join('')}</span>
     </div>
+    ${offerNote(i) || queueNote(i)}
   </div>
   <div class="flex flex-col items-end gap-space-xs">
-    <span class="font-telemetry-sm text-telemetry-sm text-tertiary">● Waiting · <span data-countdown="${esc(i.reservations[0].expires_at)}">--:--</span></span>
+    ${offered(i) ? '' : `<span class="font-telemetry-sm text-telemetry-sm text-tertiary">● Waiting · <span data-countdown="${esc(i.reservations[0].expires_at)}">--:--</span></span>`}
     <a class="px-space-lg py-space-sm rounded-lg bg-surface-container-low hover:bg-surface-container font-label-lg text-label-lg flex items-center gap-space-xs" href="#requests/${encodeURIComponent(r.request_id)}">Review Request<span class="material-symbols-outlined text-[18px]">arrow_forward</span></a>
   </div>
 </div>`;
@@ -286,7 +284,7 @@
         ? `<a class="px-space-md py-space-xs rounded bg-primary text-on-primary font-label-md text-label-md" href="#handover/${encodeURIComponent(r.request_id)}">Handover</a>`
         : `<a class="px-space-md py-space-xs rounded bg-surface-container-low hover:bg-surface-container font-label-md text-label-md inline-flex items-center gap-1" href="#live/${encodeURIComponent(r.request_id)}"><span class="material-symbols-outlined text-[16px] text-primary">near_me</span>Track</a>`;
       return `<div class="grid grid-cols-2 md:grid-cols-12 gap-space-sm md:gap-space-md px-space-lg py-space-md items-center border-b border-surface-container-low last:border-b-0 hover:bg-surface-container-low">
-        <span class="md:col-span-2 flex items-center gap-space-xs font-telemetry-md text-telemetry-md"><span class="material-symbols-outlined text-[18px] text-primary">personal_injury</span>#${esc(r.request_id)}</span>
+        <span class="md:col-span-2 flex items-center gap-space-xs font-telemetry-md text-telemetry-md">#${esc(r.request_id)}</span>
         <span class="md:col-span-3 font-label-lg text-label-lg">${esc(condition(r))}<span class="block font-telemetry-sm text-telemetry-sm text-on-surface-variant">Age ${r.patient_age}</span></span>
         <span class="md:col-span-2"><span class="px-space-sm py-0.5 rounded bg-surface-container-low font-telemetry-sm text-telemetry-sm">Amb ${unit(r.ambulance_id)}</span></span>
         <span class="md:col-span-2">${etaCell(i)}</span>
@@ -369,11 +367,11 @@
     <div class="flex items-center gap-space-sm flex-wrap"><h1 class="font-headline-lg text-headline-lg text-on-surface">Emergency Request Details</h1><span class="px-space-sm py-0.5 rounded bg-surface-container font-telemetry-md text-telemetry-md">#${esc(r.request_id)}</span></div>
     <span class="inline-flex w-fit items-center gap-space-xs px-space-sm py-0.5 rounded-full ${isPending ? 'bg-tertiary-fixed text-tertiary' : stCls} font-telemetry-sm text-telemetry-sm font-semibold uppercase"><span class="w-2 h-2 rounded-full ${isPending ? 'bg-tertiary animate-pulse' : 'bg-current'}"></span>${isPending ? 'Awaiting hospital response' : esc(st)}</span>
   </div>
-  ${isPending ? `<div class="flex flex-col items-end"><span class="font-telemetry-lg text-[30px] text-tertiary" data-countdown="${esc(i.reservations[0].expires_at)}">--:--</span><span class="font-telemetry-sm text-telemetry-sm text-on-surface-variant">before the hold expires</span></div>` : ''}
+  ${isPending && !offered(i) ? `<div class="flex flex-col items-end"><span class="font-telemetry-lg text-[30px] text-tertiary" data-countdown="${esc(i.reservations[0].expires_at)}">--:--</span><span class="font-telemetry-sm text-telemetry-sm text-on-surface-variant">left to answer</span></div>` : ''}
 </div>
 
-<div class="grid grid-cols-1 lg:grid-cols-3 gap-space-lg">
-  <div class="lg:col-span-2 bg-surface-container-lowest rounded-xl shadow-sm p-space-lg flex flex-col gap-space-md">
+<div class="grid grid-cols-1 gap-space-lg">
+  <div class="bg-surface-container-lowest rounded-xl shadow-sm p-space-lg flex flex-col gap-space-md">
     <div class="flex items-center gap-space-md flex-wrap">
       <div class="w-12 h-12 rounded-lg flex items-center justify-center" style="background:${pbg}"><span class="material-symbols-outlined" style="color:${pc}">e911_emergency</span></div>
       <h2 class="font-headline-lg text-headline-lg text-on-surface">${esc(condition(r))} (${code})</h2>
@@ -392,17 +390,10 @@
       <p class="font-body-md text-body-md text-on-surface">${v.notes ? `“${esc(v.notes)}”` : `${esc(r.severity)} ${esc(r.emergency_type)}, patient age ${r.patient_age}. Needs ${esc([...depts(r), ...equips(r)].join(', ') || 'a general bed')}${r.required_specialist ? `; ${esc(r.required_specialist)} requested` : ''}. ${r.beds_required > 1 ? `${r.beds_required} beds required.` : ''}`}</p>
     </div>
   </div>
-  <div class="bg-surface-container-lowest rounded-xl shadow-sm p-space-lg flex flex-col gap-space-md">
-    <div class="flex items-center justify-between"><span class="font-headline-sm text-headline-sm flex items-center gap-1"><span class="material-symbols-outlined text-primary text-[18px]">route</span>Live Green Corridor</span><span class="px-space-sm py-0.5 rounded bg-surface-container text-primary font-telemetry-sm text-telemetry-sm">GPS ${w.departure_time && !w.arrival_time ? 'ACTIVE' : 'STANDBY'}</span></div>
-    ${corridorSVG(i)}
-    <a class="py-space-sm rounded-lg bg-surface-container-low hover:bg-surface-container font-label-md text-label-md flex items-center justify-center gap-space-xs" href="#live/${encodeURIComponent(r.request_id)}"><span class="material-symbols-outlined text-[16px] text-primary">near_me</span>Open live route map</a>
-    <div class="grid grid-cols-2 gap-space-sm font-telemetry-sm text-telemetry-sm"><span class="text-on-surface-variant">Pickup</span><span class="text-right">${r.location.lat.toFixed(3)}, ${r.location.lng.toFixed(3)}</span>
-      <span class="text-on-surface-variant">Bed hold</span><span class="text-right">${esc(i.reservations.map(x => `${x.quantity}× ${x.resource_type}`).join(' + '))}</span></div>
-  </div>
 </div>
 
 <div class="bg-surface-container-lowest rounded-xl shadow-sm p-space-lg flex flex-col gap-space-md">
-  <div class="flex items-center justify-between"><div class="flex flex-col"><span class="font-telemetry-sm text-telemetry-sm text-primary uppercase flex items-center gap-1"><span class="material-symbols-outlined text-[16px]">fact_check</span>Capacity validation engine</span><h2 class="font-headline-lg text-headline-lg">Resource Availability Check</h2></div>
+  <div class="flex items-center justify-between"><div class="flex flex-col"><h2 class="font-headline-lg text-headline-lg">Can we take this patient?</h2></div>
     <span class="px-space-sm py-0.5 rounded font-telemetry-sm text-telemetry-sm ${conflicts ? 'bg-tertiary-fixed text-tertiary' : 'bg-[#ECFDF5] text-[#065F46]'}">${conflicts ? `${conflicts} conflict${conflicts > 1 ? 's' : ''}` : 'All requirements met'}</span></div>
   <div class="rounded-lg overflow-hidden border border-surface-container-low">
     <div class="hidden md:grid grid-cols-12 gap-space-md px-space-lg py-space-sm bg-surface-container-low font-label-md text-label-md text-on-surface-variant uppercase"><span class="col-span-4">Required by dispatch (#${esc(r.request_id)})</span><span class="col-span-2">Status</span><span class="col-span-4">${esc(session.user.name.split(' ')[0])} real-time availability</span><span class="col-span-2 text-right">Lock</span></div>
@@ -415,10 +406,10 @@
 </div>
 
 <div class="bg-surface-container-lowest rounded-xl shadow-sm p-space-lg flex flex-col md:flex-row md:items-center justify-between gap-space-md">
-  <span class="font-telemetry-sm text-telemetry-sm text-on-surface-variant">${isPending ? 'Key command: Press <b>[Enter]</b> to accept or <b>[Esc]</b> to go back.' : 'This patient is confirmed. Track arrival in Active Cases / Handover.'}</span>
+  <span class="font-telemetry-sm text-telemetry-sm text-on-surface-variant">${isPending ? (offerNote(i) || queueNote(i, { full: true })) : 'This patient is confirmed. Track the ambulance on Live Route.'}</span>
   <div class="flex gap-space-md">
-    ${isPending ? `<button class="px-space-lg py-space-md rounded-lg bg-surface-container-low hover:bg-surface-container font-label-lg text-label-lg flex items-center gap-space-xs" data-reject="${esc(i.reservation_id)}" type="button"><span class="material-symbols-outlined text-[18px]">block</span>Reject Request</button>
-      <button class="px-space-xl py-space-md rounded-lg bg-tertiary hover:bg-tertiary-container text-on-tertiary font-headline-sm text-headline-sm flex items-center gap-space-sm" data-accept="${esc(i.reservation_id)}" type="button">Accept &amp; Reserve Resources<span class="material-symbols-outlined">arrow_forward</span></button>`
+    ${isPending ? `<button class="px-space-lg py-space-md rounded-lg bg-surface-container-low hover:bg-surface-container font-label-lg text-label-lg flex items-center gap-space-xs" data-reject="${esc(i.reservation_id)}" type="button"><span class="material-symbols-outlined text-[18px]">block</span>${offered(i) ? 'Withdraw' : 'Reject Request'}</button>
+      ${offered(i) ? '' : `<button class="px-space-xl py-space-md rounded-lg bg-tertiary hover:bg-tertiary-container text-on-tertiary font-headline-sm text-headline-sm flex items-center gap-space-sm" data-accept="${esc(i.reservation_id)}" ${i.queue && !i.queue.gets_bed ? 'data-override="1"' : ''} type="button">${i.queue && !i.queue.gets_bed ? 'Accept anyway' : 'Accept &amp; Reserve Resources'}<span class="material-symbols-outlined">arrow_forward</span></button>`}`
     : w.arrival_time ? `<a class="px-space-xl py-space-md rounded-lg bg-primary text-on-primary font-label-lg text-label-lg" href="#handover/${encodeURIComponent(r.request_id)}">Open Handover</a>`
     : `<button class="px-space-xl py-space-md rounded-lg bg-primary text-on-primary font-label-lg text-label-lg" data-arrive="${esc(r.request_id)}" type="button">Mark ambulance arrived</button>`}
   </div>
@@ -430,7 +421,7 @@
                ['oxygen_bed', 'Oxygen Beds', 'High-flow O₂ therapy', 'pulmonology', 'Oxygen Bed'], ['general_bed', 'General Beds', 'Ward admission', 'bed', 'General Bed']];
   function renderResources() {
     const h = state.hospital; if (!h) return;
-    $('res-updated').textContent = `Updated ${ago(h.freshness.last_updated)} · ${h.freshness.status.toUpperCase()}`;
+    $('res-updated').innerHTML = `Last updated ${ago(h.freshness.last_updated)} by ${esc(h.update_source)}${h.freshness.status === 'stale' ? ' · <b class="text-tertiary">out of date: tap Confirm all numbers</b>' : ''}`;
     const heldBy = {};
     confirmed().forEach(i => i.reservations.forEach(x => { heldBy[x.resource_type] = (heldBy[x.resource_type] || 0) + x.quantity; }));
     $('res-capacity').innerHTML = CAP.map(([k, name, sub, icon, label]) => {
@@ -466,10 +457,6 @@
         <span class="font-headline-sm text-headline-sm flex items-center gap-space-xs"><span class="material-symbols-outlined text-primary">stethoscope</span>Specialists on call <span class="font-telemetry-sm text-telemetry-sm text-on-surface-variant font-normal">· tap to switch</span></span>
         <div class="flex flex-wrap gap-space-xs">${SPECIALISTS.map(sp => { const on = h.specialists.includes(sp);
           return `<button class="px-space-md py-space-xs rounded-full border font-label-md text-label-md inline-flex items-center gap-space-xs ${on ? 'bg-primary text-on-primary border-primary' : 'bg-surface-container-lowest text-on-surface-variant border-outline-variant'}" data-spec-toggle="${esc(sp)}" type="button" aria-pressed="${on}"><span class="material-symbols-outlined text-[16px]">${on ? 'check' : 'add'}</span>${esc(sp)}</button>`; }).join('')}</div></div>`;
-    $('res-footer').innerHTML = `Last update ${fmt.timeIST(h.freshness.last_updated)} by <b>${esc(h.update_source)}</b> · version v${h.version}`;
-    const stale = h.freshness.status === 'stale';
-    $('res-conflicts').textContent = stale ? 'Data is STALE: tap Quick Sync to re-confirm' : 'No protocol conflicts';
-    $('res-conflicts').parentElement.className = `font-telemetry-sm text-telemetry-sm ${stale ? 'text-tertiary' : 'text-primary'} flex items-center gap-space-xs`;
   }
   // Departments / specialists on/off → saved immediately; the ranking engine uses it for the next match
   const SPECIALISTS = ['Trauma Surgeon', 'General Surgeon', 'Cardiologist', 'Neurologist', 'Pulmonologist', 'Nephrologist'];
@@ -742,8 +729,7 @@ ${resourcesCard(sel, adm)}
 
     el.innerHTML = `
 <div class="flex flex-col md:flex-row md:items-end justify-between gap-space-md">
-  <div class="flex flex-col gap-space-xs"><span class="px-space-sm py-0.5 rounded bg-tertiary text-on-tertiary font-telemetry-sm text-telemetry-sm w-fit">TRIAGE STAGE 4</span><h1 class="font-display-lg text-display-lg">Active Emergency Cases &amp; Handover</h1></div>
-  ${tabs}
+  <h1 class="font-display-lg text-display-lg">Handover</h1>
 </div>
 ${bay.length > 1 ? `<div class="flex gap-space-xs flex-wrap">${bay.map(i => `<a class="px-space-md py-space-xs rounded-full font-label-md text-label-md ${i === sel ? 'bg-primary text-on-primary' : 'bg-surface-container-low'}" href="#handover/${encodeURIComponent(i.request.request_id)}">#${esc(i.request.request_id)}</a>`).join('')}</div>` : ''}
 <div class="grid grid-cols-1 lg:grid-cols-3 gap-space-lg items-start">
@@ -1187,13 +1173,20 @@ ${backupHTML}`;
   }
 
   // ───────────── Actions ─────────────
-  async function accept(resId) {
+  const myOffers = new Set();   // requests we said yes to that are waiting for confirmation
+  async function accept(resId, override = false) {
     try {
-      await api(`/api/reservations/${encodeURIComponent(resId)}`, { method: 'PATCH', body: { action: 'accept' } });
+      const res = await api(`/api/reservations/${encodeURIComponent(resId)}`, { method: 'PATCH', body: { action: 'accept', override } });
+      if (res.offered && res.action !== 'accepted') {
+        toast('You said yes · bed held', `A better-ranked hospital (${esc((res.waiting_on || []).map(w => w.hospital_name).join(', '))}) is still deciding. If it doesn't accept within 30 s, the patient is yours.`, 'info');
+        myOffers.add(res.request?.request_id); loadItems(); return;
+      }
       toast('Patient accepted', 'Resources reserved. The ambulance has been notified.', 'success');
       location.hash = `#live/${encodeURIComponent(state.items.find(x => x.reservation_id === resId)?.request.request_id || '')}`;
     } catch (err) {
-      toast(err.body?.code === 'ALREADY_FILLED' ? 'Too late: another hospital accepted first' : 'Could not accept', esc(err.message), err.body?.code === 'ALREADY_FILLED' ? 'warn' : 'critical');
+      const code = err.body?.code;
+      if (code === 'PRIORITY_CONFLICT') { toast('Another patient is ahead for this bed', esc(err.message), 'warn'); loadItems(); return; }
+      toast(code === 'ALREADY_FILLED' ? 'Too late: another hospital accepted first' : 'Could not accept', esc(err.message), code === 'ALREADY_FILLED' ? 'warn' : 'critical');
       if (err.status === 409) location.hash = '#dashboard';
     }
     loadItems();
@@ -1228,7 +1221,7 @@ ${backupHTML}`;
   }
 
   document.addEventListener('click', (e) => {
-    const a = e.target.closest('[data-accept]'); if (a) accept(a.dataset.accept);
+    const a = e.target.closest('[data-accept]'); if (a) accept(a.dataset.accept, a.dataset.override === '1');
     const rj = e.target.closest('[data-reject]'); if (rj) openReject(rj.dataset.reject);
     const ar = e.target.closest('[data-arrive]'); if (ar) handoff(ar.dataset.arrive, 'arrive');
     const cp = e.target.closest('[data-complete]'); if (cp && !cp.disabled) handoff(cp.dataset.complete, 'complete');
@@ -1243,7 +1236,7 @@ ${backupHTML}`;
     }
     if (e.key === 'Escape') { if (!$('reject-dialog').classList.contains('hidden')) closeReject(); else if (state.view === 'detail') location.hash = '#dashboard'; }
     if (typing) return;
-    if (e.key === 'Enter' && state.view === 'detail') { const b = document.querySelector('#view-detail [data-accept]'); if (b) { e.preventDefault(); b.click(); } }
+    if (e.key === 'Enter' && state.view === 'detail') { const b = document.querySelector('#view-detail [data-accept]:not([data-override])'); if (b) { e.preventDefault(); b.click(); } }
     if (e.key === 'Enter' && state.view === 'dashboard') { const first = pending()[0]; if (first) location.hash = `#requests/${encodeURIComponent(first.request.request_id)}`; }
     if ((e.key === 's' || e.key === 'S') && state.view === 'resources' && !e.ctrlKey && !e.metaKey) quickSync();
   });
@@ -1296,18 +1289,16 @@ ${backupHTML}`;
     });
     document.querySelectorAll('[data-eta-clock]').forEach(el => { el.textContent = mmss((new Date(el.dataset.etaClock) - Date.now()) / 1000); });
   }
-  setInterval(() => { tick(); tickClock(); liveTick(); }, 1000);
+  setInterval(() => { tick(); liveTick(); }, 1000);
   setInterval(() => { if (state.view === 'handover' || state.view === 'detail') render(); }, 15000);   // progress bars / "docked x min ago"
   setInterval(loadHospital, 60000);                                                                    // freshness ages
 
   // ───────────── Live updates ─────────────
   function setConnection(online) {
-    $('conn-dot').className = `w-2.5 h-2.5 rounded-full shrink-0 ${online ? 'bg-primary animate-pulse' : 'bg-tertiary'}`;
-    $('conn-text').textContent = online ? `Hospital online · ${HID}` : 'Reconnecting…';
-    $('footer-conn').textContent = online ? 'Connected' : 'Offline';
+    $('offline-banner').classList.toggle('hidden', online);   // only shown when something is wrong
   }
   if (window.io) {
-    const socket = io();
+    const socket = io({ auth: { token: session.token } });
     socket.on('connect', () => { setConnection(true); loadItems(); loadHospital(); });
     socket.on('disconnect', () => setConnection(false));
     socket.on('reservation:update', async (p) => {
@@ -1329,6 +1320,12 @@ ${backupHTML}`;
           if (!alarmItem) showAlarm(item); else $('alarm-queue').textContent = `+${state.alarmQueue.length - 1} more waiting`;
         }
       }
+      if (p.action === 'accepted' && myOffers.has(p.request.request_id)) {       // our earlier "yes" has now been confirmed
+        myOffers.delete(p.request.request_id);
+        toast('Confirmed: the patient is yours', `#${esc(p.request.request_id)} · the ambulance is being routed to you.`, 'success');
+        location.hash = `#live/${encodeURIComponent(p.request.request_id)}`;
+      }
+      if (p.action === 'filled') myOffers.delete(p.request.request_id);
       if (['cancelled', 'expired', 'filled'].includes(p.action)) {
         if (alarmItem?.request.request_id === p.request.request_id) { closeAlarm(); nextAlarm(); }
         state.alarmQueue = state.alarmQueue.filter(x => x !== p.request.request_id);
@@ -1356,7 +1353,7 @@ ${backupHTML}`;
   } else setConnection(false);
 
   // ───────────── Boot ─────────────
-  tickClock(); renderArm();
+  renderArm();
   (async () => {
     try { state.meta = await api('/api/reservations/meta'); } catch { /* defaults */ }
     await Promise.all([loadHospital(), loadItems()]);

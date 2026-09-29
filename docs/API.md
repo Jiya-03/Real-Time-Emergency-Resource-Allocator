@@ -146,6 +146,16 @@ How it works:
 - Hospital inbox items carry `offer: { manual, offered_at, decide_at }`; request detail carries `marks[]` (same fields per hospital).
 - Proven by `npm run test:cascade` (waves, offers, wait-over, declines, time-outs, override) and `npm run test:broadcast` (simultaneous accepts → exactly one winner).
 
+### Test scenarios page (problem statement: stale data, simultaneous requests, double-booking)
+`/scenarios.html` (also "Test Scenarios" in the dispatcher menu) runs 6 scenarios live: stale data, double-booking (20 requests → 1 bed),
+two hospitals accepting at once, two patients / one bed, decline + no answer, and the full workflow.
+They run on a **sandbox copy** (a second server process on a fresh SQLite copy of the dataset, short timers), so real data is never touched.
+| Method | Path | What |
+|---|---|---|
+| GET | /api/scenarios | List of scenarios |
+| GET | /api/scenarios/run?id=all\|stale\|double\|accepts\|onebed\|nobody\|e2e | Server-Sent Events: `status`, `start`, `step {text, status: ok\|fail\|info\|wait}`, `done {pass, ms}`, `end {pass, results}` |
+Proven by `npm run test:scenarios`.
+
 ### Two patients, one bed (hospital queue)
 When several emergencies wait on the same hospital and it has beds for only some of them, `GET /api/reservations` returns them **in priority order**, each with a `queue` object: `{ position, gets_bed, contended, reason, behind, other_options }`.
 

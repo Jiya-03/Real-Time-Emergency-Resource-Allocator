@@ -10,7 +10,7 @@
     "seed": "node src/db/seed.js",
     "test:ranking": "node tests/ranking-replay.test.mjs",
     "test:booking": "node tests/double-booking.test.mjs",
-    "test": "npm run test:ranking && npm run test:booking && npm run test:broadcast && npm run test:admission && npm run test:sync && npm run test:verify && npm run test:cascade && npm run test:gps && npm run test:road && npm run test:multi",
+    "test": "npm run test:ranking && npm run test:booking && npm run test:broadcast && npm run test:admission && npm run test:sync && npm run test:verify && npm run test:cascade && npm run test:gps && npm run test:road && npm run test:multi && npm run test:scenarios",
     "test:broadcast": "node tests/broadcast.test.mjs",
     "test:admission": "node tests/admission.test.mjs",
     "supabase:push": "node src/sync-cli.js push",
@@ -20,7 +20,8 @@
     "test:cascade": "node tests/cascade.test.mjs",
     "test:gps": "node tests/gps-security.test.mjs",
     "test:road": "node tests/road-eta.test.mjs",
-    "test:multi": "node tests/multi-server.test.mjs"
+    "test:multi": "node tests/multi-server.test.mjs",
+    "test:scenarios": "node tests/scenarios.test.mjs"
   },
   "dependencies": {
     "@socket.io/postgres-adapter": "^0.4.0",
@@ -31,10 +32,10 @@
     "express": "^5.2.1",
     "pg": "^8.23.0",
     "socket.io": "^4.8.4",
-    "ws": "^8.22.0"
+    "ws": "^8.22.0",
+    "socket.io-client": "^4.8.4"
   },
   "devDependencies": {
-    "nodemon": "^3.1.10",
-    "socket.io-client": "^4.8.4"
+    "nodemon": "^3.1.10"
   }
 }

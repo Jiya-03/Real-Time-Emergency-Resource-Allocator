@@ -12,6 +12,7 @@ import requestsRouter from './routes/requests.js';
 import authRouter from './routes/auth.js';
 import reservationsRouter from './routes/reservations.js';
 import configRouter from './routes/config.js';
+import scenariosRouter from './routes/scenarios.js';
 import { startExpirySweeper } from './services/reservationService.js';
 import { initSockets } from './sockets/index.js';
 import { startSimulator } from './services/simulator.js';
@@ -34,6 +35,7 @@ app.use('/api/simulator', simulatorRouter);
 app.use('/api/requests', requestsRouter);
 app.use('/api/reservations', reservationsRouter);
 app.use('/api/config', configRouter);
+app.use('/api/scenarios', scenariosRouter);
 
 // Unknown routes
 app.use((req, res) => res.status(404).json({ error: 'Not found' }));
@@ -55,6 +57,11 @@ async function startBackgroundJobs() {
   if (db.driver === 'postgres') console.log('👑 This server runs the background jobs (hold expiry, simulator)');
   if (process.env.SIMULATOR !== 'off') await startSimulator().catch(e => console.warn('[simulator]', e.message));
   startExpirySweeper();
+}
+
+// Scenario sandbox (a copy started by the Scenarios page): stop when the main server is gone
+if (process.env.SANDBOX_PARENT_PID) {
+  setInterval(() => { try { process.kill(Number(process.env.SANDBOX_PARENT_PID), 0); } catch { process.exit(0); } }, 3000).unref();
 }
 
 server.listen(PORT, () => {
